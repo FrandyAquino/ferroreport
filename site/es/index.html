@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<!-- The Spanish copy of ../index.html: keep the two in step. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ferroreport: reportes PDF, Excel y Word desde cualquier lenguaje, en milisegundos (lee JRXML de JasperReports)</title>
+<meta name="description" content="Un motor de reportes que convierte una plantilla y tus datos en PDF, Excel, Word, PowerPoint o CSV en milisegundos: una factura en 2 ms, un millón de filas en 16 MB de memoria. Lee las plantillas JRXML de JasperReports y da el mismo resultado píxel por píxel, sin JVM. Rust, JavaScript, Python, CLI y HTTP.">
+<link rel="canonical" href="https://cristianencarnacion.github.io/ferroreport/es/">
+<link rel="alternate" hreflang="en" href="https://cristianencarnacion.github.io/ferroreport/">
+<link rel="alternate" hreflang="es" href="https://cristianencarnacion.github.io/ferroreport/es/">
+<link rel="alternate" hreflang="x-default" href="https://cristianencarnacion.github.io/ferroreport/">
+<meta name="keywords" content="alternativa a JasperReports, JRXML a PDF, motor de reportes, generador de reportes, PDF en Rust, PDF/A, PDF/UA, generador de facturas, exportar a Excel, exportar a Word, Jaspersoft">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://cristianencarnacion.github.io/ferroreport/es/">
+<meta property="og:site_name" content="ferroreport">
+<meta property="og:locale" content="es_LA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://cristianencarnacion.github.io/ferroreport/img/invoice.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:title" content="ferroreport: reportes PDF, Excel y Word desde cualquier lenguaje, en milisegundos">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareSourceCode", "name": "ferroreport", "description": "Motor de reportes de código abierto en Rust que genera las plantillas JRXML de JasperReports en PDF, Excel, Word, PowerPoint, OpenDocument, CSV y HTML sin JVM, idénticas píxel por píxel a JasperReports.", "inLanguage": "es", "codeRepository": "https://github.com/cristianEncarnacion/ferroreport", "url": "https://cristianencarnacion.github.io/ferroreport/", "programmingLanguage": ["Rust", "JavaScript", "Python", "Java"], "license": "https://opensource.org/licenses/MIT", "version": "1.2.0", "author": {"@type": "Person", "name": "Cristian Encarnación"}, "keywords": "alternativa a JasperReports, JRXML, motor de reportes, generador de PDF, Rust, PDF/A, PDF/UA, factura, Excel, Word"}</script>
+<meta property="og:description" content="Una factura en 2 ms, un millón de filas en 16 MB. Lee tus plantillas de JasperReports, sin JVM. Míralo competir contra JasperReports.">
+<link rel="preload" href="../fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<div class="hero">
+  <canvas id="heat" aria-hidden="true"></canvas>
+  <div class="wrap">
+    <header class="top">
+      <a class="brand" href="./">ferro<span>report</span></a>
+      <nav>
+        <a class="wide" href="#benchmarks">Rendimiento</a>
+        <a class="wide" href="#playground">Pruébalo</a>
+        <a href="../designer/">Diseñador</a>
+        <a href="../docs.html" hreflang="en">Docs</a>
+        <a href="https://github.com/cristianEncarnacion/ferroreport">GitHub</a>
+        <span class="lang" role="group" aria-label="Idioma">
+          <a href="../" hreflang="en" lang="en" aria-label="English">EN</a>
+          <a href="./" hreflang="es" lang="es" aria-label="Español" aria-current="true">ES</a>
+        </span>
+      </nav>
+    </header>
+
+    <div class="headline">
+      <h1>Reportes en milisegundos,<br><span class="hot">desde cualquier lenguaje.</span></h1>
+      <p class="lead">Entran una plantilla y tus datos; sale un PDF, un libro de Excel, un documento de Word o un CSV. Una factura tarda 2 ms y un
+        millón de filas usan 16 MB de memoria. Lee las plantillas <code>.jrxml</code> de JasperReports que ya tienes y da las
+        mismas páginas, píxel por píxel, sin una JVM.</p>
+      <div class="cta">
+        <a class="btn solid" href="#playground">Genera un reporte en tu navegador</a>
+        <a class="btn quiet" href="../designer/">Diseña un reporte, sin código</a>
+        <a class="btn quiet" href="../docs.html" hreflang="en">Lee la documentación</a>
+      </div>
+    </div>
+
+    <div class="race" id="race" role="img"
+      aria-label="Carrera: JasperReports tarda 2.63 segundos en generar una factura desde que arranca el proceso; ferroreport la genera en 11 milisegundos, así que genera 234 facturas en el mismo tiempo.">
+      <div class="lanes" aria-hidden="true">
+        <div class="lane jasper">
+          <div class="lane-head">
+            <div class="who">JasperReports 6.20<small>Java 21, arranque en frío</small></div>
+            <div class="clock" id="jclock">0.00 s</div>
+          </div>
+          <div class="screen">
+            <ol class="log" id="jlog">
+              <li data-a="0" data-b="0.23"><span>Arrancando la JVM</span><span class="t"></span></li>
+              <li data-a="0.23" data-b="0.40"><span>Cargando JasperReports</span><span class="t"></span></li>
+              <li data-a="0.40" data-b="1.91"><span>Compilando invoice.jrxml</span><span class="t"></span></li>
+              <li data-a="1.91" data-b="2.33"><span>Llenando 46 filas</span><span class="t"></span></li>
+              <li data-a="2.33" data-b="2.63"><span>Exportando el PDF</span><span class="t"></span></li>
+            </ol>
+            <div class="sheet" id="jsheet"></div>
+          </div>
+          <div class="meter"><i id="jbar"></i></div>
+        </div>
+        <div class="lane ferro" id="flane">
+          <div class="lane-head">
+            <div class="who">ferroreport<small>binario nativo, arranque en frío</small></div>
+            <div class="clock" id="fclock">0.00 s</div>
+          </div>
+          <div class="screen">
+            <ol class="log" id="flog">
+              <li data-a="0" data-b="0.0040"><span>Arrancando, leyendo invoice.jrxml</span><span class="t"></span></li>
+              <li data-a="0.0040" data-b="0.0087"><span>Llenando 46 filas</span><span class="t"></span></li>
+              <li data-a="0.0087" data-b="0.0112"><span>Exportando el PDF</span><span class="t"></span></li>
+            </ol>
+            <div class="glow" id="glow"></div>
+            <div class="pile" id="pile"></div>
+            <div class="counter" id="counter"><span id="count">1</span><small>facturas generadas</small></div>
+          </div>
+          <div class="meter"><i id="fbar"></i></div>
+        </div>
+      </div>
+      <p class="verdict" id="verdict">JasperReports entregó 1 factura.<br>En los mismos 2.6 segundos, ferroreport entregó <b>234</b>.</p>
+      <div class="race-foot">
+        <span>Tiempos reales: la factura de 2 páginas de las pruebas de rendimiento de abajo, medida desde que arranca el proceso. La división en pasos es aproximada.</span>
+        <button class="replay" id="replay" type="button">Repetir la carrera</button>
+        <button class="replay" id="watch" type="button">▶ Ver el video con sonido</button>
+        <a class="replay" href="../video/ferroreport-race.mp4" download>Descargar el video</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<dialog class="watch" id="watch-dialog" aria-label="La carrera, en video con sonido">
+  <button type="button" id="watch-close">Cerrar</button>
+  <video id="watch-video" src="../video/ferroreport-race.mp4" controls playsinline preload="none"></video>
+</dialog>
+
+<main class="wrap">
+  <section id="numbers" style="padding-top:56px">
+    <div class="numbers">
+      <div class="num"><b>2 ms</b><span>para una factura de dos páginas, en un servicio que ya está corriendo</span></div>
+      <div class="num"><b>16 MB</b><span>de memoria para un millón de filas y 23,810 páginas</span></div>
+      <div class="num"><b>~200×</b><span>más rápido que JasperReports arrancando en frío; de 3 a 5× más rápido que una JVM caliente</span></div>
+      <div class="num"><b>48 de 48</b><span>reportes de prueba idénticos píxel por píxel a JasperReports</span></div>
+    </div>
+  </section>
+
+  <section id="benchmarks">
+    <h2>Rendimiento</h2>
+    <p class="sub">Cuánto más rápido es depende de con qué se compare, así que aquí están las comparaciones que importan. La misma
+      plantilla, los mismos datos, la misma máquina Linux de 2 CPU, ferroreport 1.1.0 contra JasperReports 6.20.6 en Java 21. Un solo
+      script del repositorio lo reproduce todo (<code>tools/bench_all.py</code>).</p>
+
+    <h3 class="bench-title">En frío: un proceso arranca, genera un reporte y termina</h3>
+    <p class="fine">Lo que paga un script, una función serverless o un contenedor por reporte. Desde que arranca el proceso hasta el PDF en disco.</p>
+    <div class="bench">
+      <div class="bench-row">
+        <h3>Factura, 2 páginas <span>234× más rápido · 191 → 15 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">2.63 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:0.43%"></i></div><span class="v">11 ms</span></div>
+      </div>
+      <div class="bench-row">
+        <h3>Ventas agrupadas, 4 páginas <span>210× más rápido · 186 → 15 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">2.55 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:0.48%"></i></div><span class="v">12 ms</span></div>
+      </div>
+      <div class="bench-row">
+        <h3>Árabe, de derecha a izquierda, 1 página <span>240× más rápido · 178 → 14 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">2.08 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:0.42%"></i></div><span class="v">9 ms</span></div>
+      </div>
+      <div class="bench-row">
+        <h3>20,000 filas, 477 páginas <span>22× más rápido · 464 → 14 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">5.68 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:4.60%"></i></div><span class="v">0.26 s</span></div>
+      </div>
+    </div>
+
+    <h3 class="bench-title">En caliente: un servicio que se queda encendido</h3>
+    <p class="fine">JasperReports en su mejor caso: una sola JVM, la plantilla compilada una vez, el JIT calentado con cientos de corridas,
+      el PDF exportado a memoria. ferroreport vuelve a interpretar la plantilla cada vez.</p>
+    <div class="bench">
+      <div class="bench-row">
+        <h3>Factura, 2 páginas <span>3.6× más rápido</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">8.0 ms</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:27.78%"></i></div><span class="v">2.2 ms</span></div>
+      </div>
+      <div class="bench-row">
+        <h3>Lista de empleados, 2 páginas <span>4.4× más rápido</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">5.9 ms</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:22.62%"></i></div><span class="v">1.3 ms</span></div>
+      </div>
+      <div class="bench-row">
+        <h3>Árabe, de derecha a izquierda, 1 página <span>3.2× más rápido</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">4.7 ms</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:30.81%"></i></div><span class="v">1.4 ms</span></div>
+      </div>
+      <div class="bench-row">
+        <h3>20,000 filas, 477 páginas <span>5.3× más rápido</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">1.17 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:18.99%"></i></div><span class="v">0.22 s</span></div>
+      </div>
+    </div>
+
+    <h3 class="bench-title">Grandes: filas por cientos de miles</h3>
+    <p class="fine">Las filas se leen a medida que hacen falta y cada página se escribe apenas se termina, así que la memoria no crece
+      con el reporte. JasperReports corre con su memoria (heap) por defecto.</p>
+    <div class="bench">
+      <div class="bench-row">
+        <h3>100,000 filas, 2,382 páginas <span>9.0× más rápido · 876 → 14 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">11.53 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:11.11%"></i></div><span class="v">1.28 s</span></div>
+      </div>
+      <div class="bench-row">
+        <h3>1,000,000 filas, 23,810 páginas <span>5.7× más rápido · 1,737 → 15 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">68.34 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:17.59%"></i></div><span class="v">12.02 s</span></div>
+      </div>
+    </div>
+
+    <h3 class="bench-title">Cada formato: lo que cuesta cada salida</h3>
+    <p class="fine">El reporte de 20,000 filas, en frío, a cada formato que escriben los dos motores. PDF, Word y CSV se escriben página por página;
+      las columnas de una hoja salen de todas las páginas y los estilos de un archivo OpenDocument van antes de su contenido, así que los grandes se llenan más de una vez.</p>
+    <div class="bench">
+      <div class="bench-row">
+        <h3>PDF <span>23× más rápido · 463 → 14 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">5.70 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:4.31%"></i></div><span class="v">0.25 s</span></div>
+      </div>
+      <div class="bench-row">
+        <h3>Excel (XLSX) <span>8.1× más rápido · 263 → 59 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">3.78 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:12.28%"></i></div><span class="v">0.46 s</span></div>
+      </div>
+      <div class="bench-row">
+        <h3>Word (DOCX) <span>12× más rápido · 292 → 14 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">4.24 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:8.29%"></i></div><span class="v">0.35 s</span></div>
+      </div>
+      <div class="bench-row">
+        <h3>Hoja de cálculo OpenDocument (ODS) <span>8.3× más rápido · 299 → 100 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">4.34 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:11.98%"></i></div><span class="v">0.52 s</span></div>
+      </div>
+      <div class="bench-row">
+        <h3>Texto OpenDocument (ODT) <span>8.8× más rápido · 290 → 59 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">4.19 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:11.32%"></i></div><span class="v">0.47 s</span></div>
+      </div>
+      <div class="bench-row">
+        <h3>CSV <span>12× más rápido · 248 → 13 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">3.26 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:8.47%"></i></div><span class="v">0.28 s</span></div>
+      </div>
+    </div>
+    <p class="fine">Contra JasperReports 7.1.1, con las plantillas convertidas a JRXML 7 para los dos motores: en frío, de 200× a 208× más rápido
+      con los reportes pequeños; en caliente, de 2.9 a 5.0×; un millón de filas en 11.31 s y 15 MiB contra
+      52.22 s y 1,734 MiB.</p>
+    <p class="fine">En resumen: en un reporte pequeño, casi todo el tiempo de JasperReports se va en arrancar la JVM y compilar la plantilla.
+      Por eso la diferencia es de dos órdenes de magnitud cuando arranca un proceso por reporte, y de 3 a 5× cuando no.
+      Los PDF además suelen pesar menos: 1.2 MB en vez de 4.5 MB con las 20,000 filas, y más o menos lo mismo con un millón.</p>
+  </section>
+
+  <section>
+    <h2>Hecho para ser rápido, pequeño y seguro</h2>
+    <p class="sub">Un motor de reportes para cualquier stack, y un reemplazo directo para las plantillas de JasperReports que ya tienes.</p>
+    <div class="features">
+      <div class="feature"><h3>Idéntico píxel por píxel</h3><p>Cada reporte de prueba se genera con los dos motores y se compara píxel por píxel: las medidas del texto, los saltos de línea, los cortes de página, los grupos y las variables siguen exactamente a Jasper.</p></div>
+      <div class="feature"><h3>Seguro con cualquier plantilla</h3><p>Sin deserializar archivos <code>.jasper</code>, sin código Java en las expresiones, sin red. Las imágenes y subreportes solo se cargan de las carpetas que permites, y los límites de páginas y de tiempo detienen un reporte que se desboca. Cada cambio se prueba contra miles de plantillas dañadas.</p></div>
+      <div class="feature"><h3>Memoria plana a cualquier tamaño</h3><p>Las filas se leen a medida que el reporte las necesita y cada página se escribe apenas se termina. Un millón de filas y 23,810 páginas se generan en 16 MB, incluidos valores como "página 3 de 240"; por HTTP las filas viajan una por línea y el servidor se queda en unos 50 MB. Los libros de Excel también se escriben a medida que se generan.</p></div>
+      <div class="feature"><h3>Un motor, cualquier lenguaje</h3><p>CLI, librería de Rust, JavaScript y WebAssembly, Python, Java (lee un <code>ResultSet</code> fila por fila), y una API HTTP en una imagen Docker de ~8 MB para C#, PHP, Go y los demás, con caché de plantillas y métricas de Prometheus. Arranca en milisegundos, así que también sirve para funciones serverless.</p></div>
+      <div class="feature"><h3>Lo que usas</h3><p>Bandas que se dividen entre páginas, frames, imágenes, subreportes, tablas, listas, crosstabs, todos los tipos de gráfico de JasperReports, códigos QR, DataMatrix, PDF417, EAN, UPC, Code 128, Code 39 y otros códigos de barras (barcode4j y Barbecue), imágenes SVG, campos de formulario PDF, enlaces y marcadores, texto con estilos, HTML y RTF, rotación, varias columnas, estilos condicionales.</p></div>
+      <div class="feature"><h3>PDF, Excel, Word, PowerPoint, OpenDocument, CSV y HTML</h3><p>La misma plantilla se exporta a un libro <code>.xlsx</code> con las celdas, celdas combinadas, fuentes, bordes, imágenes y gráficos que da el exportador de Jasper, a un <code>.docx</code> armado como el Word que exporta Jasper, a un <code>.pptx</code> con una diapositiva por página, a <code>.ods</code> y <code>.odt</code> para LibreOffice armados de la misma forma, a CSV, o a una página web que se ve como el PDF, para vistas previas en el navegador. Excel y CSV se comparan celda por celda con Jasper. Los PDF se pueden etiquetar para lectores de pantalla (PDF/UA-1, verificado con veraPDF): los textos como párrafos, las imágenes como figuras con su descripción, las tablas con sus celdas de encabezado, las listas como listas.</p></div>
+      <div class="feature"><h3>JRXML, o un formato propio</h3><p>Las plantillas de Jaspersoft Studio funcionan tal cual, JRXML 6 o 7. Las nuevas se pueden escribir en <code>.ferro</code>: el mismo reporte como un esquema con sangría, de la mitad del tamaño, accesible por defecto, y sin coordenadas si quieres: las partes se apilan y se ponen en filas, y lo que se repite se define una vez. <code>ferroreport convert</code> pasa de uno a otro, y <code>ferroreport migrate</code> revisa una carpeta entera de plantillas antes de que cambies de motor. <a href="../docs.html#ferro" hreflang="en">Cómo se lee</a>.</p></div>
+      <div class="feature"><h3>Un diseñador en tu navegador</h3><p>Pega una muestra de tus datos, arrastra sus campos a la página, elige fuentes, colores, bordes y formatos de número, y mira cómo cambia el PDF mientras trabajas. Abre y guarda <code>.ferro</code> y <code>.jrxml</code> de JasperReports, y descarga PDF, Excel, Word y PowerPoint. No se sube nada: el motor corre en tu computadora. <a href="../designer/">Abre el diseñador</a>.</p></div>
+      <div class="feature"><h3>PDF para archivar y proteger</h3><p>PDF/A-2 y PDF/A-3, verificados con veraPDF en cada cambio; archivos dentro del PDF, como el XML de una factura electrónica; cifrado AES-256 con contraseña y permisos; enlaces, anclas y marcadores. Todo en el motor de código abierto, con las propiedades de plantilla que ya usa JasperReports. <a href="../docs.html#pdf" hreflang="en">Cómo</a>.</p></div>
+      <div class="feature"><h3>Libre y de código abierto</h3><p>MIT o Apache-2.0, hecho para la comunidad. Las contribuciones y las nuevas plantillas de prueba son bienvenidas.</p></div>
+    </div>
+  </section>
+
+  <section id="playground">
+    <h2>La misma plantilla, los dos motores</h2>
+    <p class="sub">Elige un reporte. ferroreport lo genera aquí mismo, en tu navegador; JasperReports necesita Java, así que su PDF se hizo con
+      la misma plantilla en un servidor, y las barras repiten lo que tardó cada uno. Luego compara los dos PDF lado a lado.</p>
+
+    <div class="pg">
+      <div class="pg-bar">
+        <div class="chips" id="examples" role="group" aria-label="Reporte de ejemplo">
+          <button type="button" data-ex="02-invoice" aria-pressed="true">Factura</button>
+          <button type="button" data-ex="dashboard" aria-pressed="false">Gráficos</button>
+          <button type="button" data-ex="18-barcodes" aria-pressed="false">Códigos QR de e-CF</button>
+          <button type="button" data-ex="26-barcodes-1d" aria-pressed="false">Etiquetas de productos</button>
+          <button type="button" data-ex="21-markup" aria-pressed="false">Texto con estilos</button>
+        </div>
+      </div>
+
+      <div class="heats" aria-live="polite">
+        <div class="heat ferro">
+          <div class="eng"><b>ferroreport</b><span>Generado ahora, en tu navegador</span></div>
+          <div class="run"><i id="lane-f"></i></div>
+          <span class="time" id="ftime">…</span>
+        </div>
+        <div class="heat jasper">
+          <div class="eng"><b>JasperReports 6.20</b><span>Generado en un servidor con Java 21 (Java no puede correr en un navegador)</span></div>
+          <div class="run"><i id="lane-j"></i></div>
+          <span class="time" id="jtime">…</span>
+        </div>
+        <p class="heats-note"><span id="lanes-note">Las dos barras avanzan a velocidad real.</span>
+          <button class="replay" id="rerun" type="button">Repetir</button></p>
+      </div>
+
+      <div class="pair">
+        <figure class="viewer">
+          <figcaption><b>ferroreport</b> <span id="fsize"></span>
+            <a id="download" download="ferroreport.pdf" href="#">PDF</a> <a id="download-xlsx" href="#">Excel</a></figcaption>
+          <iframe id="pdf" title="PDF generado por ferroreport"></iframe>
+        </figure>
+        <figure class="viewer">
+          <figcaption><b>JasperReports</b> <span id="jsize"></span>
+            <a id="jdownload" download="jasperreports.pdf" href="#">PDF</a></figcaption>
+          <iframe id="jpdf" title="PDF generado por JasperReports"></iframe>
+        </figure>
+      </div>
+      <div class="same">
+        <p id="same-text"></p>
+        <button class="replay" id="diff-btn" type="button" aria-expanded="false">Mostrar las diferencias</button>
+      </div>
+      <figure class="diff" id="diff" hidden>
+        <img id="diff-img" alt="Los dos PDF superpuestos: gris donde coinciden, rojo donde solo JasperReports tiene tinta, azul donde solo la tiene ferroreport">
+        <figcaption>Los dos PDF superpuestos. Gris: igual en los dos. <span class="r">Rojo</span>: solo en JasperReports.
+          <span class="b">Azul</span>: solo en ferroreport.</figcaption>
+      </figure>
+
+      <div class="editor">
+        <div class="ehead">
+          <div class="etabs" role="tablist" aria-label="Entrada del reporte">
+            <button type="button" role="tab" aria-selected="true" aria-controls="tpl" data-pane="tpl">Plantilla</button>
+            <button type="button" role="tab" aria-selected="false" aria-controls="data" data-pane="data">Datos</button>
+            <button type="button" role="tab" aria-selected="false" aria-controls="params" data-pane="params">Parámetros</button>
+          </div>
+          <p class="enote">Tu plantilla de JasperReports, sin cambios: ferroreport lee los mismos archivos <code>.jrxml</code>. Edita lo que quieras y se vuelve a generar.</p>
+        </div>
+        <div class="code-wrap" data-pane-for="tpl"><pre class="hl" aria-hidden="true"></pre><textarea id="tpl" spellcheck="false" aria-label="Plantilla (JRXML)"></textarea></div>
+        <div class="code-wrap" data-pane-for="data" hidden><pre class="hl" aria-hidden="true"></pre><textarea id="data" spellcheck="false" aria-label="Datos (filas JSON)"></textarea></div>
+        <div class="code-wrap" data-pane-for="params" hidden><pre class="hl" aria-hidden="true"></pre><textarea id="params" spellcheck="false" aria-label="Parámetros (JSON)">{}</textarea></div>
+        <p id="status" role="status">Cargando el motor…</p>
+      </div>
+    </div>
+
+    <div class="codes">
+      <figure>
+        <figcaption>Con JasperReports <span>Java, una JVM y sus dependencias jar</span></figcaption>
+<pre>JasperReport report =
+    JasperCompileManager.compileReport("invoice.jrxml");
+JsonDataSource rows =
+    new JsonDataSource(new FileInputStream("rows.json"));
+Map&lt;String, Object&gt; params = new HashMap&lt;&gt;();
+params.put("CUSTOMER", "Distribuidora Caribe");
+
+JasperPrint print =
+    JasperFillManager.fillReport(report, params, rows);
+JasperExportManager.exportReportToPdfFile(print, "invoice.pdf");</pre>
+      </figure>
+      <figure class="ours">
+        <figcaption>Con ferroreport <span>una llamada, en el lenguaje que ya usas</span></figcaption>
+<pre>import { render } from "ferroreport";
+
+const pdf = render(jrxml, rows, { CUSTOMER: "Distribuidora Caribe" });</pre>
+        <p>La misma llamada existe para Python, Rust, la línea de comandos y HTTP. <a href="../docs.html" hreflang="en">Todas las opciones están en la documentación (en inglés).</a></p>
+      </figure>
+    </div>
+  </section>
+
+  <section id="install">
+    <h2>Instalación</h2>
+    <p class="sub">Elige cómo quieres llamarlo. Todas las opciones usan el mismo motor y dan el mismo PDF.</p>
+    <p class="note">El paquete de npm, los crates de Rust, los binarios y la imagen Docker ya están disponibles. El paquete de PyPI se está publicando. Cada función y opción se describe en la <a href="../docs.html" hreflang="en">documentación</a> (en inglés).</p>
+    <div class="tabs" id="langs">
+      <button type="button" aria-pressed="true" data-l="cli">CLI</button><button type="button" aria-pressed="false" data-l="docker">Docker y HTTP</button><button type="button" aria-pressed="false" data-l="js">JavaScript</button><button type="button" aria-pressed="false" data-l="py">Python</button><button type="button" aria-pressed="false" data-l="java">Java</button><button type="button" aria-pressed="false" data-l="rust">Rust</button>
+    </div>
+    <pre id="code"></pre>
+  </section>
+
+  <footer>
+    ferroreport es independiente y no está afiliado a Jaspersoft ni a Cloud Software Group. JasperReports es una marca registrada de Cloud Software Group, Inc.
+    <a href="https://github.com/cristianEncarnacion/ferroreport">Código fuente en GitHub</a>, MIT o Apache-2.0.
+  </footer>
+</main>
+
+<script>
+/* ---------- the race: a pure function of time, so it can also be filmed frame by frame ---------- */
+(() => {
+  const filming = location.search.includes("film");
+  if (filming) document.body.classList.add("film");
+
+  // The backdrop: slow molten light, drawn small and scaled up. Also a pure function of time.
+  const heat = document.getElementById("heat"), hx = heat.getContext("2d");
+  const HW = 320, HH = 200;
+  heat.width = HW; heat.height = HH;
+  const BLOBS = [ // x, y in the hero, y when it floods the frame, radius, color, sway x/y, speed x/y, phase
+    [.50, 1.14, .66, .80, "255,106,0", .05, .03, .31, .23, 0],
+    [.18, .88, .34, .46, "255,180,58", .10, .06, .27, .35, 1.3],
+    [.84, .84, .28, .44, "255,61,87", .09, .07, .25, .41, 2.1],
+    [.50, .68, .86, .36, "255,214,128", .22, .05, .19, .45, 4.0],
+    [.62, 1.04, .08, .34, "224,36,94", .28, .04, .17, .37, 1.0],
+  ];
+  function heatFrame(t, flood = 0) {
+    hx.fillStyle = "#fbf6ee";
+    hx.fillRect(0, 0, HW, HH);
+    for (const [x, y0, y1, r, c, ax, ay, fx, fy, ph] of BLOBS) {
+      const cx = (x + ax * Math.sin(t * fx + ph)) * HW;
+      const cy = (y0 + (y1 - y0) * flood + ay * Math.sin(t * fy + ph * 1.7)) * HH;
+      const rr = r * HW * (1 + .08 * Math.sin(t * .4 + ph));
+      const g = hx.createRadialGradient(cx, cy, 0, cx, cy, rr);
+      g.addColorStop(0, `rgba(${c},.95)`); g.addColorStop(.45, `rgba(${c},.5)`); g.addColorStop(1, `rgba(${c},0)`);
+      hx.fillStyle = g;
+      hx.fillRect(0, 0, HW, HH);
+    }
+  }
+  window.heatFrame = heatFrame;
+  heatFrame(0);
+
+  const J_END = 2.63, F_END = 0.0112, START = 0.6, HOLD = 4.2;
+  const CYCLE = START + J_END + HOLD;
+  const $ = (id) => document.getElementById(id);
+  const jlog = [...$("jlog").children], flog = [...$("flog").children];
+  const pile = $("pile");
+  const SHOWN = 14;
+  const sheets = Array.from({ length: SHOWN }, () => {
+    const s = document.createElement("div");
+    s.className = "sheet";
+    pile.appendChild(s);
+    return s;
+  });
+  const rnd = (i) => { const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); };
+  const ease = (p) => 1 - Math.pow(1 - p, 3);
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const fmt = (s) => (s < 0.1 ? s.toFixed(3) : s.toFixed(2)) + " s";
+
+  function log(items, el) {
+    items.forEach((li) => {
+      const a = +li.dataset.a, b = +li.dataset.b;
+      li.classList.toggle("on", el >= a);
+      li.classList.toggle("done", el >= b);
+      const t = li.querySelector(".t");
+      t.textContent = el >= b ? (b - a < 0.1 ? ((b - a) * 1000).toFixed(1) + " ms" : (b - a).toFixed(2) + " s") : "";
+    });
+  }
+
+  function frame(t) {
+    const el = t - START;                       // seconds since the race started
+    const fe = clamp(el, 0, F_END), je = clamp(el, 0, J_END);
+    $("jclock").textContent = fmt(Math.max(0, je));
+    $("fclock").textContent = fmt(Math.max(0, fe));
+    $("jbar").style.width = (je / J_END * 100) + "%";
+    $("fbar").style.width = (fe / F_END * 100) + "%";
+    log(jlog, el); log(flog, el);
+
+    // ferroreport keeps rendering invoices, one every 11 ms, until Jasper delivers its first.
+    const n = el < F_END ? 0 : Math.min(234, Math.floor((Math.min(el, J_END) - F_END) / F_END) + 1);
+    // The flurry is drawn at a watchable pace; the counter keeps the real count.
+    const VIS = 0.075, since = el - F_END;
+    const dropped = since < 0 ? -1 : Math.floor(Math.min(since, J_END - F_END) / VIS);
+    sheets.forEach((s, k) => {
+      const i = dropped - k;                    // k = 0 is the newest sheet
+      if (i < 0) { s.style.opacity = 0; return; }
+      const p = k === 0 && since < J_END - F_END ? ease(clamp((since - i * VIS) / VIS)) : 1;
+      const r = (rnd(i) - 0.5) * 16, dx = (rnd(i + 7) - 0.5) * 70, dy = (rnd(i + 3) - 0.5) * 26;
+      const fromY = -260, z = SHOWN - k;
+      s.style.zIndex = z;
+      s.style.opacity = k > SHOWN - 3 ? (SHOWN - k) / 3 : 1;
+      s.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy + fromY * (1 - p)}px)) rotate(${r * p + 30 * (1 - p)}deg) scale(${0.8 + 0.12 * (1 - p)})`;
+    });
+    $("glow").style.opacity = n > 0 ? clamp(0.45 + 0.4 * Math.sin(el * 18)) * (el < J_END + 0.6 ? 1 : 0.35) : 0;
+    $("counter").style.opacity = n > 0 ? 1 : 0;
+    $("count").textContent = n;
+    $("flane").style.boxShadow = n > 0
+      ? `inset 0 0 0 2px rgba(255,90,10,.75), 0 30px ${80 + 20 * Math.sin(el * 9)}px rgba(200,50,0,.38)`
+      : "";
+
+    // Jasper's single invoice lands at 2.63 s.
+    const jp = ease(clamp((el - J_END) / 0.35));
+    const js = $("jsheet");
+    js.style.opacity = jp;
+    js.style.transform = `translate(-50%, calc(-50% + ${(1 - jp) * -200}px)) scale(.85)`;
+    jlog.forEach((li) => (li.style.opacity = el > J_END ? 1 - jp * 0.75 : ""));
+    $("verdict").style.opacity = clamp((el - J_END - 0.3) / 0.4);
+  }
+
+  window.raceFrame = frame;                    // used to film the race frame by frame
+  window.raceLength = CYCLE;
+  if (filming) return;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) { frame(START + J_END + 1); return; }
+  let t0 = performance.now(), visible = true, heroVisible = true;
+  new IntersectionObserver(([e]) => (visible = e.isIntersecting)).observe($("race"));
+  new IntersectionObserver(([e]) => (heroVisible = e.isIntersecting)).observe(heat);
+  function tick(now) {
+    if (visible) frame(((now - t0) / 1000) % CYCLE);
+    if (heroVisible) heatFrame(now / 1000);
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+  $("replay").addEventListener("click", () => (t0 = performance.now()));
+})();
+</script>
+
+<script type="module">
+const snippets = {
+  cli: `# Descarga un binario de GitHub Releases y luego:
+ferroreport render invoice.jrxml --data rows.json --params params.json -o invoice.pdf
+ferroreport doctor invoice.jrxml   # qué soporta (y qué no) esta plantilla`,
+  docker: `docker run -p 8080:8080 -v "$PWD/templates:/templates" -e FERROREPORT_TEMPLATES=/templates \\
+  -e FERROREPORT_TOKEN=change-me ghcr.io/cristianencarnacion/ferroreport
+
+curl -X POST localhost:8080/render/invoice -H 'Authorization: Bearer change-me' -H 'Content-Type: application/json' \\
+  -d '{"data": [{"item": "Cemento", "amount": 395}], "params": {"CUSTOMER": "Caribe"}}' -o invoice.pdf`,
+  java: `// pom.xml: repositorio https://jitpack.io y luego
+// com.github.cristianEncarnacion:ferroreport:v1.2.0
+
+Ferroreport reports = Ferroreport.local();
+byte[] pdf = reports.template(Path.of("invoice.jrxml")).rows(lines).param("CUSTOMER", "Distribuidora Caribe").render();
+// Una consulta directo a un archivo, en memoria constante:
+reports.template(Path.of("sales.jrxml")).rows(resultSet).renderTo(Path.of("sales.pdf"));`,
+  js: `npm install ferroreport
+
+import { render } from "ferroreport";
+const pdf = render(jrxml, rows, { CUSTOMER: "Distribuidora Caribe" }, { locale: "es_DO" });`,
+  py: `pip install ferroreport
+
+import ferroreport
+pdf = ferroreport.render("invoice.jrxml", rows, {"CUSTOMER": "Distribuidora Caribe"}, locale="es_DO")`,
+  rust: `cargo add ferroreport
+
+let pdf = ferroreport::Renderer::new().locale("es_DO").render_json(&template, &rows, &params)?;`,
+};
+const pick = (group, btn) => group.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === btn)));
+const code = document.getElementById("code");
+code.textContent = snippets.cli;
+const langs = document.getElementById("langs");
+langs.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { pick(langs, b); code.textContent = snippets[b.dataset.l]; }));
+
+const $ = (id) => document.getElementById(id);
+const status = $("status");
+const set = (text, cls = "") => { status.textContent = text; status.className = cls; };
+const JASPER_SECONDS = { "02-invoice": 2.63, "dashboard": 2.50, "18-barcodes": 2.96, "21-markup": 2.32, "26-barcodes-1d": 2.82 };
+const VIEW = "#toolbar=0&navpanes=0&view=FitH";
+const kb = (n) => (n / 1024).toFixed(1) + " KB";
+// Pixels that differ between the two engines' first pages (tools/compare.py, at 100 dpi).
+const DIFF = {
+  "02-invoice": "Mismo resultado: comparado píxel por píxel a 100 dpi, 0 píxeles distintos.",
+  "18-barcodes": "Mismo resultado: comparado píxel por píxel a 100 dpi, 0 píxeles distintos, códigos QR incluidos.",
+  "26-barcodes-1d": "Mismo resultado: comparado píxel por píxel a 100 dpi, 0 píxeles distintos, todas las barras incluidas.",
+  "21-markup": "Mismo resultado: 7 píxeles distintos a 100 dpi, donde los bordes de unas pocas letras se suavizan de otra forma.",
+  "dashboard": "Los mismos datos, diseño y colores. Los gráficos se dibujan como los dibuja JasperReports 7; el JFreeChart de JasperReports 6.20 enmarca la leyenda y coloca algunas etiquetas de otra forma, así que las líneas y las etiquetas difieren un poco.",
+};
+let engine, example = "02-invoice", ferroUrl, edited = false, lastMs = 0, coldMs = null, anim;
+try {
+  engine = await import("../pkg/ferroreport.js");
+  await engine.default();
+} catch (e) {
+  set("No se pudo cargar el motor de WebAssembly: " + e, "err");
+}
+
+// Both bars on the same clock: the track is as long as Jasper's run, and both fill at real speed.
+function race() {
+  cancelAnimationFrame(anim);
+  const jms = JASPER_SECONDS[example] * 1000;
+  const t0 = performance.now();
+  $("jtime").textContent = "0.00 s";
+  $("lane-f").style.width = "0%";
+  $("lane-j").style.width = "0%";
+  $("lanes-note").textContent = "Las dos barras avanzan a velocidad real.";
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const step = (now) => {
+    const t = reduce ? jms : Math.min(now - t0, jms);
+    $("lane-f").style.width = (Math.min(t, lastMs) / jms * 100) + "%";
+    $("lane-j").style.width = (t / jms * 100) + "%";
+    $("ftime").textContent = t >= lastMs ? lastMs.toFixed(1) + " ms" : (t / 1000).toFixed(3) + " s";
+    $("jtime").textContent = (t / 1000).toFixed(2) + " s";
+    if (t < jms) {
+      anim = requestAnimationFrame(step);
+    } else {
+      const times = Math.round(jms / lastMs);
+      $("lanes-note").textContent = `En el tiempo que JasperReports tardó en hacer este reporte, ferroreport podría haberlo hecho unas ${times.toLocaleString("en-US")} veces.`;
+    }
+  };
+  anim = requestAnimationFrame(step);
+}
+
+function compareText() {
+  $("same-text").textContent = edited
+    ? "Editaste el reporte: el PDF de JasperReports todavía muestra el original, así que los dos pueden ser distintos."
+    : DIFF[example];
+  $("diff-btn").hidden = edited;
+  if (edited) toggleDiff(false);
+}
+
+function toggleDiff(open) {
+  $("diff").hidden = !open;
+  $("diff-btn").setAttribute("aria-expanded", String(open));
+  $("diff-btn").textContent = open ? "Ocultar las diferencias" : "Mostrar las diferencias";
+  if (open) $("diff-img").src = `../examples/${example}/diff.png`;
+}
+
+function run(replay) {
+  if (!engine) return;
+  try {
+    // A browser compiles WebAssembly the first time it runs, so the first render is not timed as the engine's.
+    if (coldMs === null) {
+      const c0 = performance.now();
+      engine.render($("tpl").value, $("data").value, $("params").value, { locale: "en_US" });
+      coldMs = performance.now() - c0;
+    }
+    const t0 = performance.now();
+    const pdf = engine.render($("tpl").value, $("data").value, $("params").value, { locale: "en_US" });
+    lastMs = Math.max(performance.now() - t0, 0.1);
+    if (ferroUrl) URL.revokeObjectURL(ferroUrl);
+    ferroUrl = URL.createObjectURL(new Blob([pdf], { type: "application/pdf" }));
+    $("pdf").src = ferroUrl + VIEW;
+    $("download").href = ferroUrl;
+    $("fsize").textContent = kb(pdf.length);
+    set(edited ? `Tus cambios se generaron en ${lastMs.toFixed(1)} ms.`
+      : `Generado en ${lastMs.toFixed(1)} ms. La primera ejecución tardó ${coldMs.toFixed(0)} ms, porque tu navegador todavía estaba compilando el WebAssembly.`, "ok");
+    compareText();
+    if (replay) {
+      race();
+    } else {
+      $("ftime").textContent = lastMs.toFixed(1) + " ms";
+    }
+  } catch (e) {
+    set(String(e.message || e), "err");
+  }
+}
+
+async function load(name) {
+  example = name; edited = false;
+  toggleDiff(false);
+  const get = (f) => fetch(`../examples/${name}/${f}`).then((r) => (r.ok ? r.text() : ""));
+  [$("tpl").value, $("data").value, $("params").value] =
+    [await get("report.jrxml"), (await get("data.json")) || "[]", (await get("params.json")) || "{}"];
+  ["tpl", "data", "params"].forEach(paint);
+  const jurl = `../examples/${name}/jasper.pdf`;
+  $("jpdf").src = jurl + VIEW;
+  $("jdownload").href = jurl;
+  fetch(jurl, { method: "HEAD" }).then((r) => ($("jsize").textContent = r.ok ? kb(+r.headers.get("content-length")) : ""));
+  run(true);
+}
+
+// Syntax colors: a highlighted copy of the text sits under a transparent textarea.
+const esc = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+function highlightXml(src) {
+  let out = "";
+  const re = /(<!--[\s\S]*?-->)|(<!\[CDATA\[)([\s\S]*?)(\]\]>)|(<\/?)([\w:.-]+)((?:\s+[\w:.-]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*(\/?>)|(<\?[\s\S]*?\?>)/g;
+  let last = 0, m;
+  while ((m = re.exec(src))) {
+    out += esc(src.slice(last, m.index));
+    if (m[1]) out += `<span class="c">${esc(m[1])}</span>`;
+    else if (m[2]) out += `<span class="p">${esc(m[2])}</span><span class="x">${esc(m[3])}</span><span class="p">${esc(m[4])}</span>`;
+    else if (m[9]) out += `<span class="c">${esc(m[9])}</span>`;
+    else {
+      const attrs = m[7].replace(/(\s+)([\w:.-]+)(\s*=\s*)("[^"]*"|'[^']*')/g, (_, sp, k, eq, v) =>
+        /^(xmlns|xsi:)/.test(k)
+          ? `${sp}<span class="c">${esc(k + eq + v)}</span>`
+          : `${sp}<span class="a">${esc(k)}</span>${esc(eq)}<span class="v">${esc(v)}</span>`);
+      out += `<span class="p">${esc(m[5])}</span><span class="t">${esc(m[6])}</span>${attrs}<span class="p">${esc(m[8])}</span>`;
+    }
+    last = re.lastIndex;
+  }
+  return out + esc(src.slice(last));
+}
+function highlightJson(src) {
+  return esc(src).replace(/("(?:[^"\\]|\\.)*")(\s*:)?|\b(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null)\b/g,
+    (m, str, colon, lit) => str ? `<span class="${colon ? "a" : "v"}">${str}</span>${colon || ""}` : `<span class="x">${lit}</span>`);
+}
+function paint(id) {
+  const ta = $(id), pre = ta.previousElementSibling;
+  pre.innerHTML = (id === "tpl" ? highlightXml(ta.value) : highlightJson(ta.value)) + "\n";
+  pre.scrollTop = ta.scrollTop;
+  pre.scrollLeft = ta.scrollLeft;
+}
+["tpl", "data", "params"].forEach((id) => $(id).addEventListener("scroll", () => {
+  const pre = $(id).previousElementSibling;
+  pre.scrollTop = $(id).scrollTop;
+  pre.scrollLeft = $(id).scrollLeft;
+}));
+
+// The same report as an Excel workbook, rendered on demand.
+$("download-xlsx").addEventListener("click", (e) => {
+  e.preventDefault();
+  if (!engine) return;
+  try {
+    const xlsx = engine.render($("tpl").value, $("data").value, $("params").value, { locale: "en_US", format: "xlsx" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([xlsx], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+    a.download = `${example}.xlsx`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  } catch (err) {
+    set(String(err.message || err), "err");
+  }
+});
+// The race as a video, with its sound: a click is what lets the browser play audio.
+const dialog = $("watch-dialog"), video = $("watch-video");
+$("watch").addEventListener("click", () => { dialog.showModal(); video.currentTime = 0; video.play(); });
+const closeWatch = () => { video.pause(); dialog.close(); };
+$("watch-close").addEventListener("click", closeWatch);
+dialog.addEventListener("click", (e) => { if (e.target === dialog) closeWatch(); });
+dialog.addEventListener("close", () => video.pause());
+$("diff-btn").addEventListener("click", () => toggleDiff($("diff").hidden));
+$("rerun").addEventListener("click", () => run(true));
+const examples = $("examples");
+examples.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { pick(examples, b); load(b.dataset.ex); }));
+const etabs = document.querySelectorAll(".etabs button");
+etabs.forEach((b) => b.addEventListener("click", () => etabs.forEach((x) => {
+  x.setAttribute("aria-selected", String(x === b));
+  document.querySelector(`[data-pane-for="${x.dataset.pane}"]`).hidden = x !== b;
+})));
+let timer;
+["tpl", "data", "params"].forEach((id) => $(id).addEventListener("input", () => {
+  edited = true;
+  paint(id);
+  clearTimeout(timer);
+  timer = setTimeout(() => run(false), 350);
+}));
+load("02-invoice");
+</script>
+</body>
+</html>

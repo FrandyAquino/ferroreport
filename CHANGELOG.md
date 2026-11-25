@@ -6,6 +6,8 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 
 ## Unreleased
 
+- Website: the home page is also in Spanish, at `/es/`, with an EN / ES switch in the menu of
+  both versions. The documentation page is still in English only.
 - ODS: per-mille patterns such as `#,##0.0‰` stay formatted text, as in JasperReports, even
   when cell type detection is enabled. This preserves `12.3‰` for `0.0123` in LibreOffice,
   which ignores the numeric display factor needed to scale it. A quoted `‰` stays literal
