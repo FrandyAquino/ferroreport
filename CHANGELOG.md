@@ -6,9 +6,10 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 
 ## Unreleased
 
-- ODS: per-mille number patterns such as `#,##0.0‰` now keep their number style when cell
-  type detection is enabled: `0.0123` displays as `12.3‰` while remaining `0.0123` for
-  calculations. A quoted `‰` stays literal.
+- ODS: per-mille patterns such as `#,##0.0‰` stay formatted text, as in JasperReports, even
+  when cell type detection is enabled. This preserves `12.3‰` for `0.0123` in LibreOffice,
+  which ignores the numeric display factor needed to scale it. A quoted `‰` stays literal
+  and does not prevent a cell from being numeric.
 
 ## 1.2.0
 
