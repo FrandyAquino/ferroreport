@@ -470,10 +470,14 @@ fn text_style(styles: &mut Styles, t: &CellInfo, style: &CellStyle, data: Option
     styles.style("ce", "table-cell", &attributes, &props)
 }
 
-/// A number style made from a Java number pattern (`#,##0.00`, `0.0%`, `0.###E0`), and
-/// whether it shows a percentage. `None` for what it cannot say (per mille).
+/// A number style made from a Java number pattern (`#,##0.00`, `0.0%`, `0.0‰`, `0.###E0`),
+/// and whether it shows a percentage. `None` for patterns it cannot represent.
 fn number_style(styles: &mut Styles, pattern: &str) -> Option<(String, bool)> {
     let p = parse_pattern(pattern)?;
+    // ODF's display-factor applies to number:number, not number:scientific-number.
+    if p.per_mille && (p.exponent.is_some() || p.percent) {
+        return None;
+    }
     let mut body = String::new();
     let literal = |body: &mut String, s: &str| {
         if !s.is_empty() {
@@ -492,11 +496,13 @@ fn number_style(styles: &mut Styles, pattern: &str) -> Option<(String, bool)> {
         None => {
             let _ = write!(
                 body,
-                "<number:number number:decimal-places=\"{}\" number:min-decimal-places=\"{}\" number:min-integer-digits=\"{}\"{}/>",
+                "<number:number number:decimal-places=\"{}\" number:min-decimal-places=\"{}\" number:min-integer-digits=\"{}\"{}{}/>",
                 p.max_decimals,
                 p.min_decimals,
                 p.min_integer,
-                if p.grouping { " number:grouping=\"true\"" } else { "" }
+                if p.grouping { " number:grouping=\"true\"" } else { "" },
+                // ODF divides by this factor for display; the cell's value stays unchanged.
+                if p.per_mille { " number:display-factor=\"0.001\"" } else { "" }
             );
         }
     }
@@ -516,6 +522,7 @@ struct Pattern {
     grouping: bool,
     exponent: Option<usize>,
     percent: bool,
+    per_mille: bool,
 }
 
 fn parse_pattern(pattern: &str) -> Option<Pattern> {
@@ -524,6 +531,7 @@ fn parse_pattern(pattern: &str) -> Option<Pattern> {
     let (mut prefix, mut number, mut suffix) = (String::new(), String::new(), String::new());
     let mut part = 0; // 0 prefix, 1 number, 2 suffix
     let mut percent = false;
+    let mut per_mille = false;
     let mut i = 0;
     while i < chars.len() {
         let c = chars[i];
@@ -553,7 +561,6 @@ fn parse_pattern(pattern: &str) -> Option<Pattern> {
                 number.push(c);
             }
             'E' if part == 1 => number.push(c),
-            '\u{2030}' => return None,
             c => {
                 if part == 1 {
                     part = 2;
@@ -562,6 +569,10 @@ fn parse_pattern(pattern: &str) -> Option<Pattern> {
                     '%' => {
                         percent = true;
                         '%'
+                    }
+                    '\u{2030}' => {
+                        per_mille = true;
+                        '\u{2030}'
                     }
                     '\u{a4}' => '$',
                     c => c,
@@ -588,6 +599,7 @@ fn parse_pattern(pattern: &str) -> Option<Pattern> {
         grouping: int.contains(','),
         exponent,
         percent,
+        per_mille,
     })
 }
 
@@ -662,6 +674,61 @@ pub(crate) mod tests {
         assert!(style.contains("number:decimal-places=\"2\" number:min-decimal-places=\"2\""));
         assert!(style.contains("number:grouping=\"true\""));
         assert!(content.contains("style:data-style-name=\"N"));
+    }
+
+    #[test]
+    fn per_mille_cells_keep_their_value_and_scale_only_the_display() {
+        for (pattern, value, displayed, factor, value_type) in [
+            ("#,##0.0‰", 0.0123, "12.3‰", true, "float"),
+            ("#,##0.0‰", -0.0123, "-12.3‰", true, "float"),
+            ("#,##0.0‰", 0.0, "0.0‰", true, "float"),
+            ("#,##0.0‰", 12.3456, "12,345.6‰", true, "float"),
+            ("‰0.0", 0.0123, "‰12.3", true, "float"),
+            ("0.0'‰'", 12.3, "12.3‰", false, "float"),
+            ("0.0%", 0.123, "12.3%", false, "percentage"),
+            ("0.0", 12.3, "12.3", false, "float"),
+        ] {
+            let template = format!(
+                r#"<jasperReport name="per-mille" pageWidth="300" pageHeight="100" columnWidth="260" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+                <field name="value" class="java.lang.Double"/>
+                <detail><band height="20"><textField pattern="{pattern}">
+                <reportElement x="0" y="0" width="260" height="20"/>
+                <textFieldExpression>$F{{value}}</textFieldExpression>
+                </textField></band></detail></jasperReport>"#
+            );
+            for numbers in [true, false] {
+                let mut r = crate::Renderer::new().xlsx_options(XlsxOptions { detect_cell_type: numbers });
+                let report = r.parse(&template).unwrap();
+                let bytes = r
+                    .render_report_json(
+                        &report,
+                        &serde_json::json!([{ "value": value }]),
+                        &serde_json::json!({}),
+                        crate::Format::Ods,
+                    )
+                    .unwrap();
+                let parts: Vec<_> = crate::zip::tests::read(&bytes)
+                    .into_iter()
+                    .map(|(n, d)| (n, String::from_utf8_lossy(&d).into_owned()))
+                    .collect();
+                let content = part(&parts, "content.xml");
+                assert!(content.contains(&format!("<text:p>{displayed}</text:p>")), "{pattern}: {content}");
+                if numbers {
+                    assert!(content.contains(&format!("office:value-type=\"{value_type}\" office:value=\"{value}\"")));
+                    assert!(content.contains("style:data-style-name=\"N"));
+                    assert_eq!(content.contains("number:display-factor=\"0.001\""), factor, "{pattern}");
+                    if factor {
+                        assert!(content.contains("<number:text>‰</number:text>"));
+                        assert!(content.contains("<number:number-style "));
+                        assert!(!content.contains("<number:percentage-style "));
+                    }
+                } else {
+                    assert!(!content.contains(" office:value="));
+                    assert!(!content.contains("number:display-factor="));
+                    assert!(content.contains("office:value-type=\"string\""));
+                }
+            }
+        }
     }
 
     #[test]
@@ -740,7 +807,13 @@ pub(crate) mod tests {
         assert_eq!(p.prefix, "RD$ ");
         let p = parse_pattern("0.###E0").unwrap();
         assert_eq!(p.exponent, Some(1));
-        assert!(parse_pattern("#,##0\u{2030}").is_none());
+        let p = parse_pattern("#,##0\u{2030}").unwrap();
+        assert!(p.per_mille);
+        assert!(!p.percent);
+        assert_eq!(p.suffix, "‰");
+        assert!(!parse_pattern("0.0'‰'").unwrap().per_mille);
+        assert!(number_style(&mut Styles::default(), "0.0E0‰").is_none());
+        assert!(number_style(&mut Styles::default(), "0.0%‰").is_none());
         assert!(parse_pattern("dd/MM/yyyy").is_none());
     }
 }
