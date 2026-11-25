@@ -10,11 +10,12 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   when cell type detection is enabled. This preserves `12.3‰` for `0.0123` in LibreOffice,
   which ignores the numeric display factor needed to scale it. A quoted `‰` stays literal
   and does not prevent a cell from being numeric.
-- ODS: with `--xlsx-numbers` (`XlsxOptions::detect_cell_type`), dates are written as date
-  cells, so Calc can sort and filter them, with a date style made from their pattern. A
-  pattern a date style cannot show as Java does (month or day names, AM/PM, 12-hour clocks,
-  milliseconds) keeps the formatted text, as does every date without the option.
-- `CellInfo` has a new `date` field, the value when it is a date.
+- ODS: with `--xlsx-numbers` (`XlsxOptions::detect_cell_type`), a text whose pattern is all
+  digits (`dd/MM/yyyy`, `yyyy-MM-dd HH:mm:ss`, `H:mm`) is written as a date or time cell, so
+  Calc can sort and filter it, with a style made from the pattern. The cell holds what the
+  text shows: a pattern without a time gives the date at midnight. Patterns with month or day
+  names, AM/PM, two-digit years, 12-hour clocks or milliseconds keep the formatted text, as
+  does every date without the option.
 
 ## 1.2.0
 

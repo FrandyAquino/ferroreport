@@ -336,9 +336,10 @@ ODS and ODT exporters lay a report out:
   colors, borders, padding, alignment and rotation, images over their cells, charts and
   barcodes as pictures. `--xlsx-numbers` (`XlsxOptions { detect_cell_type: true }`) writes
   numbers as numbers here too, with a number style made from their pattern (decimals,
-  grouping, percent, scientific, text around them), and dates as dates, with a date style made
-  from their pattern when it shows days, months and years as digits, 24-hour times and text
-  around them (a pattern with month or day names, AM/PM or milliseconds stays text).
+  grouping, percent, scientific, text around them), and dates and times as dates and times
+  when their pattern is all digits (days, months, four-digit years, 24-hour times and text
+  around them; a pattern with month or day names, AM/PM, a two-digit year or milliseconds
+  stays text).
 - ODT is the DOCX layout: a table per page with its own columns, each element in the cells
   it covers, pages after the first on a new page. Ellipses and slanted lines are drawn as
   pictures; rectangles and straight lines become cell backgrounds and borders.

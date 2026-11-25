@@ -3,8 +3,8 @@
 //! into a grid of cells at element edges (page margins kept), each text in the cells it
 //! covers (merged), with its font, colors, borders, padding and alignment. Values are written
 //! as text, like Jasper's default; with [`XlsxOptions::detect_cell_type`] numbers are written
-//! as numbers, with a number style made from their format pattern, and dates as dates, with a
-//! date style made from theirs (when one can show it).
+//! as numbers, with a number style made from their format pattern, and dates and times (read
+//! back from their text, when their pattern is all digits) as dates and times.
 //!
 //! The columns come from every page, so a workbook is made in two passes, as in
 //! [`crate::xlsx`]. The automatic styles of `content.xml` come before the sheet, so a
@@ -239,12 +239,11 @@ impl<W: std::io::Write> OdsStream<W> {
                     (Some(_), Some(p)) => Some(number_style(&mut self.styles, p)),
                     _ => None,
                 };
-                // A date, with a date style made from its pattern when one can show it as the
-                // pattern does; otherwise its text, as JasperReports writes every value.
-                let date = match (t.date, &t.pattern) {
-                    (Some(dt), Some(p)) if self.options.detect_cell_type && number.is_none() => {
-                        date_style(&mut self.styles, p).map(|n| (dt, n))
-                    }
+                // A date or a time, read back from its text with its pattern, when a date style
+                // shows it as the pattern does; otherwise its text, as JasperReports writes
+                // every value.
+                let date = match &t.pattern {
+                    Some(p) if self.options.detect_cell_type && number.is_none() => date_cell(&mut self.styles, p, &t.text),
                     _ => None,
                 };
                 let data_name = match (&data, &date) {
@@ -257,9 +256,7 @@ impl<W: std::io::Write> OdsStream<W> {
                         format!(" office:value-type=\"percentage\" office:value=\"{}\"", odf::number(n))
                     }
                     (Some(n), _) => format!(" office:value-type=\"float\" office:value=\"{}\"", odf::number(n)),
-                    (None, Some((dt, _))) => {
-                        format!(" office:value-type=\"date\" office:date-value=\"{}\"", dt.format("%Y-%m-%dT%H:%M:%S%.f"))
-                    }
+                    (None, Some((value, _))) => value.clone(),
                     (None, None) if t.text.is_empty() => String::new(),
                     (None, None) => " office:value-type=\"string\"".to_string(),
                 };
@@ -526,21 +523,23 @@ fn number_style(styles: &mut Styles, p: &Pattern) -> (String, bool) {
     (styles.data_style(element, &body), p.percent)
 }
 
-/// A date style made from a Java `SimpleDateFormat` pattern, when the style shows a date as
-/// the pattern does: days, months and years as digits, hours of the day, minutes and seconds,
-/// and literal text. Names of months and days, AM/PM and the like are written in the language
-/// of the report, which the style does not know, so a pattern with them is `None`.
-fn date_style(styles: &mut Styles, pattern: &str) -> Option<String> {
+/// A part of a Java `SimpleDateFormat` pattern: literal text, or a letter and how many times
+/// it is repeated.
+#[derive(Debug, PartialEq)]
+enum DatePart {
+    Text(String),
+    Field(char, usize),
+}
+
+/// The parts of a `SimpleDateFormat` pattern, or `None` when one of its letters is not one a
+/// date style shows as Java does: days, months and four-digit years as digits, hours of the
+/// day, minutes and seconds. Names of months and days and AM/PM are in the language of the
+/// report, which the style does not know; a two-digit year needs the century Java would read
+/// it in; 12-hour clocks and milliseconds have no element.
+fn date_parts(pattern: &str) -> Option<Vec<DatePart>> {
     let chars: Vec<char> = pattern.chars().collect();
-    let mut body = String::new();
+    let mut parts = Vec::new();
     let mut text = String::new();
-    let flush = |body: &mut String, text: &mut String| {
-        if !text.is_empty() {
-            let _ = write!(body, "<number:text>{}</number:text>", escape(text));
-            text.clear();
-        }
-    };
-    let mut fields = 0;
     let mut i = 0;
     while i < chars.len() {
         let c = chars[i];
@@ -576,27 +575,115 @@ fn date_style(styles: &mut Styles, pattern: &str) -> Option<String> {
             n += 1;
         }
         i += n;
-        let long = if n == 2 { " number:style=\"long\"" } else { "" };
-        let element = match (c, n) {
-            // `yy` is the year in two digits; `y`, `yyy` and `yyyy` all print a four-digit year.
-            ('y', 2) => "<number:year/>".to_string(),
-            ('y', 1 | 3 | 4) => "<number:year number:style=\"long\"/>".to_string(),
-            ('M', 1 | 2) => format!("<number:month{long}/>"),
-            ('d', 1 | 2) => format!("<number:day{long}/>"),
-            ('H', 1 | 2) => format!("<number:hours{long}/>"),
-            ('m', 1 | 2) => format!("<number:minutes{long}/>"),
-            ('s', 1 | 2) => format!("<number:seconds{long}/>"),
+        match (c, n) {
+            ('y', 1 | 3 | 4) | ('M' | 'd' | 'H' | 'm' | 's', 1 | 2) => {}
             _ => return None,
-        };
-        flush(&mut body, &mut text);
-        body.push_str(&element);
-        fields += 1;
+        }
+        if !text.is_empty() {
+            parts.push(DatePart::Text(std::mem::take(&mut text)));
+        }
+        parts.push(DatePart::Field(c, n));
     }
-    if fields == 0 {
+    if !text.is_empty() {
+        parts.push(DatePart::Text(text));
+    }
+    Some(parts)
+}
+
+/// The value attributes and data style of a cell whose text is a date or a time written with
+/// `pattern`, or `None` when the text cannot be read back as one with certainty. The pattern
+/// must have a whole date (day, month and year), a time of day without a date, or both. The
+/// text is read with the pattern and written again: only a text that comes out the same is a
+/// date, so a cell holds exactly what it shows (a date without a time in its pattern is a date
+/// at midnight).
+fn date_cell(styles: &mut Styles, pattern: &str, text: &str) -> Option<(String, String)> {
+    use chrono::{NaiveDate, NaiveTime};
+    let parts = date_parts(pattern)?;
+    let has = |l: char| parts.iter().any(|p| matches!(p, DatePart::Field(c, _) if *c == l));
+    let date = has('y') && has('M') && has('d');
+    let time = has('H') || has('m') || has('s');
+    let part_of_date = has('y') || has('M') || has('d');
+    if !(date || (time && !part_of_date)) {
         return None;
     }
-    flush(&mut body, &mut text);
-    Some(styles.data_style("date-style", &body))
+    // Read every field. One followed by another field, with nothing between, has the width of
+    // its pattern (Java pads it to that); otherwise it takes every digit up to the next text.
+    let chars: Vec<char> = text.chars().collect();
+    let mut at = 0;
+    let (mut year, mut month, mut day, mut hour, mut minute, mut second) = (0, 1, 1, 0, 0, 0);
+    for (i, part) in parts.iter().enumerate() {
+        match part {
+            DatePart::Text(s) => {
+                for c in s.chars() {
+                    (chars.get(at) == Some(&c)).then_some(())?;
+                    at += 1;
+                }
+            }
+            DatePart::Field(c, n) => {
+                let digits = chars[at..].iter().take_while(|c| c.is_ascii_digit()).count();
+                let width = match parts.get(i + 1) {
+                    Some(DatePart::Field(..)) if *n >= 2 => *n,
+                    Some(DatePart::Field(..)) => return None,
+                    _ => digits,
+                };
+                if width == 0 || width > digits || width > 9 {
+                    return None;
+                }
+                let v: u32 = chars[at..at + width].iter().collect::<String>().parse().ok()?;
+                at += width;
+                match c {
+                    'y' => year = v as i32,
+                    'M' => month = v,
+                    'd' => day = v,
+                    'H' => hour = v,
+                    'm' => minute = v,
+                    _ => second = v,
+                }
+            }
+        }
+    }
+    if at != chars.len() {
+        return None;
+    }
+    let clock = NaiveTime::from_hms_opt(hour, minute, second)?;
+    // Only the time of a time is kept; its day is any.
+    let day = match date {
+        true if (1..=9999).contains(&year) => NaiveDate::from_ymd_opt(year, month, day)?,
+        true => return None,
+        false => NaiveDate::from_ymd_opt(2000, 1, 1)?,
+    };
+    let dt = day.and_time(clock);
+    if crate::format::date::format_date(pattern, &dt, &crate::format::locale::EN_US).as_deref() != Some(text) {
+        return None;
+    }
+    let mut body = String::new();
+    for part in &parts {
+        match part {
+            DatePart::Text(s) => {
+                let _ = write!(body, "<number:text>{}</number:text>", escape(s));
+            }
+            DatePart::Field(c, n) => {
+                let element = match c {
+                    'y' => "year",
+                    'M' => "month",
+                    'd' => "day",
+                    'H' => "hours",
+                    'm' => "minutes",
+                    _ => "seconds",
+                };
+                // `y`, `yyy` and `yyyy` all print a four-digit year.
+                let long = if *n == 2 || *c == 'y' { " number:style=\"long\"" } else { "" };
+                let _ = write!(body, "<number:{element}{long}/>");
+            }
+        }
+    }
+    if date {
+        let value = format!(" office:value-type=\"date\" office:date-value=\"{}\"", dt.format("%Y-%m-%dT%H:%M:%S"));
+        Some((value, styles.data_style("date-style", &body)))
+    } else {
+        let value = format!(" office:value-type=\"time\" office:time-value=\"{}\"", clock.format("PT%HH%MM%SS"));
+        Some((value, styles.data_style("time-style", &body)))
+    }
 }
 
 /// The parts of a Java `DecimalFormat` pattern that a number style can say.
@@ -818,12 +905,12 @@ pub(crate) mod tests {
         }
     }
 
-    /// One date field with `pattern`, exported with and without type detection.
-    fn date_content(pattern: Option<&str>, value: &str, numbers: bool) -> String {
+    /// One field of `class` with `pattern`, exported with and without type detection.
+    fn date_content(class: &str, pattern: Option<&str>, value: &str, numbers: bool) -> String {
         let pattern = pattern.map(|p| format!(" pattern=\"{p}\"")).unwrap_or_default();
         let template = format!(
             r#"<jasperReport name="dates" pageWidth="300" pageHeight="100" columnWidth="260" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
-            <field name="when" class="java.util.Date"/>
+            <field name="when" class="{class}"/>
             <detail><band height="20"><textField{pattern}>
             <reportElement x="0" y="0" width="260" height="20"/>
             <textFieldExpression>$F{{when}}</textFieldExpression>
@@ -842,41 +929,112 @@ pub(crate) mod tests {
 
     #[test]
     fn dates_are_dates_with_their_pattern() {
-        for (pattern, displayed, style) in [
-            ("dd/MM/yyyy", "05/03/2026", "<number:day number:style=\"long\"/><number:text>/</number:text><number:month number:style=\"long\"/><number:text>/</number:text><number:year number:style=\"long\"/>"),
-            ("d.M.yy", "5.3.26", "<number:day/><number:text>.</number:text><number:month/><number:text>.</number:text><number:year/>"),
-            ("yyyy-MM-dd HH:mm:ss", "2026-03-05 14:07:09", "<number:year number:style=\"long\"/><number:text>-</number:text><number:month number:style=\"long\"/><number:text>-</number:text><number:day number:style=\"long\"/><number:text> </number:text><number:hours number:style=\"long\"/><number:text>:</number:text><number:minutes number:style=\"long\"/><number:text>:</number:text><number:seconds number:style=\"long\"/>"),
-            ("H:mm 'h'", "14:07 h", "<number:hours/><number:text>:</number:text><number:minutes number:style=\"long\"/><number:text> h</number:text>"),
+        let long = |e: &str| format!("<number:{e} number:style=\"long\"/>");
+        let text = |t: &str| format!("<number:text>{t}</number:text>");
+        for (pattern, displayed, value, style) in [
+            (
+                "dd/MM/yyyy",
+                "05/03/2026",
+                "office:value-type=\"date\" office:date-value=\"2026-03-05T00:00:00\"",
+                ["date-style".into(), long("day"), text("/"), long("month"), text("/"), long("year")].concat(),
+            ),
+            (
+                "yyyy-MM-dd HH:mm:ss",
+                "2026-03-05 14:07:09",
+                "office:value-type=\"date\" office:date-value=\"2026-03-05T14:07:09\"",
+                [
+                    "date-style".into(),
+                    long("year"),
+                    text("-"),
+                    long("month"),
+                    text("-"),
+                    long("day"),
+                    text(" "),
+                    long("hours"),
+                    text(":"),
+                    long("minutes"),
+                    text(":"),
+                    long("seconds"),
+                ]
+                .concat(),
+            ),
+            (
+                "d/M/y H:mm",
+                "5/3/2026 14:07",
+                "office:value-type=\"date\" office:date-value=\"2026-03-05T14:07:00\"",
+                [
+                    "date-style".into(),
+                    "<number:day/>".into(),
+                    text("/"),
+                    "<number:month/>".into(),
+                    text("/"),
+                    long("year"),
+                    text(" "),
+                    "<number:hours/>".into(),
+                    text(":"),
+                    long("minutes"),
+                ]
+                .concat(),
+            ),
+            (
+                "ddMMyyyy",
+                "05032026",
+                "office:value-type=\"date\" office:date-value=\"2026-03-05T00:00:00\"",
+                ["date-style".into(), long("day"), long("month"), long("year")].concat(),
+            ),
+            (
+                "H:mm 'h'",
+                "14:07 h",
+                "office:value-type=\"time\" office:time-value=\"PT14H07M00S\"",
+                ["time-style".into(), "<number:hours/>".into(), text(":"), long("minutes"), text(" h")].concat(),
+            ),
         ] {
-            let content = date_content(Some(pattern), "2026-03-05T14:07:09", true);
-            assert!(
-                content.contains(&format!(
-                    "office:value-type=\"date\" office:date-value=\"2026-03-05T14:07:09\"><text:p>{displayed}</text:p>"
-                )),
-                "{pattern}: {content}"
-            );
-            let declared = content.split("<number:date-style ").nth(1).unwrap_or_else(|| panic!("{pattern}: no date style"));
+            let content = date_content("java.util.Date", Some(pattern), "2026-03-05T14:07:09", true);
+            assert!(content.contains(&format!("{value}><text:p>{displayed}</text:p>")), "{pattern}: {content}");
+            let (element, body) = style.split_at(style.find('<').unwrap());
+            let declared = content.split(&format!("<number:{element} ")).nth(1).unwrap_or_else(|| panic!("{pattern}: no style"));
             let name = &declared["style:name=\"".len()..declared.find("\">").unwrap()];
-            assert!(declared.contains(&format!("\">{style}</number:date-style>")), "{pattern}: {declared}");
+            assert!(declared.contains(&format!("\">{body}</number:{element}>")), "{pattern}: {declared}");
             assert!(content.contains(&format!("style:data-style-name=\"{name}\"")), "{pattern}");
 
             // Without type detection, the text alone, as JasperReports writes it.
-            let content = date_content(Some(pattern), "2026-03-05T14:07:09", false);
+            let content = date_content("java.util.Date", Some(pattern), "2026-03-05T14:07:09", false);
             assert!(content.contains(&format!("office:value-type=\"string\"><text:p>{displayed}</text:p>")));
-            assert!(!content.contains("office:date-value=") && !content.contains("<number:date-style"));
+            assert!(!content.contains("office:date-value=") && !content.contains("office:time-value="));
+            assert!(!content.contains("<number:date-style") && !content.contains("<number:time-style"));
         }
     }
 
     #[test]
     fn dates_a_date_style_cannot_show_stay_text() {
-        // Names of months and days and AM/PM are in the report's language; 12-hour clocks and
-        // milliseconds have no element. Without a pattern the locale's short date and time
-        // is shown (with AM/PM in English).
-        for pattern in [Some("dd MMM yyyy"), Some("EEEE d"), Some("h:mm a"), Some("hh:mm"), Some("HH:mm:ss.SSS"), None] {
-            let content = date_content(pattern, "2026-03-05T14:07:09", true);
-            assert!(content.contains("office:value-type=\"string\""), "{pattern:?}: {content}");
-            assert!(!content.contains("office:date-value=") && !content.contains("<number:date-style"), "{pattern:?}");
+        let stays_text = |class: &str, pattern: Option<&str>, value: &str| {
+            let content = date_content(class, pattern, value, true);
+            assert!(content.contains("office:value-type=\"string\""), "{pattern:?} {value}: {content}");
+            assert!(!content.contains("office:date-value=") && !content.contains("office:time-value="), "{pattern:?}");
+            assert!(!content.contains("<number:date-style") && !content.contains("<number:time-style"), "{pattern:?}");
+        };
+        // Names of months and days and AM/PM are in the report's language; a two-digit year
+        // needs its century; 12-hour clocks and milliseconds have no element; a date without
+        // its day or year is not a whole date. Without a pattern the locale's short date and
+        // time is shown, with AM/PM in English.
+        for pattern in [
+            Some("dd MMM yyyy"),
+            Some("EEEE d"),
+            Some("h:mm a"),
+            Some("hh:mm"),
+            Some("HH:mm:ss.SSS"),
+            Some("d.M.yy"),
+            Some("dd/MM"),
+            Some("MM/yyyy"),
+            Some("dMyyyy"),
+            None,
+        ] {
+            stays_text("java.util.Date", pattern, "2026-03-05T14:07:09");
         }
+        // A text that is not what the pattern writes, from a value that is not a date.
+        stays_text("java.lang.String", Some("dd/MM/yyyy"), "soon");
+        stays_text("java.lang.String", Some("dd/MM/yyyy"), "31/02/2026");
+        stays_text("java.lang.String", Some("dd/MM/yyyy"), "5/3/2026");
     }
 
     #[test]

@@ -351,8 +351,8 @@ lista), así que el JRXML convertido funciona también en JasperReports:
   exportadores ODS y ODT de JasperReports: el `.ods` es la misma cuadrícula del XLSX (y con
   `--xlsx-numbers` los números van como números y las fechas como fechas, con un formato hecho
   de su patrón) y el `.odt` es una tabla por página como el DOCX. Aún no: las propiedades
-  `net.sf.jasperreports.export.ods.*` y `.odt.*`, fechas con nombres de mes o día, AM/PM o
-  milisegundos como celdas de fecha (quedan como texto), y el texto al revés (180°) en el
+  `net.sf.jasperreports.export.ods.*` y `.odt.*`, fechas con nombres de mes o día, AM/PM,
+  año de dos dígitos o milisegundos como celdas de fecha (quedan como texto), y el texto al revés (180°) en el
   `.odt`.
 - PDF etiquetado para lectores de pantalla (`--tagged`, la propiedad
   `net.sf.jasperreports.export.pdf.tagged` de la plantilla, o por defecto en `.ferro`), que pasa

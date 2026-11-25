@@ -56,9 +56,6 @@ pub struct CellInfo {
     pub runs: Vec<crate::rich::Run>,
     /// The value when it is a number (exported as a number when type detection is on).
     pub number: Option<f64>,
-    /// The value when it is a date (`java.util.Date` and its `java.sql` subclasses), in the
-    /// report time zone.
-    pub date: Option<chrono::NaiveDateTime>,
     /// The Java format pattern of the value (`#,##0.00`, `dd/MM/yyyy`).
     pub pattern: Option<String>,
     pub font: crate::model::FontSpec,
