@@ -4,6 +4,13 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 [semantic versioning](https://semver.org); what that covers is in the README under
 [Stability](README.md#stability).
 
+## Unreleased
+
+- ODS: per-mille patterns such as `#,##0.0‰` stay formatted text, as in JasperReports, even
+  when cell type detection is enabled. This preserves `12.3‰` for `0.0123` in LibreOffice,
+  which ignores the numeric display factor needed to scale it. A quoted `‰` stays literal
+  and does not prevent a cell from being numeric.
+
 ## 1.2.0
 
 PowerPoint export, charts drawn as JasperReports 7 draws them, large OpenDocument files in the
