@@ -34,8 +34,8 @@ RENDER OPTIONS:
     -f, --format <pdf|xlsx|docx|pptx|ods|odt|csv|html>
                                 Output format, when the file name does not say it. html is a
                                 web page that looks like the PDF, for previews
-        --xlsx-numbers          In XLSX and ODS, write numbers as numbers (default: as formatted
-                                text, like JasperReports)
+        --xlsx-numbers          In XLSX and ODS, write numbers as numbers, and in ODS dates as
+                                dates (default: as formatted text, like JasperReports)
         --csv-safe              In CSV, put an apostrophe before values a spreadsheet would
                                 run as a formula (use it when the data comes from other people)
         --pdfa <2b|2u|2a|3b|3u|3a>

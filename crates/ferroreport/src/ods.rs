@@ -3,7 +3,8 @@
 //! into a grid of cells at element edges (page margins kept), each text in the cells it
 //! covers (merged), with its font, colors, borders, padding and alignment. Values are written
 //! as text, like Jasper's default; with [`XlsxOptions::detect_cell_type`] numbers are written
-//! as numbers, with a number style made from their format pattern.
+//! as numbers, with a number style made from their format pattern, and dates as dates, with a
+//! date style made from theirs (when one can show it).
 //!
 //! The columns come from every page, so a workbook is made in two passes, as in
 //! [`crate::xlsx`]. The automatic styles of `content.xml` come before the sheet, so a
@@ -238,14 +239,29 @@ impl<W: std::io::Write> OdsStream<W> {
                     (Some(_), Some(p)) => Some(number_style(&mut self.styles, p)),
                     _ => None,
                 };
-                let ce = text_style(&mut self.styles, t, style, data.as_ref().map(|(n, _)| n.as_str()));
-                let value = match number {
-                    Some(n) if data.as_ref().is_some_and(|(_, percent)| *percent) => {
+                // A date, with a date style made from its pattern when one can show it as the
+                // pattern does; otherwise its text, as JasperReports writes every value.
+                let date = match (t.date, &t.pattern) {
+                    (Some(dt), Some(p)) if self.options.detect_cell_type && number.is_none() => {
+                        date_style(&mut self.styles, p).map(|n| (dt, n))
+                    }
+                    _ => None,
+                };
+                let data_name = match (&data, &date) {
+                    (Some((n, _)), _) | (None, Some((_, n))) => Some(n.as_str()),
+                    _ => None,
+                };
+                let ce = text_style(&mut self.styles, t, style, data_name);
+                let value = match (number, &date) {
+                    (Some(n), _) if data.as_ref().is_some_and(|(_, percent)| *percent) => {
                         format!(" office:value-type=\"percentage\" office:value=\"{}\"", odf::number(n))
                     }
-                    Some(n) => format!(" office:value-type=\"float\" office:value=\"{}\"", odf::number(n)),
-                    None if t.text.is_empty() => String::new(),
-                    None => " office:value-type=\"string\"".to_string(),
+                    (Some(n), _) => format!(" office:value-type=\"float\" office:value=\"{}\"", odf::number(n)),
+                    (None, Some((dt, _))) => {
+                        format!(" office:value-type=\"date\" office:date-value=\"{}\"", dt.format("%Y-%m-%dT%H:%M:%S%.f"))
+                    }
+                    (None, None) if t.text.is_empty() => String::new(),
+                    (None, None) => " office:value-type=\"string\"".to_string(),
                 };
                 let _ = write!(out, "<table:table-cell table:style-name=\"{ce}\"{span}{value}>");
                 if !t.text.is_empty() {
@@ -510,6 +526,79 @@ fn number_style(styles: &mut Styles, p: &Pattern) -> (String, bool) {
     (styles.data_style(element, &body), p.percent)
 }
 
+/// A date style made from a Java `SimpleDateFormat` pattern, when the style shows a date as
+/// the pattern does: days, months and years as digits, hours of the day, minutes and seconds,
+/// and literal text. Names of months and days, AM/PM and the like are written in the language
+/// of the report, which the style does not know, so a pattern with them is `None`.
+fn date_style(styles: &mut Styles, pattern: &str) -> Option<String> {
+    let chars: Vec<char> = pattern.chars().collect();
+    let mut body = String::new();
+    let mut text = String::new();
+    let flush = |body: &mut String, text: &mut String| {
+        if !text.is_empty() {
+            let _ = write!(body, "<number:text>{}</number:text>", escape(text));
+            text.clear();
+        }
+    };
+    let mut fields = 0;
+    let mut i = 0;
+    while i < chars.len() {
+        let c = chars[i];
+        if c == '\'' {
+            if chars.get(i + 1) == Some(&'\'') {
+                text.push('\'');
+                i += 2;
+                continue;
+            }
+            i += 1;
+            while i < chars.len() {
+                if chars[i] == '\'' {
+                    if chars.get(i + 1) == Some(&'\'') {
+                        text.push('\'');
+                        i += 2;
+                        continue;
+                    }
+                    break;
+                }
+                text.push(chars[i]);
+                i += 1;
+            }
+            i += 1;
+            continue;
+        }
+        if !c.is_ascii_alphabetic() {
+            text.push(c);
+            i += 1;
+            continue;
+        }
+        let mut n = 1;
+        while i + n < chars.len() && chars[i + n] == c {
+            n += 1;
+        }
+        i += n;
+        let long = if n == 2 { " number:style=\"long\"" } else { "" };
+        let element = match (c, n) {
+            // `yy` is the year in two digits; `y`, `yyy` and `yyyy` all print a four-digit year.
+            ('y', 2) => "<number:year/>".to_string(),
+            ('y', 1 | 3 | 4) => "<number:year number:style=\"long\"/>".to_string(),
+            ('M', 1 | 2) => format!("<number:month{long}/>"),
+            ('d', 1 | 2) => format!("<number:day{long}/>"),
+            ('H', 1 | 2) => format!("<number:hours{long}/>"),
+            ('m', 1 | 2) => format!("<number:minutes{long}/>"),
+            ('s', 1 | 2) => format!("<number:seconds{long}/>"),
+            _ => return None,
+        };
+        flush(&mut body, &mut text);
+        body.push_str(&element);
+        fields += 1;
+    }
+    if fields == 0 {
+        return None;
+    }
+    flush(&mut body, &mut text);
+    Some(styles.data_style("date-style", &body))
+}
+
 /// The parts of a Java `DecimalFormat` pattern that a number style can say.
 #[derive(Debug, PartialEq)]
 struct Pattern {
@@ -726,6 +815,67 @@ pub(crate) mod tests {
                     assert!(content.contains("office:value-type=\"string\""));
                 }
             }
+        }
+    }
+
+    /// One date field with `pattern`, exported with and without type detection.
+    fn date_content(pattern: Option<&str>, value: &str, numbers: bool) -> String {
+        let pattern = pattern.map(|p| format!(" pattern=\"{p}\"")).unwrap_or_default();
+        let template = format!(
+            r#"<jasperReport name="dates" pageWidth="300" pageHeight="100" columnWidth="260" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+            <field name="when" class="java.util.Date"/>
+            <detail><band height="20"><textField{pattern}>
+            <reportElement x="0" y="0" width="260" height="20"/>
+            <textFieldExpression>$F{{when}}</textFieldExpression>
+            </textField></band></detail></jasperReport>"#
+        );
+        let mut r = crate::Renderer::new().xlsx_options(XlsxOptions { detect_cell_type: numbers });
+        let report = r.parse(&template).unwrap();
+        let bytes = r
+            .render_report_json(&report, &serde_json::json!([{ "when": value }]), &serde_json::json!({}), crate::Format::Ods)
+            .unwrap();
+        let parts: Vec<_> =
+            crate::zip::tests::read(&bytes).into_iter().map(|(n, d)| (n, String::from_utf8_lossy(&d).into_owned())).collect();
+        check_package(&bytes, &parts, MIMETYPE);
+        part(&parts, "content.xml").to_string()
+    }
+
+    #[test]
+    fn dates_are_dates_with_their_pattern() {
+        for (pattern, displayed, style) in [
+            ("dd/MM/yyyy", "05/03/2026", "<number:day number:style=\"long\"/><number:text>/</number:text><number:month number:style=\"long\"/><number:text>/</number:text><number:year number:style=\"long\"/>"),
+            ("d.M.yy", "5.3.26", "<number:day/><number:text>.</number:text><number:month/><number:text>.</number:text><number:year/>"),
+            ("yyyy-MM-dd HH:mm:ss", "2026-03-05 14:07:09", "<number:year number:style=\"long\"/><number:text>-</number:text><number:month number:style=\"long\"/><number:text>-</number:text><number:day number:style=\"long\"/><number:text> </number:text><number:hours number:style=\"long\"/><number:text>:</number:text><number:minutes number:style=\"long\"/><number:text>:</number:text><number:seconds number:style=\"long\"/>"),
+            ("H:mm 'h'", "14:07 h", "<number:hours/><number:text>:</number:text><number:minutes number:style=\"long\"/><number:text> h</number:text>"),
+        ] {
+            let content = date_content(Some(pattern), "2026-03-05T14:07:09", true);
+            assert!(
+                content.contains(&format!(
+                    "office:value-type=\"date\" office:date-value=\"2026-03-05T14:07:09\"><text:p>{displayed}</text:p>"
+                )),
+                "{pattern}: {content}"
+            );
+            let declared = content.split("<number:date-style ").nth(1).unwrap_or_else(|| panic!("{pattern}: no date style"));
+            let name = &declared["style:name=\"".len()..declared.find("\">").unwrap()];
+            assert!(declared.contains(&format!("\">{style}</number:date-style>")), "{pattern}: {declared}");
+            assert!(content.contains(&format!("style:data-style-name=\"{name}\"")), "{pattern}");
+
+            // Without type detection, the text alone, as JasperReports writes it.
+            let content = date_content(Some(pattern), "2026-03-05T14:07:09", false);
+            assert!(content.contains(&format!("office:value-type=\"string\"><text:p>{displayed}</text:p>")));
+            assert!(!content.contains("office:date-value=") && !content.contains("<number:date-style"));
+        }
+    }
+
+    #[test]
+    fn dates_a_date_style_cannot_show_stay_text() {
+        // Names of months and days and AM/PM are in the report's language; 12-hour clocks and
+        // milliseconds have no element. Without a pattern the locale's short date and time
+        // is shown (with AM/PM in English).
+        for pattern in [Some("dd MMM yyyy"), Some("EEEE d"), Some("h:mm a"), Some("hh:mm"), Some("HH:mm:ss.SSS"), None] {
+            let content = date_content(pattern, "2026-03-05T14:07:09", true);
+            assert!(content.contains("office:value-type=\"string\""), "{pattern:?}: {content}");
+            assert!(!content.contains("office:date-value=") && !content.contains("<number:date-style"), "{pattern:?}");
         }
     }
 

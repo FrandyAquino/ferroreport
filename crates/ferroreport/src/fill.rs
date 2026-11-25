@@ -687,11 +687,13 @@ fn collect_charts<'a>(elements: &'a [Element], out: &mut Vec<&'a crate::chart::C
 }
 
 /// Evaluates the text displayed by a text element.
-/// The text of a text element, with the number behind it and its pattern (for exporters).
+/// The text of a text element, with the number or date behind it and its pattern (for
+/// exporters).
 #[derive(Debug, Clone, Default)]
 struct TextValue {
     text: String,
     number: Option<f64>,
+    date: Option<chrono::NaiveDateTime>,
     pattern: Option<String>,
 }
 
@@ -713,7 +715,11 @@ fn text_value_full(content: &TextContent, scope: &dyn Scope, env: &EvalEnv) -> R
                 None => pattern.clone(),
             };
             let number = value.as_f64();
-            Ok(TextValue { text: format_value(&value, pattern.as_deref(), env.locale), number, pattern })
+            let date = match value {
+                Value::Date(dt) => Some(dt),
+                _ => None,
+            };
+            Ok(TextValue { text: format_value(&value, pattern.as_deref(), env.locale), number, date, pattern })
         }
     }
 }
@@ -750,6 +756,7 @@ fn cell_item(
         text,
         runs,
         number: value.number,
+        date: value.date,
         pattern: value.pattern.clone(),
         font: te.style.font.clone(),
         color,
@@ -1287,8 +1294,9 @@ struct Measured {
     /// Not printed or empty (for isRemoveLineWhenBlank).
     blank: bool,
     text: Option<String>,
-    /// The number behind the text and its pattern (for exporters).
+    /// The number or date behind the text and its pattern (for exporters).
     number: Option<f64>,
+    date: Option<chrono::NaiveDateTime>,
     pattern: Option<String>,
     children: Option<BandLayout>,
     image: Option<Arc<ImageData>>,
@@ -1347,6 +1355,7 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
             new_h: el.height,
             text: None,
             number: None,
+            date: None,
             pattern: None,
             children: None,
             image: None,
@@ -1363,6 +1372,7 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
                     if !deferred {
                         let tv = text_value_full(&te.content, le.scope, le.env)?;
                         m.number = tv.number;
+                        m.date = tv.date;
                         m.pattern = tv.pattern;
                         let text = tv.text;
                         if te.stretch {
@@ -1731,7 +1741,7 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
                 match m.text.take() {
                     Some(text) => {
                         let (item, _) = text_item(le.fonts, te, el.forecolor, x, y, w, h, &text, true);
-                        let value = TextValue { text, number: m.number, pattern: m.pattern.take() };
+                        let value = TextValue { text, number: m.number, date: m.date, pattern: m.pattern.take() };
                         let back = (el.mode == Mode::Opaque).then_some(el.backcolor);
                         let item = if le.images.skip_cells && te.field.is_none() {
                             item
