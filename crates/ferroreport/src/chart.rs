@@ -1,11 +1,11 @@
 //! Charts (`<pieChart>`, `<barChart>`, `<lineChart>`, ...): datasets collected while filling
 //! and drawing that follows JFreeChart 1.5's rules as JasperReports 7 uses them (plots, axes,
 //! tick units, legends, renderers), checked pixel by pixel against JasperReports' own chart
-//! samples (`category`, `pie`, `xy` and the shared pieces in `jfree`).
+//! samples (`category`, `pie`, `xy`, `thermometer` and the shared pieces in `jfree`).
 //!
-//! Chart text is written as glyph outlines, as JasperReports writes it. Meter and
-//! thermometer charts, and multiple axis charts of XY charts, still follow JFreeChart's look
-//! without being pixel-identical.
+//! Chart text is written as glyph outlines, as JasperReports writes it. Meter charts, and
+//! multiple axis charts of XY charts, still follow JFreeChart's look without being
+//! pixel-identical.
 
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
@@ -23,6 +23,7 @@ mod bitmap;
 mod category;
 mod jfree;
 mod pie;
+mod thermometer;
 mod xy;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -380,11 +381,14 @@ pub(crate) struct Settings {
     /// High-low charts: draw the open and close ticks (`showOpenTicks`, `showCloseTicks`).
     pub show_open_ticks: bool,
     pub show_close_ticks: bool,
+    /// Thermometers without a `mercuryColor`: the mercury takes the color of the range the
+    /// value is in, and `DialPlot::mercury` (JFreeChart's light gray) outside them.
+    pub mercury_by_range: bool,
 }
 
 impl Default for Settings {
     fn default() -> Settings {
-        Settings { svg: false, foreground_alpha: 1.0, show_open_ticks: false, show_close_ticks: false }
+        Settings { svg: false, foreground_alpha: 1.0, show_open_ticks: false, show_close_ticks: false, mercury_by_range: false }
     }
 }
 
@@ -968,6 +972,13 @@ pub fn render(
         pie::draw(&mut cv, ch, data, locale, area, &section_color);
         return clip_to(cv.items, x, y, w, h);
     }
+    if ch.kind == ChartKind::Thermometer {
+        // ThermometerPlot has no legend items.
+        let mut area = jfree::Rect::new(x as f64, y as f64, w as f64, h as f64);
+        titles_and_legend(&mut cv, ch, texts, &mut area, Vec::new());
+        thermometer::draw(&mut cv, ch, data, texts, locale, area);
+        return clip_to(cv.items, x, y, w, h);
+    }
 
     // Title and subtitle on top.
     let mut top = y;
@@ -1069,7 +1080,6 @@ pub fn render(
     match ch.kind {
         _ if ch.kind.is_pie() => pie(&mut cv, ch, data, locale, px, py, pw, ph, &color_of),
         ChartKind::Meter => meter(&mut cv, ch, data, texts, locale, px, py, pw, ph),
-        ChartKind::Thermometer => thermometer(&mut cv, ch, data, texts, locale, px, py, pw, ph),
         ChartKind::Gantt => {}
         ChartKind::MultiAxis => multi_axis(&mut cv, ch, all, texts, locale, px, py, pw, ph),
         ChartKind::XyLine | ChartKind::XyArea | ChartKind::Scatter if ch.dataset.kind == DataKind::Xy => {
@@ -2266,82 +2276,6 @@ fn meter(
         cv.path(hub, Some(dial.needle), None, None);
         let text = format!("{} {}", fmt_number(v, dial.value_mask.as_deref(), locale), dial.units).trim().to_string();
         cv.text(&value_font, dial.value_color, &text, px + pw / 2.0, (cy + 8.0) as f32, Anchor::Center);
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn thermometer(
-    cv: &mut Canvas,
-    ch: &ChartElement,
-    data: &DataState,
-    texts: &ChartTexts,
-    locale: &Locale,
-    px: f32,
-    py: f32,
-    pw: f32,
-    ph: f32,
-) {
-    let Some(dial) = ch.dial.as_deref() else { return };
-    let (lo, hi) = texts.dial.unwrap_or((0.0, 100.0));
-    if hi <= lo {
-        return;
-    }
-    // JFreeChart's ThermometerPlot: a bulb 80 across, a column 40 wide, 5 apart from the edge.
-    let bulb_r = (pw / 2.0).min(ph / 4.0).min(40.0);
-    let col_r = bulb_r / 2.0;
-    let cx = px + pw / 2.0;
-    let bulb_cy = py + ph - bulb_r - 2.0;
-    let top = py + 5.0;
-    let col_bottom = bulb_cy - bulb_r * 0.5;
-    let col_h = (col_bottom - (top + col_r)).max(1.0);
-    let scale = number_scale(cv, lo, hi, col_h, true, None, locale, &ch.font);
-    let level = |v: f64| scale.at(v.clamp(lo, hi), top + col_r, col_h, true);
-    let outline = |cv: &mut Canvas, fill: Option<Color>, r_col: f32, r_bulb: f32, to: f32| {
-        let mut ops = Vec::new();
-        arc(&mut ops, cx as f64, to as f64, r_col as f64, r_col as f64, PI, 2.0 * PI, true);
-        let a = ((r_col / r_bulb).asin()) as f64;
-        ops.push(PathOp::Line((cx + r_col) as f64, (bulb_cy as f64) - (r_bulb as f64) * a.cos()));
-        arc(&mut ops, cx as f64, bulb_cy as f64, r_bulb as f64, r_bulb as f64, -PI / 2.0 + a, 1.5 * PI - a, false);
-        ops.push(PathOp::Close);
-        cv.path(ops, fill, Some((Color::BLACK, 1.0)), None);
-    };
-    outline(cv, Some(Color { r: 0xFF, g: 0xFF, b: 0xFF }), col_r, bulb_r, top + col_r);
-    if let Some(v) = data.value {
-        let gap = 5.0f32.min(col_r / 2.0);
-        let mut ops = Vec::new();
-        let (r_col, r_bulb) = (col_r - gap, bulb_r - gap);
-        let to = level(v).min(col_bottom);
-        ops.push(PathOp::Move((cx - r_col) as f64, to as f64));
-        ops.push(PathOp::Line((cx + r_col) as f64, to as f64));
-        let a = ((r_col / r_bulb).asin()) as f64;
-        ops.push(PathOp::Line((cx + r_col) as f64, (bulb_cy as f64) - (r_bulb as f64) * a.cos()));
-        arc(&mut ops, cx as f64, bulb_cy as f64, r_bulb as f64, r_bulb as f64, -PI / 2.0 + a, 1.5 * PI - a, false);
-        ops.push(PathOp::Close);
-        cv.path(ops, Some(dial.mercury), None, None);
-    }
-    // The ranges, as marks beside the column; the axis on the left.
-    for (i, interval) in dial.intervals.iter().enumerate() {
-        let Some(Some((a, b))) = texts.intervals.get(i) else { continue };
-        let x = cx + col_r + 4.0;
-        cv.line(x, level(*a), x, level(*b), interval.color.unwrap_or(Color::BLACK), 2.0, None);
-    }
-    let font = ch.font.clone();
-    let lh = cv.line_height(&font);
-    for (t, label) in &scale.ticks {
-        let y = level(*t);
-        cv.line(cx - col_r - 4.0, y, cx - col_r, y, Color::BLACK, 0.5, None);
-        cv.text(&font, Color::BLACK, label, cx - col_r - 6.0, y - lh / 2.0, Anchor::Right);
-    }
-    if let (Some(v), true) = (data.value, dial.value_location != ValueLocation::None) {
-        let text = fmt_number(v, dial.value_mask.as_deref(), locale);
-        let vf = dial.value_font.clone();
-        let vh = cv.line_height(&vf);
-        let (x, y, anchor) = match dial.value_location {
-            ValueLocation::Left => (cx - col_r - 40.0, level(v) - vh / 2.0, Anchor::Right),
-            ValueLocation::Right => (cx + col_r + 10.0, level(v) - vh / 2.0, Anchor::Left),
-            _ => (cx, bulb_cy - vh / 2.0, Anchor::Center),
-        };
-        cv.text(&vf, dial.value_color, &text, x, y, anchor);
     }
 }
 

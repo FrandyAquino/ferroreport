@@ -10,6 +10,11 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   when cell type detection is enabled. This preserves `12.3‰` for `0.0123` in LibreOffice,
   which ignores the numeric display factor needed to scale it. A quoted `‰` stays literal
   and does not prevent a cell from being numeric.
+- Thermometer charts are drawn as JasperReports 7 draws them (JFreeChart's `ThermometerPlot`):
+  the bulb and stem at their fixed size with both outlines, the mercury and its rounded top,
+  the range marks where each range starts in green, orange and red, the axis with whole-number
+  ticks, and the value in the bulb or beside the stem. JRXML 7 ranges (`<lowRange>` without a
+  `<dataRange>`) are read, and a thermometer without `mercuryColor` takes its range's color.
 
 ## 1.2.0
 
