@@ -32,6 +32,11 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   locales in their own language (`Deutsch (Deutschland)`); other languages give English names.
   JasperReports' `i18n` sample (`I18nReport`) now renders; it differs from JasperReports 7.1.1
   only in a date with the pattern `full,short`.
+- Expressions: a static field of one of the template's own classes, a class a parameter, field
+  or variable is declared with (`<parameter name="greeting" class="Greeting"/>`), is read as an
+  enum constant: `Greeting.bye` is the text `"bye"`, which is how an enum comes in JSON, so
+  `$P{greeting} == Greeting.bye` holds when the parameter is `"bye"`. JasperReports' `java1.5`
+  sample (`Java5Report`) now renders the same as JasperReports 7.1.1.
 - Website: code blocks are in color, by language (shell, JSON, JavaScript, Python, Java, C#, PHP,
   Rust, XML and `.ferro`), with a small script of the site's own (`site/highlight.js`) and
   colors that keep WCAG AA contrast. Comments in the playground's editor are easier to read too.
