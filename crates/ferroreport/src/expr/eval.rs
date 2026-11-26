@@ -451,6 +451,11 @@ fn method(recv: Value, name: &str, args: Vec<Value>, env: &EvalEnv) -> Result<Va
         }
         _ => {}
     }
+    if let Value::Str(s) = &recv {
+        if let Some(v) = locale_method(s, name, &args, env)? {
+            return Ok(v);
+        }
+    }
     match &recv {
         Value::Str(s) => string_method(s, name, &args),
         Value::DateRange(r) => match name {
@@ -517,6 +522,29 @@ fn json_method(j: &serde_json::Value, name: &str, args: &[Value]) -> Result<Valu
         }
         _ => return Err(Error::eval(format!("unsupported method List.{name}()"))),
     })
+}
+
+/// The methods of `java.util.Locale` on a locale's tag (`$P{REPORT_LOCALE}` is one, `en_US`):
+/// None for other methods and for strings that are not a tag. Names are shown in the language
+/// of the locale given, or of the report's locale (where Java takes its own default).
+fn locale_method(tag: &str, name: &str, args: &[Value], env: &EvalEnv) -> Result<Option<Value>> {
+    use crate::format::locale::{display_country, display_language, display_name, split_tag};
+    let Some((language, country)) = split_tag(tag) else { return Ok(None) };
+    let display = match (name, args) {
+        ("getLanguage" | "getCountry", [_, ..]) => return Ok(None),
+        (_, []) => env.locale.tag.to_string(),
+        (_, [Value::Str(d)]) => d.to_string(),
+        (_, [Value::Null]) => return Err(Error::eval(format!("{NULL_POINTER}{name}(null)"))),
+        _ => return Ok(None),
+    };
+    Ok(Some(Value::str(match name {
+        "getDisplayName" => display_name(tag, &display),
+        "getDisplayLanguage" => display_language(tag, &display),
+        "getDisplayCountry" => display_country(tag, &display),
+        "getLanguage" => language,
+        "getCountry" => country,
+        _ => return Ok(None),
+    })))
 }
 
 fn string_method(s: &str, name: &str, args: &[Value]) -> Result<Value> {
@@ -912,6 +940,20 @@ mod tests {
             let result = parsed.map_err(Error::eval).and_then(|e| eval(&e, &scope, &env));
             assert!(result.is_err(), "{src} should be rejected");
         }
+    }
+
+    #[test]
+    fn locale_names() {
+        // JasperReports' i18n sample: $P{REPORT_LOCALE}.getDisplayName($P{REPORT_LOCALE}).
+        assert_eq!(run("\"en_US\".getDisplayName(\"en_US\")").to_java_string(), "English (United States)");
+        assert_eq!(run("\"de_DE\".getDisplayName(\"de_DE\")").to_java_string(), "Deutsch (Deutschland)");
+        assert_eq!(run("\"es_DO\".getDisplayLanguage()").to_java_string(), "Spanish");
+        assert_eq!(run("\"es_DO\".getDisplayCountry(\"es\")").to_java_string(), "República Dominicana");
+        assert_eq!(run("\"es-do\".getCountry()").to_java_string(), "DO");
+        assert_eq!(run("\"es_DO\".getLanguage()").to_java_string(), "es");
+        let env = EvalEnv { locale: &EN_US, groovy: false, now: chrono::NaiveDateTime::default() };
+        let not_a_tag = parse_expr("\"not a locale\".getDisplayName()", false).unwrap();
+        assert!(eval(&not_a_tag, &Map(HashMap::new()), &env).is_err());
     }
 
     #[test]

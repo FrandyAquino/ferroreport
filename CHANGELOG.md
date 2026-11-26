@@ -26,6 +26,12 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   on and the number of pages; the two variables are null anywhere else, as in JasperReports. In
   a subreport they stay null (its pages are not the master's). JasperReports'
   `tableofcontents` sample (`TablePart`) now renders the same as JasperReports 7.1.1.
+- Expressions: the `java.util.Locale` methods `getDisplayName`, `getDisplayLanguage`,
+  `getDisplayCountry`, `getLanguage` and `getCountry` on `$P{REPORT_LOCALE}` (or any locale tag
+  such as `"es_DO"`), with Java 21's names: in English, in Spanish, and for about 70 common
+  locales in their own language (`Deutsch (Deutschland)`); other languages give English names.
+  JasperReports' `i18n` sample (`I18nReport`) now renders; it differs from JasperReports 7.1.1
+  only in a date with the pattern `full,short`.
 - Website: code blocks are in color, by language (shell, JSON, JavaScript, Python, Java, C#, PHP,
   Rust, XML and `.ferro`), with a small script of the site's own (`site/highlight.js`) and
   colors that keep WCAG AA contrast. Comments in the playground's editor are easier to read too.
