@@ -300,6 +300,27 @@ pub struct HeaderCell<'a> {
 impl Filled {
     /// Column headers of a part, level by level, at the top of the piece.
     pub fn column_headers(&self, part: usize) -> Vec<HeaderCell<'_>> {
+        self.column_headers_from(part).into_iter().map(|(_, h)| h).collect()
+    }
+
+    /// For each row (`rows`) or column of the grid, how many detail rows or columns come up to
+    /// it, totals not counted: the crosstab's `ROW_COUNT` and `COLUMN_COUNT`
+    /// (`JRFillCrosstab.computeCounts`). A total row has the count of the row before it.
+    pub(crate) fn detail_counts(&self, rows: bool) -> Vec<usize> {
+        let (leaves, depth) =
+            if rows { (&self.rows, self.crosstab.row_groups.len()) } else { (&self.columns, self.crosstab.column_groups.len()) };
+        let mut n = 0;
+        leaves
+            .iter()
+            .map(|l| {
+                n += usize::from(l.level >= depth);
+                n
+            })
+            .collect()
+    }
+
+    /// [`Filled::column_headers`], each with the index of the first column it spans.
+    pub(crate) fn column_headers_from(&self, part: usize) -> Vec<(usize, HeaderCell<'_>)> {
         let groups = &self.crosstab.column_groups;
         let range = self.parts[part].clone();
         let x0 = self.headers_width(part);
@@ -313,35 +334,41 @@ impl Filled {
                 let w = self.column_widths[c];
                 if leaf.level == j {
                     let h: f32 = groups[j..].iter().map(|g| g.size).sum();
-                    out.push(HeaderCell {
-                        group: j,
-                        total: true,
-                        contents: g.total_header.as_ref(),
-                        values: leaf.values.clone(),
-                        x,
-                        y,
-                        w,
-                        h,
-                    });
+                    out.push((
+                        c,
+                        HeaderCell {
+                            group: j,
+                            total: true,
+                            contents: g.total_header.as_ref(),
+                            values: leaf.values.clone(),
+                            x,
+                            y,
+                            w,
+                            h,
+                        },
+                    ));
                     x += w;
                     c += 1;
                 } else if leaf.level > j {
                     let prefix = key(&leaf.values[..=j]);
-                    let (start_x, mut span) = (x, 0.0);
+                    let (start_x, first, mut span) = (x, c, 0.0);
                     while c < range.end && self.columns[c].level > j && key(&self.columns[c].values[..=j]) == prefix {
                         span += self.column_widths[c];
                         c += 1;
                     }
-                    out.push(HeaderCell {
-                        group: j,
-                        total: false,
-                        contents: g.header.as_ref(),
-                        values: leaf.values[..=j].to_vec(),
-                        x: start_x,
-                        y,
-                        w: span,
-                        h: g.size,
-                    });
+                    out.push((
+                        first,
+                        HeaderCell {
+                            group: j,
+                            total: false,
+                            contents: g.header.as_ref(),
+                            values: leaf.values[..=j].to_vec(),
+                            x: start_x,
+                            y,
+                            w: span,
+                            h: g.size,
+                        },
+                    ));
                     x += span;
                 } else {
                     x += w;

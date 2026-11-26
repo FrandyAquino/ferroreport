@@ -1,0 +1,7 @@
+[
+  {"name": "apple", "qty": 3, "price": 1.50, "flag": true},
+  {"name": null, "qty": null, "price": null, "flag": null},
+  {"name": "avocado", "qty": null, "price": 2.25, "flag": false},
+  {"name": "cherry", "qty": 7, "price": null, "flag": null},
+  {"name": null, "qty": 5, "price": 4.00, "flag": true}
+]
