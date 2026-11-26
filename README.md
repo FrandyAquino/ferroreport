@@ -21,8 +21,8 @@ JRXML and accessible by default. Against JasperReports itself it is about **200Ã
 [Docker](https://github.com/cristianEncarnacion/ferroreport/pkgs/container/ferroreport) Â·
 [Leer en espaÃ±ol](README.es.md)
 
-> Status: **stable, version 1.0.** All 48 comparable test templates render pixel for pixel like
-> JasperReports 6.20, including band splitting, images (SVG too), subreports, tables, lists,
+> Status: **stable since 1.0; the latest release is 1.2.0** ([what each release brought](CHANGELOG.md)).
+> All 48 comparable test templates render pixel for pixel like JasperReports 6.20, including band splitting, images (SVG too), subreports, tables, lists,
 > crosstabs, QR, PDF417, Barbecue and other barcodes, links, styled text and multi-column
 > layouts; charts are drawn as JasperReports 7 draws them (20 of its 24 chart samples come out
 > the same). All 49 that can be exported by both engines
@@ -67,7 +67,10 @@ JRXML and accessible by default. Against JasperReports itself it is about **200Ã
   folder (does it load, what does it use, what is not supported yet, does it render), writes
   the result as Markdown or JSON and, if you ask, the converted templates. Give it your
   JasperReports jars (`--jasper lib/`) and it renders every template with both engines from
-  the same rows and compares pages, every text and number, and times.
+  the same rows and compares pages, every text and number, and times. The
+  [migration guide](https://cristianencarnacion.github.io/ferroreport/migrate.html) goes through
+  a JasperReports project step by step: scriptlets, `.jasper` files, the Java call, data
+  sources and exports.
 - **Use it from any language.** Packages for JavaScript (Node.js, Deno, Bun, browsers), Python
   and Java, a Rust library, a CLI, and an HTTP API in a Docker image for everything else (C#,
   PHP, Go, Ruby...).
@@ -76,7 +79,8 @@ JRXML and accessible by default. Against JasperReports itself it is about **200Ã
 
 > **[Full documentation](https://cristianencarnacion.github.io/ferroreport/docs.html)**: every command, endpoint, function and option.
 > Available now: the [npm package](https://www.npmjs.com/package/ferroreport), the
-> [PyPI package](https://pypi.org/project/ferroreport/), the
+> [PyPI package](https://pypi.org/project/ferroreport/), the Java library on Maven Central
+> (`io.github.cristianencarnacion:ferroreport`), the
 > [crates](https://crates.io/crates/ferroreport), the
 > [release binaries](https://github.com/cristianEncarnacion/ferroreport/releases) and the Docker image.
 
@@ -239,9 +243,14 @@ The packages and the server take the same options: `pdfa`, `attachments`, `passw
 A template's own SQL query runs the way JasperReports runs it over JDBC: `$P{}` values are sent
 as bound parameters, `$P!{}` is pasted into the SQL text, and `$X{IN, column, PARAM}` (with
 `NOTIN`, `EQUAL`, `NOTEQUAL`, `LESS`, `LESS]`, `GREATER`, `[GREATER` and the `BETWEEN` forms)
-becomes the clause it stands for. Subreports, tables, lists, crosstabs and charts that pass
-`$P{REPORT_CONNECTION}` run their own query on the same database. Rows are read as the report
-needs them, so a large result is never in memory whole.
+becomes the clause it stands for. Subreports, and the subdatasets of tables, lists, crosstabs
+and charts, that pass `$P{REPORT_CONNECTION}` run their own SQL query on the same database.
+Rows are read as the report needs them, so a large result is never in memory whole. The
+database is given by the command line (`--db`), the HTTP server (`serve --db`) and the Rust
+library (`Renderer::connection`); the JavaScript, Python and Java packages take the rows from
+you instead (a Java `ResultSet` is read row by row). In Java, `Ferroreport.server(...).named(...)`
+renders a template of a server started with `--templates` and `--db`: the rows come from you
+and its subreports and subdatasets query the server's database.
 
 ```bash
 ferroreport render sales.jrxml --db postgres://reports@db:5432/erp -p params.json -o sales.pdf
@@ -495,7 +504,7 @@ another order). Every fixture renders to the same pixels from its JRXML, its JRX
 
 | Area | Supported | Not yet |
 |---|---|---|
-| Templates | JRXML 6.x schema; JRXML 7 as JasperReports 7 writes it; `.ferro` (ferroreport's own format), with `ferroreport convert` between them; subdatasets (for tables); style templates (`<template>`, `.jrtx` files, with the templates they include, found next to the report or in a resource folder) | `.jasper` files (by design), scriptlets, subdataset queries |
+| Templates | JRXML 6.x schema; JRXML 7 as JasperReports 7 writes it; `.ferro` (ferroreport's own format), with `ferroreport convert` between them; subdatasets (for tables, lists, crosstabs and charts), with their SQL query run on `$P{REPORT_CONNECTION}` (see [Rows from a database](#rows-from-a-database)); style templates (`<template>`, `.jrtx` files, with the templates they include, found next to the report or in a resource folder) | `.jasper` files (by design), scriptlets |
 | Bands | title (going on over several pages when it does not fit one, as in JasperReports), page header/footer, column header/footer, detail (multiple bands), summary, no data, background, last page footer; splitting bands across pages (`splitType` Stretch, Prevent, Immediate); multi-column layout (vertical and horizontal print order, `isStartNewColumn`, column breaks); with no rows and `AllSectionsNoDetail`, group headers and footers print once | |
 | Elements | static text, text field, line, rectangle (rounded), ellipse, frame (split across pages), image (PNG, JPEG or GIF from files, base64 or `byte[]`), subreport, crosstab (row and column groups with totals at the start or end, header positions, several measures with Sum, Count, DistinctCount, Average, Highest, Lowest and First, percentages of the grand total (`percentageOf`), buckets ordered by a total (`orderByExpression`), `$V{measure_group_ALL}` totals, crosstab parameters, data from the report or a subdataset; column parts as wide as the element and rows continuing on the next pages with repeated headers), table component (column groups, table/column/group headers and footers, hidden columns, no-data cell, headers repeated on every page), list component (vertical and horizontal), icon label, charts, barcodes (barcode4j components: QR code, DataMatrix, PDF417, Code 128, EAN-128, Code 39 with full ASCII, EAN-13, EAN-8, UPC-A, UPC-E, Interleaved 2 of 5, Codabar, POSTNET, Royal Mail and USPS Intelligent Mail; Barbecue components: every type but PostNet, rotated), hyperlinks, anchors and bookmarks, PDF form fields (`net.sf.jasperreports.export.pdf.field.*`: text, combo and list boxes, check boxes, radio buttons), page break (applied after its band) | crosstab bucket comparators, crosstabs over a group's rows, UPC/EAN add-ons, rotated barcode4j barcodes, Barbecue's PostNet (Barbecue draws it as bars of one height; barcode4j's POSTNET is drawn), maps and other custom components |
 | Text | wrapping, stretch with overflow, padding, borders, left/center/right/justified alignment, all line-spacing modes, underline, strike-through, `isBlankWhenNull`, styled, HTML and RTF markup (bold, italic, underline, strike-through, fonts, sizes, colors, highlight, superscript, subscript, line breaks; HTML lists, bulleted and numbered, nested), also across page breaks; rotation (Left, Right, UpsideDown); cutting a text that does not fit at a character and with a suffix (`net.sf.jasperreports.text.truncate.*`); right-to-left text (Arabic, Hebrew) in the Unicode Bidirectional Algorithm's order, numbers and Latin inside it included, running right to left as JasperReports decides it (a paragraph that starts with a right-to-left letter) and aligned as JasperReports aligns it; text shaped with harfrust (Arabic letters joined, Devanagari conjuncts and vowel signs, Thai marks, the font's mark positioning) and broken at the Unicode line-break opportunities, in PDF, HTML and the chart pictures of XLSX, DOCX and PPTX; copying from the PDF gives the characters as written; characters the font lacks drawn in another font, with font sets as JasperReports' font extensions define them (`--font-set`) or for every font (`--font-fallback`); hyphenation of long words at line ends when the template asks for it (`ferroreport.text.hyphenate`, ferroreport's own: JasperReports does not hyphenate), in plain text | hyphenation of styled, HTML, right-to-left and complex-script text; Thai, Lao, Khmer and Myanmar break without a dictionary (before a leading vowel, after a syllable-final sign, at spaces); combining accents on Latin letters are drawn one glyph per character, as before |
@@ -803,7 +812,10 @@ depends on what you make.
 | Templates uploaded by your own customers | **ferroreport**, Typst | Expressions come from a fixed list and nothing is deserialized; JasperReports compiles templates to Java |
 
 What would make ferroreport the first choice in more of these rows is on the roadmap below: a
-designer that does more, more of JasperReports' components, and time in production.
+designer that does more, more of JasperReports' components, and time in production. A longer
+[comparison](https://cristianencarnacion.github.io/ferroreport/compare.html), with JasperReports,
+OpenPDF, OpenHTMLtoPDF, iText, Typst, Carbone, Apache POI and FastExcel and its sources, is on
+the website.
 
 ## Contributing
 
