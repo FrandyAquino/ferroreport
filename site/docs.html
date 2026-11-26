@@ -833,8 +833,8 @@ std::fs::write("invoice.pdf", pdf)?;</pre>
         number style made from their pattern (decimals, grouping, percent, scientific, text around them). The text document is the
         <a href="#word">Word</a> layout: a table per page, each element in the cells it covers, a page break between pages; ellipses and
         slanted lines are drawn as pictures. Links, anchors and page anchors carry over, and the page has the report's size.</p>
-      <p>Not available yet: the <code>net.sf.jasperreports.export.ods.*</code> and <code>.odt.*</code> properties, dates as date cells,
-        the per-mille sign in number styles, and upside-down text in ODT.</p>
+      <p>Not available yet: the <code>net.sf.jasperreports.export.ods.*</code> and <code>.odt.*</code> properties, date cells for patterns with month or
+        day names, AM/PM, two-digit years or milliseconds (they stay text), the per-mille sign in number styles, and upside-down text in ODT.</p>
       <p>Large reports are written as they are made, in about the memory of a small one. A document's styles come before its body
         in the file, so a large report is filled once more first to find them (a spreadsheet three times in all: its columns, its
         styles, its rows; a text twice), and its rows are then compressed and written as they come: 100,000 rows in 68 MiB as ODS

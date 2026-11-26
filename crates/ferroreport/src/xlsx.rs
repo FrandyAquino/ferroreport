@@ -17,7 +17,8 @@ use std::fmt::Write as _;
 #[derive(Debug, Clone, Default)]
 pub struct XlsxOptions {
     /// Write numeric values as numbers with their format pattern, instead of the formatted
-    /// text (JasperReports' `net.sf.jasperreports.export.xls.detect.cell.type`).
+    /// text (JasperReports' `net.sf.jasperreports.export.xls.detect.cell.type`). In ODS, dates
+    /// and times are also written as dates and times, when their pattern is all digits.
     pub detect_cell_type: bool,
 }
 
