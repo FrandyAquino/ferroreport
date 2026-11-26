@@ -486,6 +486,10 @@ struct BandLayout {
     /// When the layout was cut at the available height: what still has to be printed, in the
     /// container's coordinates (not yet moved up), with expressions already evaluated.
     rest: Option<Vec<Element>>,
+    /// The rest has elements printed again (`isPrintWhenDetailOverflows`): it keeps the
+    /// container's top instead of moving up to its first element (JasperReports' `firstY` is 0
+    /// then, JRFillElementContainer.prepareElements).
+    rest_reprints: bool,
     /// Values printed by elements with isPrintRepeatedValues="false" (committed on emit).
     printed_values: Vec<(usize, String)>,
     /// Subreport return values: (variable, calculation, value), applied on emit.
@@ -1487,41 +1491,16 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
         measured.push(m);
     }
 
-    // 1b. isRemoveLineWhenBlank: collapse the vertical range of blank elements when nothing
-    // else printed overlaps it, moving what is below up.
-    let mut ey: Vec<f32> = elements.iter().map(|e| e.y).collect();
+    // 1b. isRemoveLineWhenBlank: blank elements print nothing; whether their space goes too is
+    // decided once the others have stretched and moved (2b).
+    let ey: Vec<f32> = elements.iter().map(|e| e.y).collect();
     let mut design_h = design_h;
-    let mut ranges: Vec<(f32, f32)> = Vec::new();
+    let mut removable: Vec<usize> = Vec::new();
     for (i, el) in elements.iter().enumerate() {
-        if !(el.remove_line_when_blank && measured[i].blank) {
-            continue;
+        if el.remove_line_when_blank && measured[i].blank {
+            removable.push(i);
+            measured[i].visible = false;
         }
-        let (top, bottom) = (el.y, el.y + el.height);
-        let occupied = elements
-            .iter()
-            .enumerate()
-            .any(|(j, other)| j != i && !measured[j].blank && other.y < bottom - 1e-3 && other.y + other.height > top + 1e-3);
-        if !occupied {
-            ranges.push((top, bottom));
-        }
-        measured[i].visible = false;
-    }
-    ranges.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
-    let mut merged: Vec<(f32, f32)> = Vec::new();
-    for r in ranges {
-        match merged.last_mut() {
-            Some(last) if r.0 <= last.1 => last.1 = last.1.max(r.1),
-            _ => merged.push(r),
-        }
-    }
-    for (top, bottom) in &merged {
-        let gap = bottom - top;
-        for (i, el) in elements.iter().enumerate() {
-            if el.y >= *bottom - 1e-3 {
-                ey[i] -= gap;
-            }
-        }
-        design_h -= gap;
     }
 
     // 2. Float elements down by the growth of the elements above them.
@@ -1545,14 +1524,57 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
         new_y[i] = ey[i] + shift.max(0.0);
     }
 
+    // 2b. Each blank element's range collapses when nothing else printed overlaps it where it
+    // is now, after the elements above it have stretched and floated: what is below moves up,
+    // and what is above keeps that much less space to the container's bottom. This is
+    // JasperReports' JRFillElementContainer.removeBlankElements, run in the elements' order;
+    // without stretching it comes to the ranges of the design.
+    let mut collapsed_below = vec![0.0f32; elements.len()];
+    let mut removed = 0.0f32;
+    for &i in &removable {
+        let gap = elements[i].height;
+        let (top, bottom) = (new_y[i], new_y[i] + gap);
+        if gap <= 0.0 || top < -1e-3 {
+            continue;
+        }
+        let printed = |j: usize| measured[j].visible && !measured[j].blank;
+        let container_bottom = if (0..elements.len()).any(|j| measured[j].visible) {
+            (0..elements.len())
+                .filter(|&j| measured[j].visible)
+                .map(|j| new_y[j] + measured[j].new_h + (design_h - (ey[j] + elements[j].height) - collapsed_below[j]).max(0.0))
+                .fold(0.0f32, f32::max)
+        } else {
+            design_h - removed
+        };
+        if bottom > container_bottom + 1e-3 {
+            continue;
+        }
+        let occupied = (0..elements.len())
+            .any(|j| j != i && printed(j) && new_y[j] < bottom - 1e-3 && new_y[j] + measured[j].new_h > top + 1e-3);
+        if occupied {
+            continue;
+        }
+        for j in 0..elements.len() {
+            if new_y[j] + measured[j].new_h <= top + 1e-3 && j != i {
+                collapsed_below[j] += gap;
+            }
+            if new_y[j] >= bottom - 1e-3 {
+                new_y[j] -= gap;
+            }
+        }
+        removed += gap;
+    }
+
     // 3. Container height.
     // Each element keeps the distance from its bottom to the band's bottom, as in
     // JasperReports: what stretches pushes the bottom down by its own growth, whatever else
     // sits lower in the band.
     let kept = (0..elements.len())
         .filter(|&i| measured[i].visible)
-        .map(|i| new_y[i] + measured[i].new_h + (design_h - (ey[i] + elements[i].height)).max(0.0))
+        .map(|i| new_y[i] + measured[i].new_h + (design_h - (ey[i] + elements[i].height) - collapsed_below[i]).max(0.0))
         .fold(0.0f32, f32::max);
+    // The design's height, less what blank elements took away.
+    design_h = (design_h - removed).max(0.0);
     let height = design_h.max(kept).max(min_height);
     let growth = height - design_h;
 
@@ -1589,6 +1611,9 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
                 rest.push(freeze(el, m.text.take()));
                 continue;
             }
+            // Whether the element continues on the next page (a frame's children that did not
+            // fit, the rest of a text): it is not printed again in full there.
+            let continued = rest.len();
             if y + h > a + 1e-3 {
                 match &el.kind {
                     ElementKind::Text(te) if te.stretch && m.text.is_some() => {
@@ -1737,7 +1762,10 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
                     }
                 }
             }
-            if el.print_when_detail_overflows {
+            // printWhenDetailOverflows prints an element that ended on this page again where the
+            // band continues; one that continues there is not printed twice (JasperReports
+            // reprints only what is already printed whole: JRFillFrame, JRFillTextField.prepare).
+            if el.print_when_detail_overflows && rest.len() == continued {
                 reprint.push(freeze(el, m.text.clone()));
             }
         }
@@ -1995,6 +2023,7 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
     }
     if limit.is_some() {
         if !rest.is_empty() {
+            out.rest_reprints = !reprint.is_empty();
             rest.extend(reprint);
         }
         out.rest = Some(rest);
@@ -3641,6 +3670,7 @@ impl<'a> Filler<'a> {
             }
             first = None;
             let rest = part.rest.clone().unwrap_or_default();
+            let keep_top = part.rest_reprints;
             let (y, h) = (self.offset_y, part.height);
             self.emit(part, y);
             self.offset_y += h;
@@ -3651,7 +3681,7 @@ impl<'a> Filler<'a> {
             self.resolve_pending(|t| matches!(t.time, EvaluationTime::Page | EvaluationTime::Column), Values::Committed)?;
             self.new_page()?;
             elements = rest;
-            let moved = move_to_top(&mut elements);
+            let moved = if keep_top { 0.0 } else { move_to_top(&mut elements) };
             design_h = (design_h - moved).max(0.0);
         }
     }
@@ -3901,6 +3931,7 @@ impl<'a> Filler<'a> {
             }
             let part = self.layout_elems(&elements, design_h, mode, Some(space))?;
             let rest = part.rest.clone().unwrap_or_default();
+            let keep_top = part.rest_reprints;
             if part.items.is_empty() && !self.page_has_content {
                 // Nothing fits even on an empty page: print it whole rather than loop forever.
                 let (y, h) = (self.offset_y, full.height);
@@ -3925,7 +3956,7 @@ impl<'a> Filler<'a> {
                 return Ok(());
             }
             elements = rest;
-            let moved = move_to_top(&mut elements);
+            let moved = if keep_top { 0.0 } else { move_to_top(&mut elements) };
             design_h = (design_h - moved).max(0.0);
         }
     }

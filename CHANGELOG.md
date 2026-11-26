@@ -37,6 +37,14 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   enum constant: `Greeting.bye` is the text `"bye"`, which is how an enum comes in JSON, so
   `$P{greeting} == Greeting.bye` holds when the parameter is `"bye"`. JasperReports' `java1.5`
   sample (`Java5Report`) now renders the same as JasperReports 7.1.1.
+- Layout: `isRemoveLineWhenBlank` decides whether a blank element's space goes once the
+  elements above it have stretched and floated, as JasperReports does, rather than from the
+  design: a blank "space remover" under stretching text now gives its space back, and one that
+  a stretched neighbour reaches keeps it. An element with `isPrintWhenDetailOverflows` that
+  continues on the next page (a frame or text split by the page break) is no longer also
+  printed again in full there, and a band that continues with such elements keeps its top, as
+  in JasperReports. JasperReports' `stretch` sample (`StretchReport`) now has 14 pages, as in
+  JasperReports 7.1.1, instead of 21; a template of that kind could also run without end.
 - Website: code blocks are in color, by language (shell, JSON, JavaScript, Python, Java, C#, PHP,
   Rust, XML and `.ferro`), with a small script of the site's own (`site/highlight.js`) and
   colors that keep WCAG AA contrast. Comments in the playground's editor are easier to read too.
