@@ -50,6 +50,11 @@ pub fn text_before_line(text: &str, lines: &[Line], k: usize) -> String {
 /// language of the render's locale, a language code (`es`, `en_US`), or `false`.
 pub const HYPHENATE: &str = "ferroreport.text.hyphenate";
 
+/// The hidden parameter in which a parsed report keeps the paragraph settings (indents, tab
+/// stops) of its text elements, which `TextStyle` has no room for in 1.x. Tools that list a
+/// report's parameters leave it out, as they leave out [`HYPHENATE`].
+pub const PARAGRAPHS: &str = "ferroreport.text.paragraphs";
+
 /// Hyphenation of words that do not fit at the end of a line, in one language. JasperReports
 /// does not hyphenate; ferroreport does when a report asks for it ([`HYPHENATE`]).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

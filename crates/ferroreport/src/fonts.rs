@@ -354,6 +354,9 @@ pub struct FontSet {
     /// Faces that simulate a style, with the face they are drawn from (whose font the PDF
     /// embeds for both).
     simulated_from: HashMap<FaceId, FaceId>,
+    /// Paragraph settings (indents, tab stops) of the text elements of the reports being
+    /// filled that have any, by [`crate::paragraph::fingerprint`].
+    paragraphs: HashMap<u64, Arc<crate::paragraph::Paragraph>>,
     /// Whether every font falls back to the other fonts for characters it lacks.
     fallback: bool,
     /// The language of the render's locale (`en`), for texts hyphenated in it.
@@ -560,6 +563,39 @@ impl FontSet {
             return None;
         }
         Some(runs.into_iter().map(|(a, b, k)| (a, b, families[k].clone())).collect())
+    }
+
+    /// Forgets the paragraph settings of the reports filled before (a new render starts).
+    pub(crate) fn clear_paragraphs(&mut self) {
+        self.paragraphs.clear();
+    }
+
+    /// Takes the paragraph settings a report keeps in its hidden parameter
+    /// ([`crate::text::PARAGRAPHS`]).
+    pub(crate) fn add_paragraphs(&mut self, value: Option<&crate::value::Value>) {
+        let Some(crate::value::Value::Json(table)) = value else { return };
+        let Some(table) = table.as_object() else { return };
+        for (key, spec) in table {
+            if let (Ok(key), Some(p)) = (u64::from_str_radix(key, 16), crate::paragraph::Paragraph::from_json(spec)) {
+                self.paragraphs.insert(key, Arc::new(p));
+            }
+        }
+    }
+
+    /// The paragraph settings of a text element, when it has any.
+    pub(crate) fn paragraph(&self, te: &crate::model::TextElement) -> Option<Arc<crate::paragraph::Paragraph>> {
+        if self.paragraphs.is_empty() {
+            return None;
+        }
+        self.paragraphs.get(&crate::paragraph::fingerprint(te)).cloned()
+    }
+
+    /// `to`, made from `from` while filling (the rest of a text continuing on the next page),
+    /// has its paragraph settings.
+    pub(crate) fn carry_paragraph(&mut self, from: &crate::model::TextElement, to: &crate::model::TextElement) {
+        if let Some(p) = self.paragraph(from) {
+            self.paragraphs.insert(crate::paragraph::fingerprint(to), p);
+        }
     }
 
     /// The face whose font draws `id`: itself, or the face a simulated style is drawn from.

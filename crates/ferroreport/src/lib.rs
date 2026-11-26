@@ -39,6 +39,7 @@ mod odf;
 pub mod ods;
 pub mod odt;
 mod ooxml;
+mod paragraph;
 pub mod pdf;
 pub mod pptx;
 pub mod print;

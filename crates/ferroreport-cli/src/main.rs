@@ -1310,8 +1310,12 @@ fn doctor(args: &[String]) -> CliResult {
     );
     println!(
         "  {} parameters, {} fields, {} variables, {} groups",
-        // The template's own parameters, not the one its hyphenation property stands for.
-        report.parameters.iter().filter(|p| p.name != ferroreport::text::HYPHENATE).count(),
+        // The template's own parameters, not the hidden ones ferroreport keeps settings in.
+        report
+            .parameters
+            .iter()
+            .filter(|p| p.name != ferroreport::text::HYPHENATE && p.name != ferroreport::text::PARAGRAPHS)
+            .count(),
         report.fields.len(),
         report.variables.len(),
         report.groups.len()

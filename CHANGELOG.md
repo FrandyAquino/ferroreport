@@ -13,6 +13,18 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   their font files; what cannot be read is a warning. In Rust, `Renderer::load_font_extensions`
   does the same for the renderer's resources. JasperReports' `unicode` sample, which brings its
   own Noto and Arphic fonts this way, now has its Indic scripts, Tibetan, Khmer and Chinese.
+- Text: paragraph indents and tab stops (`<paragraph firstLineIndent leftIndent rightIndent
+  tabStopWidth>` and its `<tabStop>`s, in a style or on the element) are laid out as
+  JasperReports lays them out: each line in segments, each tab moving to the next stop (the
+  custom left, center and right stops, then the default ones every `tabStopWidth` points, 40
+  unless set), a segment that does not fit moving to the next line at the first stop, the
+  first line of each paragraph at its indent, and right-aligned and centered lines aligned as
+  a whole by their last segment; justified lines are spread over the room they had. They
+  used to be ignored, and tabs drawn as spaces. A text
+  with tabs and no paragraph settings now has the default stops too. JasperReports'
+  `paragraphs` sample now comes out the same. In 1.x the settings are kept in a hidden
+  report parameter, `ferroreport.text.paragraphs` (`text::PARAGRAPHS`), which `inspect` and
+  the server do not list.
 - Fonts: bold and italic text in a registered family that has no bold or italic face is
   drawn, as in JasperReports, from the family's regular face with the style simulated in PDF
   output: bold as outlines stroked as well (a thirtieth of the size wide), italic slanted by
