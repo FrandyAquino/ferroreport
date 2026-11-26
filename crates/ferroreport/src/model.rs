@@ -241,6 +241,11 @@ pub enum Rotation {
     UpsideDown,
 }
 
+/// The `evaluation_group` of a text field with `evaluationTime="Master"`, which is read as
+/// [`EvaluationTime::Report`]: it is resolved when the report ends, with `MASTER_CURRENT_PAGE`
+/// (the number of the page it is on) and `MASTER_TOTAL_PAGES` set.
+pub const MASTER_EVALUATION: &str = "\u{0}Master";
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum EvaluationTime {
     Now,

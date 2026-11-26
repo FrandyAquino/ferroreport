@@ -196,6 +196,9 @@ struct Ctx<'a> {
     var_index: &'a HashMap<String, usize>,
     page_number: i32,
     column_number: i32,
+    /// `MASTER_CURRENT_PAGE` and `MASTER_TOTAL_PAGES`: set only while an element with
+    /// `evaluationTime="Master"` is resolved, null everywhere else (as in JasperReports).
+    master: Option<(i32, i32)>,
 }
 
 impl Scope for Ctx<'_> {
@@ -218,6 +221,8 @@ impl Scope for Ctx<'_> {
         match name {
             "PAGE_NUMBER" => Ok(Value::Int(self.page_number)),
             "COLUMN_NUMBER" => Ok(Value::Int(self.column_number)),
+            "MASTER_CURRENT_PAGE" => Ok(self.master.map_or(Value::Null, |m| Value::Int(m.0))),
+            "MASTER_TOTAL_PAGES" => Ok(self.master.map_or(Value::Null, |m| Value::Int(m.1))),
             _ => self
                 .var_index
                 .get(name)
@@ -2974,8 +2979,16 @@ pub(crate) fn resolve_params(
         let v = match &p.default {
             Some(e) => {
                 let empty = HashMap::new();
-                let ctx =
-                    Ctx { record: None, report, params: &params, vars: &[], var_index: &empty, page_number: 1, column_number: 1 };
+                let ctx = Ctx {
+                    record: None,
+                    report,
+                    params: &params,
+                    vars: &[],
+                    var_index: &empty,
+                    page_number: 1,
+                    column_number: 1,
+                    master: None,
+                };
                 eval(e, &ctx, env)?
             }
             None => Value::Null,
@@ -3113,6 +3126,7 @@ impl<'a> Filler<'a> {
             var_index: &self.var_index,
             page_number: self.page_number,
             column_number: self.column as i32 + 1,
+            master: None,
         };
         eval(e, &ctx, self.env)
     }
@@ -3146,6 +3160,7 @@ impl<'a> Filler<'a> {
             var_index: &self.var_index,
             page_number: self.page_number,
             column_number: self.column as i32 + 1,
+            master: None,
         };
         let env = self.env;
         let ev = |e: &Option<Expr>| -> Result<Value> {
@@ -3335,6 +3350,7 @@ impl<'a> Filler<'a> {
             var_index: &self.var_index,
             page_number: self.page_number,
             column_number: self.column as i32 + 1,
+            master: None,
         };
         if let Some(pw) = &band.print_when {
             if !condition(&eval(pw, &ctx, self.env)?, self.env)? {
@@ -3371,6 +3387,7 @@ impl<'a> Filler<'a> {
             var_index: &self.var_index,
             page_number: self.page_number,
             column_number: self.column as i32 + 1,
+            master: None,
         };
         let mut le = LayoutEnv {
             fonts: self.fonts,
@@ -3958,6 +3975,7 @@ impl<'a> Filler<'a> {
         self.held = false;
         let record = self.rows.record(mode);
         let vars = self.ctx_vars(mode).to_vec();
+        let total_pages = (self.page_base + self.pages.len()) as i32;
         for p in ready {
             let (record, vars) = match &p.text.auto {
                 Some(auto) => (auto.record.as_ref(), &auto.vars),
@@ -3971,6 +3989,9 @@ impl<'a> Filler<'a> {
                 var_index: &self.var_index,
                 page_number: self.page_number,
                 column_number: self.column as i32 + 1,
+                // A subreport's pages are not the master's: its master values stay null.
+                master: (p.text.group.as_deref() == Some(MASTER_EVALUATION) && self.flow.is_none())
+                    .then(|| (p.page as i32 + 1, total_pages)),
             };
             let d = &p.text;
             let item = match &d.what {
@@ -4488,8 +4509,16 @@ fn new_filler<'a>(
         let v = match &p.default {
             Some(e) => {
                 let empty = HashMap::new();
-                let ctx =
-                    Ctx { record: None, report, params: &params, vars: &[], var_index: &empty, page_number: 1, column_number: 1 };
+                let ctx = Ctx {
+                    record: None,
+                    report,
+                    params: &params,
+                    vars: &[],
+                    var_index: &empty,
+                    page_number: 1,
+                    column_number: 1,
+                    master: None,
+                };
                 eval(e, &ctx, env)?
             }
             None => Value::Null,

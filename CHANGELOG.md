@@ -21,6 +21,11 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   `xlsfeatures` samples (`XlsFeaturesReport`, `MacroReport`) now render the same as
   JasperReports 7.1.1. Templates that set `ignore.npe` to false get a warning: that setting is
   not supported.
+- Text fields with `evaluationTime="Master"` and the variables `MASTER_CURRENT_PAGE` and
+  `MASTER_TOTAL_PAGES`: resolved when the report ends, with the number of the page the field is
+  on and the number of pages; the two variables are null anywhere else, as in JasperReports. In
+  a subreport they stay null (its pages are not the master's). JasperReports'
+  `tableofcontents` sample (`TablePart`) now renders the same as JasperReports 7.1.1.
 - Website: code blocks are in color, by language (shell, JSON, JavaScript, Python, Java, C#, PHP,
   Rust, XML and `.ferro`), with a small script of the site's own (`site/highlight.js`) and
   colors that keep WCAG AA contrast. Comments in the playground's editor are easier to read too.

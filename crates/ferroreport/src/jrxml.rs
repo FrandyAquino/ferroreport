@@ -1939,8 +1939,9 @@ impl Parser {
                 let content = if kind == "staticText" {
                     TextContent::Static(n.child("text").map(|t| t.text.clone()).unwrap_or_default())
                 } else {
+                    let master = n.attr("evaluationTime") == Some("Master");
                     let evaluation_time = match n.attr("evaluationTime").unwrap_or("Now") {
-                        "Report" => EvaluationTime::Report,
+                        "Report" | "Master" => EvaluationTime::Report,
                         "Page" => EvaluationTime::Page,
                         "Column" => EvaluationTime::Column,
                         "Group" => EvaluationTime::Group,
@@ -1954,7 +1955,11 @@ impl Parser {
                         pattern_expr: self.child_expr(n, &["patternExpression"])?,
                         blank_when_null: props.blank_when_null.unwrap_or(false),
                         evaluation_time,
-                        evaluation_group: n.attr("evaluationGroup").map(str::to_string),
+                        evaluation_group: if master {
+                            Some(MASTER_EVALUATION.to_string())
+                        } else {
+                            n.attr("evaluationGroup").map(str::to_string)
+                        },
                     }
                 };
                 let property = |name: &str| {
