@@ -1,7 +1,7 @@
 {
   "name": "ferroreport",
   "displayName": "ferroreport templates (.ferro)",
-  "description": "Syntax highlighting, snippets and folding for ferroreport's .ferro report templates (PDF, Excel and Word reports).",
+  "description": "Syntax highlighting, snippets and folding for ferroreport's .ferro report templates (PDF, Excel, Word, PowerPoint, OpenDocument, CSV and HTML reports).",
   "version": "1.2.0",
   "publisher": "cristianencarnacion",
   "license": "MIT OR Apache-2.0",

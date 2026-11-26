@@ -1,6 +1,6 @@
 [package]
 name = "ferroreport-cli"
-description = "Command-line renderer for JasperReports JRXML templates and .ferro templates: PDF, Excel, Word, CSV and HTML"
+description = "JasperReports alternative on the command line: renders JasperReports JRXML (6 and 7) and .ferro templates without a JVM to PDF, Excel (XLSX), Word (DOCX), PowerPoint (PPTX), ODS, ODT, CSV and HTML; also an HTTP server and a migration checker"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

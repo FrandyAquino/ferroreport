@@ -4,19 +4,23 @@ build-backend = "maturin"
 
 [project]
 name = "ferroreport"
-description = "Report engine: PDF, Excel, Word and CSV in milliseconds and constant memory. Reads JasperReports JRXML templates with pixel-identical output, no JVM, safe with untrusted templates."
+description = "Report engine and JasperReports alternative: reads JasperReports JRXML templates without a JVM and writes PDF, Excel (XLSX), Word (DOCX), PowerPoint (PPTX), ODS, ODT, CSV and HTML in milliseconds and constant memory, pixel-identical to JasperReports. Safe with untrusted templates."
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 requires-python = ">=3.9"
 authors = [{ name = "Cristian Encarnacion" }]
-keywords = ["jasperreports", "jrxml", "pdf", "excel", "xlsx", "csv", "report", "invoice"]
+keywords = ["jasperreports", "JasperReports alternative", "jrxml", "jrxml to pdf", "pdf", "excel", "xlsx", "docx", "pptx", "ods", "odt", "csv", "report", "invoice"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Rust",
     "Topic :: Office/Business",
     "Topic :: Printing",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Text Processing :: Markup :: XML",
+    "Typing :: Typed",
 ]
 dynamic = ["version"]
 

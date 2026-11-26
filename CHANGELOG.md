@@ -6,6 +6,11 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 
 ## Unreleased
 
+- Package descriptions on crates.io, npm, PyPI and Maven Central name every output format
+  (PDF, XLSX, DOCX, PPTX, ODS, ODT, CSV, HTML) and say that JasperReports JRXML is read without a
+  JVM; npm and PyPI have "JasperReports alternative" among their keywords, and PyPI's
+  classifiers say the package is stable. The VS Code extension's description lists every
+  format too. They change on the registries with the next release.
 - Website: code blocks are in color, by language (shell, JSON, JavaScript, Python, Java, C#, PHP,
   Rust, XML and `.ferro`), with a small script of the site's own (`site/highlight.js`) and
   colors that keep WCAG AA contrast. Comments in the playground's editor are easier to read too.
