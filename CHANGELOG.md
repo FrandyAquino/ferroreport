@@ -13,6 +13,9 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   their font files; what cannot be read is a warning. In Rust, `Renderer::load_font_extensions`
   does the same for the renderer's resources. JasperReports' `unicode` sample, which brings its
   own Noto and Arphic fonts this way, now has its Indic scripts, Tibetan, Khmer and Chinese.
+- Text in a font with a line gap (leading; DejaVu has none) starts lower, as in
+  JasperReports: its first baseline is the gap and the ascent below the top of the text, not
+  the ascent alone. The lines after it keep their spacing.
 - Text: paragraph indents and tab stops (`<paragraph firstLineIndent leftIndent rightIndent
   tabStopWidth>` and its `<tabStop>`s, in a style or on the element) are laid out as
   JasperReports lays them out: each line in segments, each tab moving to the next stop (the

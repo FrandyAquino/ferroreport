@@ -619,6 +619,7 @@ not compared with Jasper's.
 | 61-summary-split | A summary with `splitType="Immediate"` that starts after a tall title and goes on to the next page: floating frames under stretching texts, a frame whose texts do not fit their own height above the page's end and move whole, a hidden frame that removes its line where the summary continues, the page footer on the first page only | identical |
 | 62-simulated-styles | A font extension family with a regular face only: bold, italic, bold italic and underlined text drawn from it, stroked and slanted as JasperReports simulates them, also justified, right-aligned, styled and in color | identical |
 | 63-paragraphs | Paragraph indents and tab stops: first line, left and right indents from a style and from the element, default stops and custom left, center and right ones, in left, right and centered elements, plain and styled text, with padding, proportional and fixed spacing, words longer than the room left, and tabs in a text without paragraph settings | identical |
+| 64-line-gap | A font with a line gap (DejaVu Sans Condensed cut down and renamed, with leading added) from a font extension: the first baseline the gap and the ascent below the top, in plain and styled text, top, middle and bottom aligned, with one and a half and proportional spacing, and in stretching fields | identical |
 
 ¹ The reference bundle's Groovy 4.0.8 cannot run on Java 21: set `ORACLE_JAVA_GROOVY` to a
 Java 17 runtime and `tools/compare.py` uses it for Groovy templates (the others stay on Java 21,

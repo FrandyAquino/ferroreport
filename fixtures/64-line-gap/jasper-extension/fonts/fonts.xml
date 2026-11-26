@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- "Fixture Gap": DejaVu Sans Condensed cut down to Latin-1 and renamed, with a line gap
+     (leading) of 400 units in 2048 added (see LICENSE-DejaVu). -->
+<fontFamilies>
+	<fontFamily name="Fixture Gap">
+		<normal>fonts/FixtureGap.ttf</normal>
+		<pdfEncoding>Identity-H</pdfEncoding>
+		<pdfEmbedded>true</pdfEmbedded>
+	</fontFamily>
+</fontFamilies>

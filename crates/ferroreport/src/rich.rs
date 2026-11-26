@@ -747,14 +747,15 @@ pub fn break_rich(st: &StyledText, fonts: &mut FontSet, max_width: f32, mode: Me
 struct LineMetrics {
     ascent: f32,
     below: f32,
-    /// The tallest descent alone (`below` is descent and leading).
+    /// The tallest descent alone, and the largest line gap (`below` is descent and leading).
     descent: f32,
+    leading: f32,
     max_size: f32,
 }
 
 fn line_metrics(st: &StyledText, fonts: &mut FontSet, line: &RLine) -> LineMetrics {
     let (a, b) = (line.start, line.next.max(line.end));
-    let mut m = LineMetrics { ascent: 0.0, below: 0.0, descent: 0.0, max_size: 0.0 };
+    let mut m = LineMetrics { ascent: 0.0, below: 0.0, descent: 0.0, leading: 0.0, max_size: 0.0 };
     let mut any = false;
     for r in &st.runs {
         let overlaps = if a == b { r.start <= a && (a < r.end || r.end == a) } else { r.start < b && r.end > a };
@@ -772,6 +773,7 @@ fn line_metrics(st: &StyledText, fonts: &mut FontSet, line: &RLine) -> LineMetri
         m.ascent = m.ascent.max(face.ascent(size));
         m.below = m.below.max(face.line_height(size) - face.ascent(size));
         m.descent = m.descent.max(face.descent(size));
+        m.leading = m.leading.max(face.line_gap * size / face.units_per_em);
         m.max_size = m.max_size.max(size);
     }
     if !any {
@@ -783,6 +785,7 @@ fn line_metrics(st: &StyledText, fonts: &mut FontSet, line: &RLine) -> LineMetri
             ascent: face.ascent(size),
             below: face.line_height(size) - face.ascent(size),
             descent: face.descent(size),
+            leading: face.line_gap * size / face.units_per_em,
             max_size: size,
         };
     }
@@ -985,7 +988,8 @@ pub fn layout(
     let text_height: f32 = fill.iter().map(|l| l.height).sum();
     let size_sum: f32 = fill.iter().map(|l| l.m.max_size).sum();
     let factor = if size_sum > 0.0 { text_height / size_sum } else { 1.0 };
-    let first_leading = fill.first().map(|l| l.m.ascent).unwrap_or(0.0);
+    // The first baseline is the first line's leading (its font's line gap) and ascent below the top.
+    let first_leading = fill.first().map(|l| l.m.leading + l.m.ascent).unwrap_or(0.0);
 
     // Exporting: line breaks with iText widths, baselines spaced by factor × largest size.
     let mut lines = break_rich(&shown, fonts, cw, Measure::Render);

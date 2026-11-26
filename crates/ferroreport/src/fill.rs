@@ -1057,6 +1057,9 @@ fn plain_text_item(
     // Justified lines spread the leftover width over their spaces. The last line of a
     // paragraph keeps the spacing of the line before it (JasperReports 6 behaviour).
     let face_ref = fonts.face(face_id);
+    // JasperReports puts the first baseline the font's line gap (leading) and its ascent below
+    // the top.
+    let leading = face_ref.line_gap * size / face_ref.units_per_em;
     let normalized = crate::text::normalize(&rendered_text);
     let starts: Vec<usize> = lines.iter().map(|l| l.start).collect();
     let print_lines_next_start = |_: &str, k: usize| starts.get(k + 1).copied();
@@ -1108,7 +1111,7 @@ fn plain_text_item(
         };
         print_lines.push(PrintLine {
             x: lx,
-            baseline: cy + voff + vm.ascent + advance * k as f32,
+            baseline: cy + voff + leading + vm.ascent + advance * k as f32,
             width,
             word_spacing,
             text: l.text,
