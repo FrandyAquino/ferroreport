@@ -9,7 +9,7 @@
 
 use crate::data::Record;
 use crate::error::{Error, Result};
-use crate::expr::{eval, truthy, EvalEnv, Expr, Scope};
+use crate::expr::{truthy, EvalEnv, Expr, Scope};
 use crate::fonts::FontSet;
 use crate::format::format_value;
 use crate::image::{ImageData, ImageStore};
@@ -161,6 +161,27 @@ fn update_var(st: &mut VarState, def: &VarDef, ev: Value) {
                 st.value = class.coerce(Value::Double(v));
             }
         }
+    }
+}
+
+/// An expression's value, as JasperReports evaluates it: what Java would throw as a
+/// `NullPointerException` (a method called on null, null in arithmetic) makes the whole
+/// expression null instead of failing the report (`net.sf.jasperreports.evaluator.ignore.npe`,
+/// true by default).
+fn eval(expr: &Expr, scope: &dyn Scope, env: &EvalEnv) -> Result<Value> {
+    match crate::expr::eval(expr, scope, env) {
+        Err(e) if crate::expr::eval::is_null_pointer(&e) => Ok(Value::Null),
+        other => other,
+    }
+}
+
+/// The value of a print-when expression, a conditional style's condition or an
+/// increment-when expression: null is false, as in JasperReports.
+fn condition(v: &Value, env: &EvalEnv) -> Result<bool> {
+    if v.is_null() {
+        Ok(false)
+    } else {
+        truthy(v, env)
     }
 }
 
@@ -1314,7 +1335,7 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
             Some(c) => {
                 let mut mask = 0;
                 for (i, cond) in c.conditions.iter().enumerate() {
-                    if truthy(&eval(cond, le.scope, le.env)?, le.env)? {
+                    if condition(&eval(cond, le.scope, le.env)?, le.env)? {
                         mask |= 1 << i;
                     }
                 }
@@ -1338,7 +1359,7 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
     let mut measured = Vec::with_capacity(elements.len());
     for (idx, el) in elements.iter().enumerate() {
         let visible = match &el.print_when {
-            Some(e) => truthy(&eval(e, le.scope, le.env)?, le.env)?,
+            Some(e) => condition(&eval(e, le.scope, le.env)?, le.env)?,
             None => true,
         };
         let mut m = Measured {
@@ -3139,7 +3160,7 @@ impl<'a> Filler<'a> {
                 continue;
             }
             if let Some(w) = &ds.increment_when {
-                if !truthy(&eval(w, &ctx, env)?, env)? {
+                if !condition(&eval(w, &ctx, env)?, env)? {
                     continue;
                 }
             }
@@ -3316,7 +3337,7 @@ impl<'a> Filler<'a> {
             column_number: self.column as i32 + 1,
         };
         if let Some(pw) = &band.print_when {
-            if !truthy(&eval(pw, &ctx, self.env)?, self.env)? {
+            if !condition(&eval(pw, &ctx, self.env)?, self.env)? {
                 return Ok(None);
             }
         }

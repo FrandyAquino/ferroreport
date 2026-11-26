@@ -32,6 +32,17 @@ pub struct EvalEnv<'a> {
     pub now: NaiveDateTime,
 }
 
+/// How the message of a Java `NullPointerException` starts: a method called on null, null in
+/// arithmetic or a comparison, null used as a boolean. JasperReports catches those around a
+/// whole expression and gives null (`net.sf.jasperreports.evaluator.ignore.npe`, true by
+/// default); the filler does the same with [`is_null_pointer`].
+pub(crate) const NULL_POINTER: &str = "NullPointerException: ";
+
+/// Whether `e` is what Java would throw as a `NullPointerException`.
+pub(crate) fn is_null_pointer(e: &Error) -> bool {
+    matches!(e, Error::Eval(m) if m.starts_with(NULL_POINTER))
+}
+
 pub fn eval(expr: &Expr, scope: &dyn Scope, env: &EvalEnv) -> Result<Value> {
     match expr {
         Expr::Lit(v) => Ok(v.clone()),
@@ -53,6 +64,7 @@ pub fn eval(expr: &Expr, scope: &dyn Scope, env: &EvalEnv) -> Result<Value> {
                     Value::Float(f) => Ok(Value::Float(-f)),
                     Value::Double(f) => Ok(Value::Double(-f)),
                     Value::Decimal(d) => Ok(Value::Decimal(-d)),
+                    Value::Null => Err(Error::eval(format!("{NULL_POINTER}cannot negate null"))),
                     other => Err(Error::eval(format!("cannot negate {}", other.type_name()))),
                 },
             }
@@ -122,7 +134,7 @@ pub fn eval(expr: &Expr, scope: &dyn Scope, env: &EvalEnv) -> Result<Value> {
                 {
                     let v = eval(inner, scope, env)?;
                     if v.is_null() {
-                        return Err(Error::eval("NullPointerException: getClass() on null"));
+                        return Err(Error::eval(format!("{NULL_POINTER}getClass() on null")));
                     }
                     let full = java_class(&v);
                     return Ok(Value::str(if &**name == "getSimpleName" {
@@ -229,7 +241,7 @@ pub fn truthy(v: &Value, env: &EvalEnv) -> Result<bool> {
     match v {
         Value::Bool(b) => Ok(*b),
         _ if env.groovy => Ok(groovy_truth(v)),
-        Value::Null => Err(Error::eval("null used as a boolean condition")),
+        Value::Null => Err(Error::eval(format!("{NULL_POINTER}null used as a boolean condition"))),
         other => Err(Error::eval(format!("{} used as a boolean condition", other.type_name()))),
     }
 }
@@ -374,12 +386,22 @@ pub(crate) fn binary(op: BinOp, l: Value, r: Value, env: &EvalEnv) -> Result<Val
         }
         BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Rem => {
             if l.is_null() || r.is_null() {
-                return Err(Error::eval("NullPointerException: arithmetic on a null value"));
+                return Err(Error::eval(format!("{NULL_POINTER}arithmetic on a null value")));
             }
             arithmetic(op, &l, &r, env)
         }
         BinOp::Eq => Ok(Value::Bool(l.java_equals(&r))),
         BinOp::Ne => Ok(Value::Bool(!l.java_equals(&r))),
+        // Java unboxes both sides: null throws.
+        BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge if !env.groovy && (l.is_null() || r.is_null()) => {
+            let sym = match op {
+                BinOp::Lt => "<",
+                BinOp::Le => "<=",
+                BinOp::Gt => ">",
+                _ => ">=",
+            };
+            Err(Error::eval(format!("{NULL_POINTER}null compared with {sym}")))
+        }
         BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge => {
             let ord =
                 l.compare(&r).ok_or_else(|| Error::eval(format!("cannot compare {} with {}", l.type_name(), r.type_name())))?;
@@ -416,7 +438,7 @@ fn rounding(v: &Value) -> RoundingStrategy {
 
 fn method(recv: Value, name: &str, args: Vec<Value>, env: &EvalEnv) -> Result<Value> {
     if recv.is_null() {
-        return Err(Error::eval(format!("NullPointerException: cannot call {name}() on null")));
+        return Err(Error::eval(format!("{NULL_POINTER}cannot call {name}() on null")));
     }
     // Methods available on every object.
     match name {

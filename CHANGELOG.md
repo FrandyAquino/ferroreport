@@ -13,6 +13,14 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 - Expressions: `new ArrayList()`, `new LinkedList()` and `new Vector()` (empty, with an initial
   capacity, or a copy of a list), as in a variable's initial value. JasperReports'
   `nopagebreak` sample (`NoPageBreakReport`) now renders the same as JasperReports 7.1.1.
+- Expressions: what Java would throw as a `NullPointerException` (a method called on null, null
+  in arithmetic, in a comparison or as a condition) makes the whole expression null instead of
+  stopping the render, as JasperReports does by default (`net.sf.jasperreports.evaluator.ignore.npe`).
+  A print-when expression, a conditional style or an increment-when that gives null counts as
+  false. `fixtures/59-null-pointer` matches JasperReports 6.20.6 pixel for pixel; JasperReports'
+  `xlsfeatures` samples (`XlsFeaturesReport`, `MacroReport`) now render the same as
+  JasperReports 7.1.1. Templates that set `ignore.npe` to false get a warning: that setting is
+  not supported.
 - Website: code blocks are in color, by language (shell, JSON, JavaScript, Python, Java, C#, PHP,
   Rust, XML and `.ferro`), with a small script of the site's own (`site/highlight.js`) and
   colors that keep WCAG AA contrast. Comments in the playground's editor are easier to read too.

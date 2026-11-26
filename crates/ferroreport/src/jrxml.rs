@@ -609,6 +609,14 @@ impl Parser {
                 });
             }
         }
+        if root.children_named("property").any(|p| {
+            p.attr("name") == Some("net.sf.jasperreports.evaluator.ignore.npe") && p.attr("value").is_some_and(|v| !parse_bool(v))
+        }) {
+            self.warnings.push(
+                "net.sf.jasperreports.evaluator.ignore.npe=false is not supported: a NullPointerException still makes its expression null"
+                    .into(),
+            );
+        }
         if root.child("scriptlet").is_some() {
             self.warnings.push("<scriptlet> is not supported yet".into());
         }
