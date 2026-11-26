@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<!-- The Spanish copy of ../docs.html: keep the two in step (same element ids, same code). -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Documentación de ferroreport: de JRXML a PDF, Excel y Word</title>
+<link rel="canonical" href="https://cristianencarnacion.github.io/ferroreport/es/docs.html">
+<link rel="alternate" hreflang="en" href="https://cristianencarnacion.github.io/ferroreport/docs.html">
+<link rel="alternate" hreflang="es" href="https://cristianencarnacion.github.io/ferroreport/es/docs.html">
+<link rel="alternate" hreflang="x-default" href="https://cristianencarnacion.github.io/ferroreport/docs.html">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://cristianencarnacion.github.io/ferroreport/es/docs.html">
+<meta property="og:site_name" content="ferroreport">
+<meta property="og:locale" content="es_LA">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:title" content="Documentación de ferroreport">
+<meta property="og:image" content="https://cristianencarnacion.github.io/ferroreport/img/invoice.png">
+<meta name="description" content="Cómo generar plantillas JRXML de JasperReports en PDF, Excel, Word, PowerPoint, CSV y HTML con ferroreport: línea de comandos, API HTTP, JavaScript, Python, Java y Rust; PDF/A, cifrado, plantillas .ferro y cómo migrar un proyecto.">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Documentación de ferroreport", "description": "Cómo generar plantillas JRXML de JasperReports en PDF, Excel, Word, PowerPoint, CSV y HTML con ferroreport: línea de comandos, API HTTP, JavaScript, Python, Java y Rust.", "inLanguage": "es", "url": "https://cristianencarnacion.github.io/ferroreport/es/docs.html", "about": {"@type": "SoftwareSourceCode", "name": "ferroreport", "codeRepository": "https://github.com/cristianEncarnacion/ferroreport"}, "author": {"@type": "Person", "name": "Cristian Encarnación"}}</script>
+<link rel="preload" href="../fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../site.css">
+<script src="../highlight.js" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="./">ferro<span>report</span></a>
+    <nav>
+      <a class="wide" href="./#playground">Pruébalo</a>
+      <a href="../designer/">Diseñador</a>
+      <a href="docs.html" aria-current="page">Docs</a>
+      <a href="https://github.com/cristianEncarnacion/ferroreport">GitHub</a>
+      <span class="lang" role="group" aria-label="Idioma">
+        <a href="../docs.html" hreflang="en" lang="en" aria-label="English">EN</a>
+        <a href="docs.html" hreflang="es" lang="es" aria-label="Español" aria-current="true">ES</a>
+      </span>
+    </nav>
+  </header>
+
+  <div class="docs">
+    <nav class="toc" aria-label="Secciones de la documentación">
+      <b>Empieza</b>
+      <a href="#first">Tu primer PDF</a>
+      <a href="#install">Instalación</a>
+      <a href="#inputs">Plantilla, datos y parámetros</a>
+      <a href="#ferro">Plantillas en .ferro</a>
+      <a href="#designer">El diseñador</a>
+      <b>Cómo llamarlo</b>
+      <a href="#cli">Línea de comandos</a>
+      <a href="#http">API HTTP (cualquier lenguaje)</a>
+      <a href="#js">JavaScript</a>
+      <a href="#python">Python</a>
+      <a href="#java">Java</a>
+      <a href="#rust">Rust</a>
+      <b>Reportes</b>
+      <a href="#resources">Imágenes, subreportes y plantillas de estilos</a>
+      <a href="#tables">Tablas</a>
+      <a href="#crosstabs">Crosstabs</a>
+      <a href="#excel">Excel y CSV</a>
+      <a href="#word">Word</a>
+      <a href="#powerpoint">PowerPoint</a>
+      <a href="#opendocument">OpenDocument</a>
+      <a href="#html">Vistas previas en HTML</a>
+      <a href="#tagged">PDF accesibles</a>
+      <a href="#pdf">PDF/A, firmas, cifrado, enlaces</a>
+      <a href="#large">Reportes grandes y límites</a>
+      <a href="#database">Filas desde una base de datos</a>
+      <a href="#fonts">Fuentes</a>
+      <a href="#locale">Locale y fechas</a>
+      <a href="#expressions">Expresiones</a>
+      <a href="#check">Revisar una plantilla</a>
+      <a href="#errors">Errores</a>
+      <a href="#support">Qué está soportado</a>
+    </nav>
+
+    <article class="doc">
+      <h1>Documentación</h1>
+      <p>ferroreport toma una plantilla (el <code>.jrxml</code> de JasperReports, o su propio <a href="#ferro"><code>.ferro</code></a>), tus filas
+        en JSON y tus parámetros, y devuelve un PDF, un libro de Excel, un documento de Word, una presentación de PowerPoint, un archivo OpenDocument, un CSV o una vista previa en HTML. Todas las formas de llamarlo, de la línea de comandos a Python, usan el mismo motor y dan los mismos bytes.</p>
+
+      <h2 id="first">Tu primer PDF</h2>
+      <p>Necesitas tres archivos: la plantilla que diseñaste en Jaspersoft Studio, las filas y los parámetros.</p>
+<pre data-lang="shell">ferroreport render invoice.jrxml --data rows.json --params params.json -o invoice.pdf</pre>
+<pre data-lang="json"># rows.json: un objeto por fila de detalle; las claves son los nombres de los &lt;field&gt; de la plantilla
+[
+  { "sku": "FX-1000", "description": "Hydraulic pump 2HP", "qty": 21, "price": "185.00" },
+  { "sku": "FX-1007", "description": "Stainless steel valve", "qty": 26, "price": "42.50" }
+]
+
+# params.json: una clave por cada &lt;parameter&gt;
+{ "CUSTOMER": "Distribuidora Caribe, S.A.", "ISSUED": "2026-03-05", "TAX_RATE": "0.18" }</pre>
+      <p>Lo mismo desde código:</p>
+<pre data-lang="js python shell">// JavaScript
+import { render } from "ferroreport";
+const pdf = render(jrxml, rows, params, { locale: "es_DO" });
+
+# Python
+import ferroreport
+pdf = ferroreport.render("invoice.jrxml", rows, params, locale="es_DO")
+
+# Cualquier lenguaje, por HTTP
+curl -X POST localhost:8080/render/invoice -H 'Content-Type: application/json' \
+  -d '{"data": [...], "params": {...}, "locale": "es_DO"}' -o invoice.pdf</pre>
+
+      <h2 id="install">Instalación</h2>
+      <table>
+        <tr><th>Usas</th><th>Instala</th></tr>
+        <tr><td>Línea de comandos</td><td>Descarga el binario para Linux, macOS o Windows de <a href="https://github.com/cristianEncarnacion/ferroreport/releases">GitHub Releases</a>, o <code>cargo install ferroreport-cli</code></td></tr>
+        <tr><td>Docker, HTTP</td><td><code>docker pull ghcr.io/cristianencarnacion/ferroreport</code></td></tr>
+        <tr><td>JavaScript</td><td><code>npm install ferroreport</code></td></tr>
+        <tr><td>Python</td><td><code>pip install ferroreport</code></td></tr>
+        <tr><td>Rust</td><td><code>cargo add ferroreport</code></td></tr>
+      </table>
+      <p class="note">El paquete de npm, el de PyPI, los crates de Rust, los binarios y la imagen Docker ya están disponibles.</p>
+
+      <h2 id="inputs">Plantilla, datos y parámetros</h2>
+      <h3>Plantilla</h3>
+      <p>El código fuente JRXML, tal como lo guarda Jaspersoft Studio (JRXML 6, y JRXML 7 como lo escribe JasperReports 7), o una
+        <a href="#ferro">plantilla <code>.ferro</code></a>: toda función que recibe una plantilla acepta cualquiera de las dos. Los archivos <code>.jasper</code> compilados
+        nunca se cargan: si una plantilla nombra <code>lines.jasper</code>, ferroreport lee <code>lines.jrxml</code> (o <code>lines.ferro</code>) en su lugar.</p>
+
+      <h3>Datos</h3>
+      <p>Un arreglo JSON con un objeto por fila, o un objeto JSON por línea (JSON Lines). Las claves coinciden con los <code>&lt;field name="..."&gt;</code>; un campo llamado
+        <code>customer.name</code> lee <code>{"customer": {"name": ...}}</code>. Una clave que falta o un <code>null</code> dan un campo nulo.
+        Cada valor se convierte a la clase que declara el campo:</p>
+      <table>
+        <tr><th>Clase del campo</th><th>El JSON que envías</th></tr>
+        <tr><td><code>String</code></td><td>Un texto (los demás valores se escriben como texto)</td></tr>
+        <tr><td><code>Integer</code>, <code>Long</code>, <code>Double</code>, <code>Float</code></td><td>Un número, o un texto con un número</td></tr>
+        <tr><td><code>BigDecimal</code></td><td>Un número o un texto. Usa un texto como <code>"185.00"</code> para conservar los dígitos exactos</td></tr>
+        <tr><td><code>Boolean</code></td><td><code>true</code> / <code>false</code>, o <code>"true"</code></td></tr>
+        <tr><td><code>Date</code>, <code>Timestamp</code>, <code>Time</code></td><td>Texto ISO-8601 (<code>"2026-03-05"</code>, <code>"2026-03-05T10:30:00"</code>, con o sin zona horaria) o milisegundos desde 1970 (epoch)</td></tr>
+        <tr><td><code>byte[]</code> (imágenes)</td><td>Texto en base64 o un URI <code>data:</code></td></tr>
+        <tr><td><code>List</code>, <code>Collection</code></td><td>Un arreglo anidado, por lo general las filas de un subreporte</td></tr>
+      </table>
+      <p>Los reportes sin fuente de datos pueden omitir los datos. La consulta SQL de una plantilla se ejecuta en la base de datos que indicas con <code>--db</code> (ver <a href="#database">Filas desde una base de datos</a>); sin ella, envía las filas.</p>
+
+      <h3>Parámetros</h3>
+      <p>Un objeto JSON con una clave por cada <code>&lt;parameter&gt;</code>, convertidos con las mismas reglas. Los parámetros que no envías toman
+        su <code>defaultValueExpression</code>.</p>
+
+      <h2 id="ferro">Plantillas en .ferro</h2>
+      <p><code>.ferro</code> es el formato de plantilla propio de ferroreport: los mismos reportes que en JRXML, escritos como un esquema con sangría en vez de
+        XML. Ocupa más o menos la mitad, una persona lo puede escribir sin diseñador, y sus reportes son accesibles por defecto.</p>
+<pre data-lang="ferro">// Empleados, con sus salarios y el total.
+report "Employees" lang=en
+  style Base default fontName="DejaVu Sans" size=10
+  field salary Double
+  variable total Double calculation=Sum : {salary}
+
+  title 40
+    h1 0,0 555x30 size=18 : Employees
+  columnHeader 20
+    text 0,0 300x20 bold : Name
+    text 300,0 255x20 bold align=right : Salary
+  detail 20
+    text 0,0 300x20 : {name}
+    text 300,0 255x20 pattern=#,##0.00 align=right : {salary}
+    image 0,0 20x20 alt="Photo of the employee" : {photo}
+  summary 20
+    text 300,0 255x20 bold align=right : Total: $V{total}</pre>
+      <table>
+        <tr><th>Parte de una línea</th><th>Qué quiere decir</th></tr>
+        <tr><td>La primera palabra</td><td>Qué es la línea: <code>report</code>, <code>style</code>, <code>field</code>, una banda
+          (<code>title</code>, <code>detail</code>, <code>pageFooter</code>...), una parte (<code>text</code>, <code>image</code>,
+          <code>line</code>, <code>rectangle</code>, <code>frame</code>, <code>subreport</code>, <code>chart</code>,
+          <code>crosstab</code>, <code>component</code>...), o cualquier otro elemento de JRXML 7 por su nombre (<code>box</code>,
+          <code>pen</code>, <code>property</code>...)</td></tr>
+        <tr><td>La sangría</td><td>Una línea con más sangría debajo de otra va dentro de ella</td></tr>
+        <tr><td><code>x,y</code> y <code>anchoxalto</code></td><td>La posición y el tamaño de una parte, en puntos</td></tr>
+        <tr><td>Un número después de una banda</td><td>Su altura. <code>detail 20</code> es una sección de detalle con una banda de 20 puntos de alto (lo mismo para
+          <code>groupHeader</code> y <code>groupFooter</code>)</td></tr>
+        <tr><td><code>nombre=valor</code></td><td>Un atributo. Pon el valor entre comillas si tiene espacios: <code>pattern="MMMM d, yyyy"</code>.
+          Un nombre solo quiere decir <code>true</code>: <code>bold</code>. <code>color=</code>, <code>background=</code>,
+          <code>align=</code>, <code>valign=</code> y <code>size=</code> son formas cortas de los nombres de JRXML (abajo); cualquier otro atributo
+          de JRXML 7 se escribe con su propio nombre</td></tr>
+        <tr><td><code>: texto</code></td><td>El texto de una parte <code>text</code>, o la expresión de la línea: la de una imagen, la de
+          una variable o un grupo, el valor por defecto de un parámetro, la condición de <code>if</code></td></tr>
+        <tr><td><code>{nombre}</code></td><td>El valor del campo <code>nombre</code> de la fila actual, en un texto o en cualquier expresión.
+          <code>$P{nombre}</code> es un parámetro, <code>$V{nombre}</code> una variable (<code>$V{PAGE_NUMBER}</code>...)</td></tr>
+        <tr><td>Las palabras después de <code>field</code>, <code>parameter</code>, <code>variable</code></td><td>El nombre y la clase:
+          <code>field amount BigDecimal</code>. <code>String</code>, <code>Integer</code>, <code>Long</code>, <code>Double</code>,
+          <code>BigDecimal</code>, <code>Boolean</code>, <code>Date</code>, <code>Timestamp</code>, <code>List</code>... no necesitan paquete.
+          <code>style</code>, <code>group</code> y <code>property</code> llevan su nombre de la misma forma</td></tr>
+        <tr><td>Una línea que termina en <code> :</code></td><td>El texto va en las líneas de abajo, un nivel más adentro, tal cual (para
+          expresiones largas y textos de varias líneas). <code>:= "..."</code> lo da como un texto JSON</td></tr>
+        <tr><td>Las opciones de <code>report</code></td><td><code>page=A4</code> (o <code>A3</code>, <code>A5</code>, <code>Letter</code>,
+          <code>Legal</code>, <code>612x792</code>), <code>landscape</code>, <code>margins=20</code> (o <code>20,30</code>, o cuatro
+          números), <code>lang=es-DO</code>, <code>tagged=false</code>. Sin ellas un reporte es A4, vertical, con márgenes de 20 puntos</td></tr>
+        <tr><td><code>// ...</code></td><td>Un comentario</td></tr>
+      </table>
+      <h3 id="ferro-text">Textos y campos</h3>
+      <p>Un <code>text</code> se imprime tal como está escrito, salvo que tenga huecos: <code>{nombre}</code> (un campo), <code>$P{nombre}</code>,
+        <code>$V{nombre}</code> o <code>$R{clave}</code> se llenan con los datos.</p>
+      <table>
+        <tr><th>Escribes</th><th>Y obtienes</th></tr>
+        <tr><td><code>text : Overdue</code></td><td>El texto, tal cual. Las llaves que no encierran un nombre también se quedan: <code>{0}</code>, <code>{a b}</code></td></tr>
+        <tr><td><code>text : Invoice {number} · {customer}</code></td><td>El texto con los valores dentro</td></tr>
+        <tr><td><code>text pattern=#,##0.00 : {total}</code></td><td>El valor solo, como un número (o una fecha) que <code>pattern=</code> formatea</td></tr>
+        <tr><td><code>text : ={qty} * {price}</code></td><td>Un texto que empieza con <code>=</code> es una expresión, como en una hoja de cálculo</td></tr>
+        <tr><td><code>text : \{not a hole\} costs \$5</code></td><td><code>\{</code>, <code>\}</code>, <code>\$</code>, <code>\=</code> y
+          <code>\\</code> imprimen el carácter mismo</td></tr>
+      </table>
+      <p><b>Los campos no necesitan declararse.</b> Un campo escrito como <code>{nombre}</code> que no tiene una línea <code>field</code> se declara
+        solo, en el reporte o en el <code>each</code> donde se usa, con la clase <code>Object</code>: sus valores conservan el tipo
+        que les dan los datos (texto, número, verdadero o falso, una lista). Declara un campo para darle una clase: las fechas, que llegan como texto,
+        necesitan <code>field due Date</code> para que <code>pattern=</code> las pueda formatear, y JasperReports necesita la clase de un
+        campo que se usa en cuentas o en una condición para compilar el JRXML. <code>$F{nombre}</code> sí necesita su declaración.</p>
+      <h3 id="ferro-long">Las formas largas también funcionan</h3>
+      <p>Cada forma corta se escribe como el JRXML de su forma larga, con los nombres del propio JasperReports, que también funcionan y se pueden mezclar
+        con ellas:</p>
+      <table>
+        <tr><th>Forma corta</th><th>También funciona</th></tr>
+        <tr><td><code>text : Total</code></td><td><code>staticText : Total</code></td></tr>
+        <tr><td><code>text : Invoice {number}</code></td><td><code>textField : "Invoice " + $F{number}</code></td></tr>
+        <tr><td><code>text : {total}</code>, <code>text : ={qty} * {price}</code></td><td><code>textField : $F{total}</code>,
+          <code>textField : $F{qty} * $F{price}</code></td></tr>
+        <tr><td><code>{nombre}</code> en una expresión</td><td><code>$F{nombre}</code></td></tr>
+        <tr><td>Ninguna línea <code>field</code> para <code>{nombre}</code></td><td><code>field nombre Object</code></td></tr>
+        <tr><td><code>color=red</code></td><td><code>forecolor=#FF0000</code>. Los colores por nombre son los que conoce JasperReports:
+          <code>black</code>, <code>white</code>, <code>gray</code> (o <code>grey</code>), <code>lightGray</code>,
+          <code>darkGray</code>, <code>red</code>, <code>green</code>, <code>blue</code>, <code>yellow</code>, <code>orange</code>,
+          <code>pink</code>, <code>cyan</code>, <code>magenta</code>; o <code>#RRGGBB</code></td></tr>
+        <tr><td><code>background=#EEEEEE</code></td><td><code>backcolor=#EEEEEE mode=Opaque</code> (un fondo solo se ve en una
+          parte opaca; <code>mode=</code> en la línea manda)</td></tr>
+        <tr><td><code>align=left</code>, <code>center</code>, <code>right</code>, <code>justify</code></td><td><code>hTextAlign=Left</code>,
+          <code>Center</code>, <code>Right</code>, <code>Justified</code> (en una imagen, <code>hImageAlign=</code>)</td></tr>
+        <tr><td><code>valign=top</code>, <code>middle</code>, <code>bottom</code></td><td><code>vTextAlign=Top</code>, <code>Middle</code>,
+          <code>Bottom</code> (en una imagen, <code>vImageAlign=</code>)</td></tr>
+        <tr><td><code>size=12</code> en un texto o un estilo</td><td><code>fontSize=12</code></td></tr>
+      </table>
+      <p>Cuando una línea da los dos nombres (<code>color=</code> y <code>forecolor=</code>), se usa el de JRXML. En un reporte con
+        <code>language=groovy</code> (o <code>javascript</code>), las llaves de las expresiones son del lenguaje y no se tocan:
+        ahí escribe <code>$F{nombre}</code> (los huecos de un <code>text</code> siguen funcionando). El primer ejemplo con las formas largas da el
+        mismo JRXML:</p>
+<pre data-lang="ferro">report "Employees" lang=en
+  style Base default fontName="DejaVu Sans" fontSize=10
+  field salary Double
+  field name Object
+  field photo Object
+  variable total Double calculation=Sum : $F{salary}
+
+  title 40
+    h1 0,0 555x30 fontSize=18 : Employees
+  columnHeader 20
+    staticText 0,0 300x20 bold : Name
+    staticText 300,0 255x20 bold hTextAlign=Right : Salary
+  detail 20
+    textField 0,0 300x20 : $F{name}
+    textField 300,0 255x20 pattern=#,##0.00 hTextAlign=Right : $F{salary}
+    image 0,0 20x20 alt="Photo of the employee" : $F{photo}
+  summary 20
+    textField 300,0 255x20 bold hTextAlign=Right : "Total: " + $V{total}</pre>
+      <p><b>Accesible por defecto.</b> Un reporte <code>.ferro</code> da un <a href="#tagged">PDF etiquetado</a>, el que siguen los lectores
+        de pantalla, salvo que diga <code>tagged=false</code>, en el idioma de <code>lang=</code> (o del locale). <code>h1</code> a
+        <code>h6</code> son títulos (un texto estático etiquetado como tal), <code>alt="..."</code> describe una imagen y <code>tag=th</code>
+        (o <code>td</code>, <code>table</code>, <code>h2</code>...) dice qué es cualquier elemento.</p>
+      <h3 id="ferro-layout">Sin coordenadas</h3>
+      <p>La posición y el tamaño se pueden omitir, y ferroreport los calcula:</p>
+<pre data-lang="ferro">report "Employees" lang=en
+  field salary Double
+
+  def money value
+    text pattern=#,##0.00 align=right : {{value}}
+
+  title gap=6
+    h1 height=30 size=18 : Employees
+    text height=14 color=gray : Everyone on the payroll
+  detail
+    row height=16
+      text 3fr : {name}
+      use money 1fr value={salary}</pre>
+      <table>
+        <tr><th>Escribes</th><th>Y obtienes</th></tr>
+        <tr><td>Partes sin <code>x,y</code></td><td>Una debajo de otra, del ancho de la banda (o del frame); la banda es tan alta como hace falta, salvo que dé una altura</td></tr>
+        <tr><td><code>row</code></td><td>Sus partes una al lado de otra. Cada una dice su ancho: en puntos (<code>100</code>), un porcentaje de la fila (<code>40%</code>) o una fracción de lo que queda (<code>2fr</code>, <code>1fr</code>; una parte sin ancho es <code>1fr</code>). <code>height=</code> fija la altura de sus partes</td></tr>
+        <tr><td><code>stack</code></td><td>Partes una debajo de otra dentro de una fila</td></tr>
+        <tr><td><code>gap=</code></td><td>En una banda, frame, fila o stack: el espacio entre sus partes, en puntos (4 si no dices nada)</td></tr>
+        <tr><td><code>def nombre parámetros...</code></td><td>Una definición: las partes de abajo, con <code>{{parámetro}}</code> donde va un valor</td></tr>
+        <tr><td><code>use nombre parámetro=valor</code></td><td>Las partes de la definición, con los valores puestos. Un ancho (<code>1fr</code>) y los demás atributos de <code>use</code> van a sus partes</td></tr>
+        <tr><td><code>if : {overdue}</code></td><td>Sus partes se imprimen solo cuando se cumple la condición, y si no, no ocupan espacio (un frame con <code>printWhenExpression</code> y <code>removeLineWhenBlank</code>)</td></tr>
+        <tr><td><code>each : {lines}</code></td><td>Sus partes se repiten por cada fila de una lista anidada; las líneas <code>field</code> de adentro declaran los campos de esas filas, cuando necesitan una clase (un componente lista sobre un subdataset)</td></tr>
+        <tr><td><code>import "parts.ferro"</code></td><td>Las definiciones, estilos y campos de otro archivo, de la carpeta de la plantilla o de las carpetas de recursos</td></tr>
+      </table>
+      <p>Una parte colocada así flota (baja cuando la de arriba crece) y un campo de texto crece con su texto, así que nada
+        se encima cuando un valor es más largo de lo esperado. Las partes que dan <code>x,y</code> se quedan donde dicen. <code>convert</code> escribe
+        el resultado como JRXML con todas las coordenadas calculadas, que Jaspersoft Studio y JasperReports abren como cualquier otro reporte.</p>
+      <p>Todo lo que dice un JRXML 7 se puede decir en <code>.ferro</code>, así que convertir de uno a otro no pierde nada:</p>
+<pre data-lang="shell">ferroreport convert invoice.jrxml -o invoice.ferro      # JRXML 6 o 7 -&gt; .ferro
+ferroreport convert invoice.ferro -o invoice.jrxml      # .ferro -&gt; JRXML 7, para Jaspersoft Studio 7
+ferroreport convert old.jrxml --to jrxml -o new.jrxml   # JRXML 6 -&gt; JRXML 7</pre>
+      <p>Desde código: <code>convert(template, "ferro")</code> en JavaScript, <code>ferroreport.convert(template, to="ferro")</code> en
+        Python, <code>ferroreport::template::from_jrxml</code>, <code>to_jrxml</code> y <code>ferroreport::convert::jrxml_to_v7</code>
+        en Rust. Cada fixture sale con los mismos píxeles desde su JRXML, su JRXML 7 y su <code>.ferro</code>.</p>
+
+      <h2 id="designer">El diseñador</h2>
+      <p>El <a href="../designer/">diseñador</a> crea y cambia plantillas en el navegador, sin escribirlas y sin saber de
+        JasperReports: la página en el centro, los campos de tus datos a la izquierda, y cómo se ve la parte seleccionada a la
+        derecha. Corre en tu computadora (el motor es WebAssembly), así que ni la plantilla ni los datos salen de ella, y guarda
+        tu trabajo en el navegador hasta que empiezas un reporte nuevo. Habla español e inglés (el botón EN / ES; al principio, el idioma
+        de tu navegador), y la primera vez que se abre muestra una guía de tres pasos, que Ayuda, Primeros pasos vuelve a mostrar.</p>
+      <ol>
+        <li>Empieza con el ejemplo de facturas, un reporte en blanco o un archivo (Archivo, Abrir un archivo…: un <code>.ferro</code> o un
+          <code>.jrxml</code>; un <code>.ferro</code> que importa otros se abre cuando los seleccionas juntos, y un archivo JSON
+          seleccionado con él pasa a ser los datos).</li>
+        <li>Agrega tus datos: Subir archivo de datos, o Editar datos de ejemplo (una lista de filas en JSON). El diseñador muestra sus campos con
+          sus tipos en palabras sencillas (texto, número, número entero, fecha, sí o no, lista).</li>
+        <li>Arrastra un campo a la página, o selecciona un área y haz clic en el campo. Las áreas tienen nombres sencillos: Título del reporte (arriba
+          de la primera página), Arriba de cada página, Títulos de columna, Cada fila de tus datos (se repite), Debajo de las filas, Abajo de
+          cada página, Final del reporte (totales); sus nombres de JasperReports están en sus descripciones emergentes. Un área vacía es una franja
+          delgada que dice <i>Agrega algo aquí</i>. Un campo que sueltas en las filas lleva un título de columna encima; los números se
+          alinean a la derecha con un formato; una lista (un arreglo en cada fila) se vuelve una parte que se repite por cada elemento, con sus campos
+          adentro.</li>
+        <li>Selecciona una parte para cambiarla. Su cuadro Texto lleva palabras y campos como los escribe <code>.ferro</code>,
+          <code>Invoice {number} · {customer}</code>: escribe <kbd>{</kbd>, o usa Insertar un campo, para elegir uno, y la página
+          muestra cada campo como una píldora con su nombre. Un texto que se calcula con una fórmula (una llamada a un método, una cuenta, una
+          condición) se muestra en Avanzado, como lo escribe JasperReports, y se guarda tal como estaba. Lo demás está en secciones: Aspecto
+          (fuente, tamaño, negrita, cursiva, subrayado, colores), Alineación, Borde, y, plegadas, Posición y tamaño y Avanzado (crecer si el
+          texto es largo, en blanco cuando no hay valor, mostrar solo cuando, la fórmula). Los formatos de número se eligen por un ejemplo (1,234.56,
+          $1,234.56, 12%, 2026-11-24). <kbd>Ctrl</kbd>+<kbd>Z</kbd> deshace; las flechas mueven.</li>
+        <li>Descargar PDF (el botón principal), o Excel, Word o PowerPoint desde su menú; la pestaña Vista previa muestra el PDF, que se vuelve a hacer un momento
+          después de cada cambio. Archivo guarda la plantilla como <code>.ferro</code> o <code>.jrxml</code> (JasperReports 7). Cuando el reporte
+          no se puede hacer, un mensaje sobre la página dice por qué en palabras sencillas y qué hacer, con el mensaje del propio motor en
+          Detalles técnicos.</li>
+      </ol>
+      <p>Las partes que todavía no puede editar (gráficos, tablas, crosstabs, subreportes, códigos de barras) se muestran como cajas y se guardan tal como estaban.
+        Las imágenes se guardan dentro de la plantilla como URI <code>data:</code>, que ferroreport lee y JasperReports no: dale a
+        JasperReports la imagen como archivo. Un <code>.ferro</code> que guarda tiene todas las posiciones escritas, como lo escribe
+        <code>convert</code>, y los <code>import</code> y <code>def</code> quedan expandidos.</p>
+      <p>Los editores pueden hacer lo mismo desde JavaScript: <code>toTree(template)</code> da cualquier plantilla como un árbol de su forma JRXML 7,
+        y <code>fromTree(tree, "ferro" | "jrxml")</code> la vuelve a escribir (ver <a href="#js">JavaScript</a>).</p>
+
+      <h2 id="cli">Línea de comandos</h2>
+<pre data-lang="usage">ferroreport render &lt;template.jrxml|template.ferro&gt; [options]
+ferroreport doctor &lt;template&gt;
+ferroreport convert &lt;template&gt; [-o &lt;output&gt;] [--to ferro|jrxml]
+ferroreport migrate &lt;folder|templates...&gt; [--report &lt;file.md|file.json&gt;] [--resources &lt;dir&gt;] [--strict] [--jasper &lt;lib&gt; [--keep &lt;dir&gt;]] [--to ferro|jrxml --out &lt;dir&gt;]
+ferroreport serve [options]</pre>
+      <h3>render</h3>
+      <table>
+        <tr><th>Opción</th><th>Qué hace</th></tr>
+        <tr><td><code>-d, --data &lt;file.json&gt;</code></td><td>Las filas: un arreglo JSON de objetos, o un objeto por línea. <code>-</code> las lee de la entrada estándar. Omítelo en reportes sin datos. El archivo se lee a medida que el reporte lo necesita, así que puede ser más grande que la memoria</td></tr>
+        <tr><td><code>-p, --params &lt;file.json&gt;</code></td><td>Los valores de los parámetros</td></tr>
+        <tr><td><code>-o, --output &lt;file&gt;</code></td><td>El archivo de salida (por defecto: el nombre de la plantilla con <code>.pdf</code>). La extensión elige el formato: <code>.pdf</code>, <code>.xlsx</code>, <code>.docx</code>, <code>.pptx</code>, <code>.ods</code>, <code>.odt</code>, <code>.csv</code> o <code>.html</code>. <code>-</code> escribe en la salida estándar</td></tr>
+        <tr><td><code>-f, --format &lt;pdf|xlsx|docx|pptx|ods|odt|csv|html&gt;</code></td><td>El formato de salida, cuando el nombre del archivo no lo dice (por ejemplo con <code>-o -</code>)</td></tr>
+        <tr><td><code>--xlsx-numbers</code></td><td>En Excel y ODS, escribe los números como números con su patrón de formato en vez de como el texto formateado. Ver <a href="#excel">Excel y CSV</a></td></tr>
+        <tr><td><code>--csv-safe</code></td><td>En CSV, pone un apóstrofo antes de los valores que una hoja de cálculo ejecutaría como fórmula. Úsalo cuando los datos vienen de otras personas</td></tr>
+        <tr><td><code>--tagged</code></td><td>En PDF, dice qué es el contenido, para los lectores de pantalla. Ver <a href="#tagged">PDF accesibles</a></td></tr>
+        <tr><td><code>--pdfa &lt;2b|2u|2a|3b|3u|3a&gt;</code></td><td>Escribe PDF/A. Ver <a href="#pdf">PDF/A, adjuntos, cifrado</a></td></tr>
+        <tr><td><code>--attach &lt;file[:mime/type]&gt;</code></td><td>Lleva un archivo dentro del PDF. Se puede repetir</td></tr>
+        <tr><td><code>--user-password &lt;pw&gt;</code></td><td>Cifra el PDF (AES-256); esta contraseña lo abre (una vacía lo abre sin preguntar). También <code>FERROREPORT_PDF_USER_PASSWORD</code></td></tr>
+        <tr><td><code>--owner-password &lt;pw&gt;</code></td><td>Levanta los permisos. También <code>FERROREPORT_PDF_OWNER_PASSWORD</code>; sin ella, nadie puede levantarlos</td></tr>
+        <tr><td><code>--permissions &lt;list&gt;</code></td><td>Lo que los lectores permiten sin la contraseña de propietario: <code>print</code>, <code>copy</code>, <code>modify</code>, <code>annotate</code>, <code>fill</code>, <code>accessibility</code>, <code>assemble</code>, <code>all</code>, separados por comas (por defecto: ninguno). También cifra el PDF</td></tr>
+        <tr><td><code>--max-pages &lt;n&gt;</code></td><td>Se detiene si el reporte pasa de esa cantidad de páginas. Ver <a href="#large">Reportes grandes y límites</a></td></tr>
+        <tr><td><code>--max-row &lt;MB&gt;</code></td><td>Se detiene en una fila de datos más grande que esto. Por defecto 256</td></tr>
+        <tr><td><code>--db &lt;url&gt;</code></td><td>Llena el reporte con su propia consulta SQL, y sus subreportes con las suyas (<code>FERROREPORT_DB</code>; la contraseña en <code>FERROREPORT_DB_PASSWORD</code>). Ver <a href="#database">Filas desde una base de datos</a></td></tr>
+        <tr><td><code>--timeout &lt;seconds&gt;</code></td><td>Se detiene si la generación tarda más que esto</td></tr>
+        <tr><td><code>-l, --locale &lt;tag&gt;</code></td><td>El formato de números y fechas: <code>en_US</code> (por defecto), <code>es_DO</code>, <code>es_MX</code>, <code>es_ES</code></td></tr>
+        <tr><td><code>--font Family=file.ttf[:bold][:italic]</code></td><td>Registra una fuente más. Repítelo para cada estilo</td></tr>
+        <tr><td><code>--font-set "Name=Family,Family"</code></td><td>Define un conjunto de fuentes, como lo hace una extensión de fuentes de JasperReports. Ver <a href="#fonts">Fuentes</a></td></tr>
+        <tr><td><code>--font-fallback</code></td><td>Dibuja los caracteres que le faltan a la fuente de un texto con otra fuente que sí los tiene. Ver <a href="#fonts">Fuentes</a></td></tr>
+        <tr><td><code>-r, --resources &lt;dir&gt;</code></td><td>Otra carpeta para imágenes y subreportes. La carpeta de la propia plantilla siempre se busca</td></tr>
+        <tr><td><code>--now &lt;YYYY-MM-DDTHH:MM:SS&gt;</code></td><td>Fija el valor de <code>new Date()</code>, para tener siempre la misma salida</td></tr>
+        <tr><td><code>-q, --quiet</code></td><td>No imprime la línea con el tiempo</td></tr>
+      </table>
+<pre data-lang="shell"># Desde un script u otro programa: entran filas, sale un PDF
+cat rows.json | ferroreport render invoice.jrxml -d - -p params.json -o - -q &gt; invoice.pdf
+
+# El mismo reporte como libro de Excel, o como CSV
+ferroreport render invoice.jrxml -d rows.json -p params.json -o invoice.xlsx
+ferroreport render invoice.jrxml -d rows.json -o - -f csv -q &gt; invoice.csv</pre>
+<pre data-lang="shell"># Con una fuente de la empresa y una carpeta de imágenes compartida
+ferroreport render invoice.jrxml -d rows.json \
+  --font "Montserrat=fonts/Montserrat-Regular.ttf" --font "Montserrat=fonts/Montserrat-Bold.ttf:bold" \
+  --resources ./brand</pre>
+      <h3>doctor</h3>
+      <p>Muestra lo que usa una plantilla y si ferroreport la puede generar. Córrelo sobre una plantilla antes de depender de ella. Ver
+        <a href="#check">Revisar una plantilla</a>.</p>
+      <h3>convert</h3>
+      <p>Reescribe una plantilla: JRXML (6 o 7) como <a href="#ferro"><code>.ferro</code></a>, <code>.ferro</code> como JRXML 7, o JRXML 6 como
+        JRXML 7, de la forma en que JasperReports 7 escribe sus propias muestras. La extensión de la salida, o <code>--to ferro</code> /
+        <code>--to jrxml</code>, elige el formato; sin ninguna de las dos, un JRXML pasa a <code>.ferro</code> y un <code>.ferro</code> pasa a
+        JRXML. Sin <code>-o</code> el resultado va a la salida estándar. Las plantillas de estilos (<code>.jrtx</code>) también se convierten.</p>
+      <h3 id="migrate">migrate</h3>
+      <p>Revisa cada plantilla de una carpeta y sus subcarpetas (<code>.jrxml</code> y <code>.ferro</code>) antes de que pases a ferroreport:
+        si carga, qué usa, qué no está soportado todavía, y si se genera sin filas (las imágenes se buscan junto a
+        cada plantilla, en su carpeta superior y en cada carpeta de <code>--resources</code>). Imprime una línea por plantilla y un resumen;
+        <code>--report migration.md</code> (o <code>.json</code>) escribe el resultado de cada plantilla. Con <code>--to ferro --out converted/</code>
+        (o <code>--to jrxml</code>, para JRXML 7) también escribe cada plantilla convertida, en las mismas carpetas. Termina con 1 cuando una
+        plantilla no se puede cargar, así que puede detener un build; con <code>--strict</code> también cuando una usa algo que todavía no está soportado,
+        se detiene al generarla sin filas, o difiere de JasperReports.</p>
+      <h3 id="migrate-jasper">Comparado con el propio JasperReports</h3>
+      <p>Con <code>--jasper lib/</code>, la carpeta de tus jars de JasperReports (6 o 7, con sus dependencias, como los corre tu
+        aplicación) y un JDK 11 o más nuevo en el PATH, cada plantilla que carga también la genera JasperReports, en un solo proceso de Java,
+        y ferroreport, con las mismas filas: <code>&lt;name&gt;.json</code> o <code>data.json</code> junto a la plantilla, y los
+        parámetros de <code>&lt;name&gt;.params.json</code> o <code>params.json</code> (locale en_US y zona horaria UTC en los dos). Para cada una
+        informa las páginas de cada motor, si cada texto y número es el mismo y está en el mismo lugar (sus exportaciones a CSV, comparadas línea
+        por línea), y cuánto tardó cada uno en llenar y escribir el PDF. <code>--keep compared/</code> guarda los dos PDF y los dos CSV de cada
+        plantilla, para verlos lado a lado. Las imágenes, estilos y subreportes se leen de la carpeta de la plantilla; ahí no se escribe nada.</p>
+      <p>Sobre las plantillas de prueba de este proyecto, con JasperReports 6.20.6:</p>
+<pre data-lang="console">$ ferroreport migrate fixtures/ --jasper jasperreports-6.20.6/lib --keep compared/
+✓ fixtures/02-invoice/report.jrxml (JRXML 6)
+    with the rows of fixtures/02-invoice/data.json: 2 pages in both, every text and number the same; JasperReports 228 ms, ferroreport 2.5 ms
+...
+compared with JasperReports: 46 the same pages and text, 0 differ, 2 JasperReports could not render; filling and writing the PDFs took JasperReports 7676 ms in all (its first template includes starting up), ferroreport 361 ms</pre>
+<pre data-lang="console">$ ferroreport migrate reports/ --report migration.md
+✓ reports/invoice.jrxml (JRXML 6)
+✓ reports/sales.jrxml (JRXML 6)
+    - hql query is not run (only SQL is): pass the rows it gives
+! reports/legacy/map.jrxml (JRXML 6)
+    - &lt;component&gt; elements are not supported yet and are skipped
+
+3 templates: 1 supported, 1 supported once you pass the rows their non-SQL query gave, 1 use features not supported yet, 0 cannot be loaded; 0 stop when rendered with no rows (they may need rows, parameters or pictures)</pre>
+      <h3>serve</h3>
+      <p>Arranca la <a href="#http">API HTTP</a>. <code>POST /render/invoice</code> genera <code>invoice.jrxml</code> de la
+        carpeta de plantillas, o <code>invoice.ferro</code> cuando no hay JRXML.</p>
+      <table>
+        <tr><th>Opción</th><th>Variable de entorno</th><th>Qué hace</th></tr>
+        <tr><td><code>--host &lt;addr&gt;</code></td><td><code>FERROREPORT_HOST</code></td><td>La dirección en la que escucha. Por defecto <code>127.0.0.1</code>; la imagen Docker usa <code>0.0.0.0</code></td></tr>
+        <tr><td><code>-P, --port &lt;n&gt;</code></td><td><code>FERROREPORT_PORT</code></td><td>El puerto. Por defecto <code>8080</code></td></tr>
+        <tr><td><code>-t, --templates &lt;dir&gt;</code></td><td><code>FERROREPORT_TEMPLATES</code></td><td>La carpeta de plantillas para <code>POST /render/&lt;name&gt;</code></td></tr>
+        <tr><td><code>-r, --resources &lt;dir&gt;</code></td><td></td><td>Otra carpeta para imágenes y subreportes. Se puede repetir</td></tr>
+        <tr><td><code>--token &lt;secret&gt;</code></td><td><code>FERROREPORT_TOKEN</code></td><td>Exige <code>Authorization: Bearer &lt;secret&gt;</code> en cada petición. Sin él, el servidor no acepta escuchar fuera de localhost</td></tr>
+        <tr><td><code>--allow-anonymous</code></td><td><code>FERROREPORT_ALLOW_ANONYMOUS=1</code></td><td>Escucha fuera de localhost sin token. Solo para puertos a los que únicamente llegan tus propios servicios</td></tr>
+        <tr><td><code>--rate-limit &lt;n&gt;</code></td><td></td><td>El máximo de peticiones por minuto de una dirección de cliente; por encima, la respuesta es <code>429</code>. Por defecto: sin límite</td></tr>
+        <tr><td><code>--max-body &lt;MB&gt;</code></td><td></td><td>La petición más grande que se acepta. Por defecto 50</td></tr>
+        <tr><td><code>--db &lt;url&gt;</code></td><td><code>FERROREPORT_DB</code></td><td>La base de datos en la que corren las consultas SQL de las plantillas de <code>--templates</code>, cuando una petición no envía filas. Las plantillas enviadas en una petición nunca la reciben</td></tr>
+        <tr><td><code>--workers &lt;n&gt;</code></td><td></td><td>Las peticiones que se generan en paralelo. Por defecto: la cantidad de CPU</td></tr>
+        <tr><td><code>--timeout &lt;seconds&gt;</code></td><td></td><td>Lo más que puede tardar una generación. Por defecto 60; <code>0</code> para no tener límite</td></tr>
+        <tr><td><code>--max-pages &lt;n&gt;</code></td><td></td><td>Lo más de páginas que puede tener un reporte. Por defecto: sin límite</td></tr>
+        <tr><td><code>--cache &lt;n&gt;</code></td><td></td><td>Las plantillas ya interpretadas que se guardan en memoria, para que una plantilla enviada otra vez no se vuelva a interpretar. Por defecto 128; <code>0</code> para ninguna</td></tr>
+        <tr><td><code>--access-log</code></td><td></td><td>Imprime una línea por petición: método, ruta, estado y tiempo</td></tr>
+        <tr><td><code>--spool-memory &lt;MB&gt;</code></td><td><code>FERROREPORT_SPOOL_MEMORY</code></td><td>Cuánto de un documento se guarda en memoria hasta que está completo; el resto va a un archivo. Por defecto 32</td></tr>
+        <tr><td><code>--spool-dir &lt;dir&gt;</code></td><td><code>FERROREPORT_SPOOL_DIR</code></td><td>Dónde van esos archivos. Por defecto: la carpeta temporal del sistema (<code>/tmp</code> en la imagen Docker)</td></tr>
+        <tr><td><code>--spool-disk &lt;MB&gt;</code></td><td><code>FERROREPORT_SPOOL_DISK</code></td><td>El disco que pueden usar para ellos todas las peticiones juntas. Por defecto 4096</td></tr>
+      </table>
+
+      <h2 id="http">API HTTP (cualquier lenguaje)</h2>
+      <p>Para Java, C#, PHP, Go, Ruby y cualquier otra cosa que pueda hacer una petición HTTP. Corre el servidor junto a tu aplicación:</p>
+<pre data-lang="shell">docker run -p 8080:8080 \
+  -v "$PWD/templates:/templates" -e FERROREPORT_TEMPLATES=/templates \
+  -e FERROREPORT_TOKEN=change-me \
+  ghcr.io/cristianencarnacion/ferroreport</pre>
+      <table>
+        <tr><th>Petición</th><th>Qué hace</th><th>Qué devuelve</th></tr>
+        <tr><td><code>POST /render/&lt;name&gt;</code></td><td>Genera <code>&lt;name&gt;.jrxml</code> de la carpeta de plantillas (se permiten subcarpetas: <code>/render/sales/invoice</code>)</td><td><code>application/pdf</code>, o el archivo de Excel o CSV con <code>format</code></td></tr>
+        <tr><td><code>POST /render</code></td><td>Genera la plantilla enviada en la petición</td><td><code>application/pdf</code>, o el archivo de Excel o CSV con <code>format</code></td></tr>
+        <tr><td><code>POST /inspect</code></td><td>Informa los parámetros, campos y funciones no soportadas de una plantilla</td><td>JSON</td></tr>
+        <tr><td><code>GET /health</code></td><td>Para balanceadores de carga. Responde sin el token</td><td><code>{"status": "ok", "version": "1.2.0"}</code></td></tr>
+        <tr><td><code>GET /metrics</code></td><td>Contadores para Prometheus: generaciones, errores, generaciones detenidas por un límite, generaciones detenidas porque el cliente se fue, documentos enviados mientras se generaban, tiempo usado, páginas, filas, bytes enviados, aciertos y fallos de la caché de plantillas, generaciones en curso, disco en uso para documentos</td><td>Texto de Prometheus</td></tr>
+      </table>
+      <p>El cuerpo de la petición es JSON:</p>
+      <table>
+        <tr><th>Clave</th><th>Qué es</th></tr>
+        <tr><td><code>data</code></td><td>El arreglo de filas. Para más filas de las que quieres en memoria, envíalas <a href="#http-large">una por línea</a></td></tr>
+        <tr><td><code>params</code></td><td>Un objeto con los valores de los parámetros</td></tr>
+        <tr><td><code>locale</code></td><td><code>en_US</code> (por defecto), <code>es_DO</code>, <code>es_MX</code>, <code>es_ES</code></td></tr>
+        <tr><td><code>now</code></td><td>Un valor fijo para <code>new Date()</code>, en ISO-8601</td></tr>
+        <tr><td><code>format</code></td><td><code>html</code> devuelve una <a href="#html">vista previa web</a>; <code>pdf</code> (por defecto), <code>xlsx</code> (devuelve <code>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</code>), <code>docx</code>, <code>pptx</code> (<code>application/vnd.openxmlformats-officedocument.presentationml.presentation</code>), <code>ods</code> (<code>application/vnd.oasis.opendocument.spreadsheet</code>), <code>odt</code> (<code>application/vnd.oasis.opendocument.text</code>) o <code>csv</code> (<code>text/csv</code>). También se acepta en la URL: <code>/render/invoice?format=xlsx</code></td></tr>
+        <tr><td><code>tagged</code></td><td><code>true</code> para un PDF etiquetado. Ver <a href="#tagged">PDF accesibles</a></td></tr>
+        <tr><td><code>pdfa</code></td><td><code>"2b"</code>, <code>"2u"</code>, <code>"2a"</code>, <code>"3b"</code>, <code>"3u"</code> o <code>"3a"</code> para PDF/A. Ver <a href="#pdf">PDF/A, adjuntos, cifrado</a></td></tr>
+        <tr><td><code>password</code>, <code>ownerPassword</code>, <code>permissions</code></td><td>Cifran el PDF: la contraseña que lo abre, la que levanta los permisos, y lo que se permite sin ella (una lista o un texto con comas)</td></tr>
+        <tr><td><code>csvSafe</code>, <code>xlsxNumbers</code></td><td><code>true</code> para proteger el CSV de fórmulas de hoja de cálculo en los datos, o para escribir los números como números en Excel y ODS. Ver <a href="#excel">Excel y CSV</a></td></tr>
+        <tr><td><code>resources</code></td><td>Imágenes y plantillas de subreportes en base64, por la ruta que usa la plantilla: <code>{"logo.png": "iVBOR..."}</code></td></tr>
+        <tr><td><code>template</code></td><td>Solo en <code>POST /render</code> y <code>/inspect</code>: el texto fuente del JRXML</td></tr>
+        <tr><td><code>templateName</code></td><td>Solo en <code>POST /render</code>: una plantilla de la carpeta de plantillas, en vez de <code>template</code></td></tr>
+      </table>
+      <p>Los errores vuelven como <code>{"error": "what went wrong"}</code> con uno de estos estados: <code>400</code> la petición está mal formada,
+        <code>401</code> falta el token o es incorrecto, <code>404</code> la plantilla no existe, <code>411</code> la petición no tiene
+        <code>Content-Length</code> y pide cambiar de protocolo, <code>413</code> el cuerpo es demasiado grande
+        o la generación pasó el límite de páginas o de tiempo, <code>429</code> el cliente pidió demasiadas veces (<code>--rate-limit</code>), <code>422</code> la plantilla o sus datos no se pueden generar,
+        <code>507</code> el documento es demasiado grande para la memoria y el disco que puede usar el servidor (<code>--spool-memory</code>, <code>--spool-dir</code>, <code>--spool-disk</code>).</p>
+      <p>Un documento se envía solo cuando está completo, con su <code>Content-Length</code>: la respuesta es el documento entero o un error,
+        nunca una parte. Llega con dos encabezados más: <code>Server-Timing</code> (milisegundos usados para interpretar la plantilla, 0 cuando
+        vino de la caché, y para generarla) y <code>X-Report-Pages</code>.</p>
+<pre data-lang="shell"># curl
+curl -X POST localhost:8080/render/invoice \
+  -H 'Authorization: Bearer change-me' -H 'Content-Type: application/json' \
+  -d '{"data": [{"sku": "FX-1000", "qty": 21, "price": "185.00"}], "params": {"CUSTOMER": "Caribe"}}' \
+  -o invoice.pdf
+
+# El mismo reporte en Excel
+curl -X POST 'localhost:8080/render/invoice?format=xlsx' \
+  -H 'Authorization: Bearer change-me' -H 'Content-Type: application/json' \
+  -d '{"data": [...], "params": {...}}' -o invoice.xlsx</pre>
+<pre data-lang="java">// Java: usa la <a href="#java">librería de Java</a>, que también habla con este servidor
+Ferroreport reports = Ferroreport.server(URI.create("http://localhost:8080"), "change-me");
+byte[] pdf = reports.named("invoice").rows(lines).param("CUSTOMER", "Caribe").render();</pre>
+<pre data-lang="csharp">// C#
+using var http = new HttpClient();
+http.DefaultRequestHeaders.Authorization = new("Bearer", "change-me");
+var response = await http.PostAsJsonAsync("http://localhost:8080/render/invoice", new { data = rows, @params = parameters });
+response.EnsureSuccessStatusCode();
+byte[] pdf = await response.Content.ReadAsByteArrayAsync();</pre>
+<pre data-lang="php">// PHP
+$ch = curl_init("http://localhost:8080/render/invoice");
+curl_setopt_array($ch, [
+    CURLOPT_POSTFIELDS => json_encode(["data" => $rows, "params" => $params]),
+    CURLOPT_HTTPHEADER => ["Content-Type: application/json", "Authorization: Bearer change-me"],
+    CURLOPT_RETURNTRANSFER => true,
+]);
+$pdf = curl_exec($ch);</pre>
+
+      <h3 id="http-large">Reportes grandes por HTTP</h3>
+      <p>Hay dos cosas que se pueden cambiar, cada una por su lado, para reportes con más filas de las que quieres en memoria.</p>
+      <p><b>Filas una por línea.</b> Envía <code>Content-Type: application/x-ndjson</code> con la petición (todo lo de la tabla de arriba
+        menos <code>data</code>) en la primera línea, y una fila por línea después. El servidor lee las filas a medida que el reporte las pide,
+        así que ningún lado las tiene todas: un millón de filas se generan con el servidor en unos 50 MB. Envíalas directo desde una consulta:</p>
+<pre data-lang="json shell"># rows.ndjson
+{"params": {"YEAR": 2026}}
+{"sku": "FX-1000", "qty": 21, "price": "185.00"}
+{"sku": "FX-2000", "qty": 4, "price": "92.50"}
+
+curl -X POST localhost:8080/render/sales -H 'Authorization: Bearer change-me' \
+  -H 'Content-Type: application/x-ndjson' -T rows.ndjson -o sales.pdf
+
+# o sin archivo, a medida que la base de datos las produce
+psql -At -c "select row_to_json(s) from sales s" | { echo '{"params": {"YEAR": 2026}}'; cat; } | \
+  curl -X POST localhost:8080/render/sales -H 'Authorization: Bearer change-me' \
+    -H 'Content-Type: application/x-ndjson' -T - -o sales.pdf</pre>
+      <p>La primera línea puede ser tan grande como <code>--max-body</code>; las filas no tienen límite propio (<code>--timeout</code> y
+        <code>--max-pages</code> son los que detienen un reporte demasiado grande).</p>
+      <p><b>El documento mientras se genera.</b> Por defecto el servidor guarda el documento hasta que está completo (en memoria hasta
+        <code>--spool-memory</code>, después en un archivo), para que un error sea siempre un error y nunca medio PDF. Agrega
+        <code>Prefer: respond-streaming</code> y el documento se envía mientras se genera: los primeros bytes llegan en una fracción de
+        segundo, por largo que sea el reporte, y no se guarda nada en el servidor. La respuesta lo indica con
+        <code>Preference-Applied: respond-streaming</code>.</p>
+      <table>
+        <tr><th></th><th>Por defecto</th><th><code>Prefer: respond-streaming</code></th></tr>
+        <tr><td>Primer byte</td><td>Cuando el reporte está terminado</td><td>Al instante</td></tr>
+        <tr><td>Un error al generar</td><td>Un estado de error y <code>{"error": ...}</code>; ningún documento</td><td>Antes de los primeros 64 KB: lo mismo. Después el estado ya es <code>200</code>, así que la respuesta se corta de una forma que todo cliente HTTP informa como error (curl termina con 56, Java lanza <code>IOException</code>, Python lanza <code>IncompleteRead</code>). Nunca guardes un archivo cuya descarga falló</td></tr>
+        <tr><td>El cliente se va</td><td>La generación sigue hasta el final o hasta <code>--timeout</code></td><td>La generación se detiene en milisegundos</td></tr>
+        <tr><td>Encabezados</td><td><code>Content-Length</code>, <code>X-Report-Pages</code>, <code>Server-Timing</code></td><td><code>Transfer-Encoding: chunked</code></td></tr>
+        <tr><td>Memoria y disco del servidor</td><td>El documento, hasta <code>--spool-memory</code>; el resto en disco</td><td>Nada para el documento. Las filas enviadas una por línea se guardan antes (una petición no se puede leer mientras se responde)</td></tr>
+      </table>
+      <p>Los dos dan los mismos bytes. Usa el modo por defecto salvo que necesites los primeros bytes pronto (la descarga de un reporte largo en el navegador, un
+        gateway con un tiempo de espera corto) o quieras que las descargas abandonadas dejen de costar trabajo. En Docker los archivos van a <code>/tmp</code>,
+        que la imagen trae; con un sistema de archivos raíz de solo lectura, monta un volumen ahí o define <code>FERROREPORT_SPOOL_DIR</code>.
+        Sin un lugar donde escribir, los documentos de más de <code>--spool-memory</code> se responden con <code>507</code>.</p>
+      <p>Estas promesas se comprueban en cada cambio con <a href="https://github.com/cristianEncarnacion/ferroreport/blob/main/tools/http_check.py"><code>tools/http_check.py</code></a>:
+        un millón de filas, 50 clientes a la vez, un cliente que se va a la mitad, una fila incorrecta en cada modo, y los mismos bytes que la línea
+        de comandos para cada reporte de prueba.</p>
+
+      <h2 id="js">JavaScript</h2>
+      <p>Para Node.js 18+, Deno, Bun y navegadores. El motor es WebAssembly: sin compilación nativa, sin JVM.</p>
+<pre data-lang="js">import { render, inspect, convert, version } from "ferroreport";
+import { readFileSync, writeFileSync } from "node:fs";
+
+const pdf = render(
+  readFileSync("invoice.jrxml", "utf8"),      // plantilla: el texto JRXML
+  rows,                                        // datos: arreglo de objetos, o texto JSON
+  { CUSTOMER: "Distribuidora Caribe" },        // parámetros: objeto, o texto JSON
+  {
+    locale: "es_DO",
+    now: new Date("2026-03-05T10:00:00"),      // opcional: valor de new Date() en las expresiones
+    resources: {                               // opcional: imágenes y subreportes, por la ruta que usa la plantilla
+      "logo.png": readFileSync("logo.png"),
+      "lines.jrxml": readFileSync("lines.jrxml", "utf8"),
+    },
+  },
+);
+writeFileSync("invoice.pdf", pdf);             // pdf es un Uint8Array
+
+// Excel o CSV: la misma llamada con options.format
+writeFileSync("invoice.xlsx", render(template, rows, params, { format: "xlsx" }));</pre>
+      <table>
+        <tr><th>Función</th><th>Qué devuelve</th></tr>
+        <tr><td><code>render(template, data?, params?, options?)</code></td><td>Un <code>Uint8Array</code> con el PDF (o el libro de Excel o el texto CSV con <code>options.format</code>). Lanza un <code>Error</code> con el motivo si la plantilla no se puede generar</td></tr>
+        <tr><td><code>inspect(template)</code></td><td><code>{ name, parameters, fields, warnings }</code>. <code>warnings</code> lista lo que el motor no soporta en esa plantilla</td></tr>
+        <tr><td><code>convert(template, to)</code></td><td>La plantilla reescrita: <code>to</code> es <code>"ferro"</code> o <code>"jrxml"</code> (JRXML 7). Ver <a href="#ferro">Plantillas en .ferro</a></td></tr>
+        <tr><td><code>toTree(template, options?)</code></td><td>Cualquier plantilla (JRXML 6 o 7, o <code>.ferro</code>) como un árbol que un editor puede cambiar: su forma JRXML 7, un <code>{ tag, attrs, children, text? }</code> por elemento, con <code>attrs</code> como pares <code>[name, value]</code>. <code>options.resources</code> lleva los archivos que importa un <code>.ferro</code>. El <a href="#designer">diseñador</a> está hecho sobre ella</td></tr>
+        <tr><td><code>fromTree(tree, to?)</code></td><td>El árbol escrito otra vez como plantilla: <code>to</code> es <code>"jrxml"</code> (por defecto) o <code>"ferro"</code></td></tr>
+        <tr><td><code>version()</code></td><td>La versión del motor</td></tr>
+      </table>
+      <p><code>options</code> lleva <code>locale</code>, <code>now</code>, <code>resources</code> (como arriba) y <code>format</code>:
+        <code>"pdf"</code> (por defecto), <code>"xlsx"</code>, <code>"docx"</code>, <code>"pptx"</code>, <code>"ods"</code>, <code>"odt"</code>, <code>"html"</code> o <code>"csv"</code> (bytes UTF-8). También <code>maxPages</code> (detiene un
+        reporte que pasa de esa cantidad de páginas), <code>csvSafe</code> (protege el CSV de fórmulas de hoja de cálculo en los datos) y
+        <code>xlsxNumbers</code> (números como números en Excel y ODS). Para PDF: <code>tagged</code>, <code>pdfa</code> (<code>"3b"</code>...),
+        <code>attachments</code> (<code>[{ name, data, mime }]</code>), y <code>password</code>, <code>ownerPassword</code> y
+        <code>permissions</code> para cifrarlo (ver <a href="#pdf">PDF/A, adjuntos, cifrado</a>).</p>
+      <p>En un navegador, o con un bundler que elige la versión web, carga el motor una vez antes de la primera generación:</p>
+<pre data-lang="js">import init, { render } from "ferroreport";
+await init();
+const pdf = render(template, rows, params);
+window.open(URL.createObjectURL(new Blob([pdf], { type: "application/pdf" })));</pre>
+<pre data-lang="js">// Express: enviar un PDF
+app.get("/invoices/:id.pdf", async (req, res) => {
+  const { rows, params } = await loadInvoice(req.params.id);
+  res.type("application/pdf").send(Buffer.from(render(template, rows, params, { locale: "es_DO" })));
+});</pre>
+      <p>Las plantillas solo leen archivos de <code>options.resources</code>, así que la versión de JavaScript nunca toca el disco por su cuenta.</p>
+
+      <h2 id="python">Python</h2>
+<pre data-lang="python">import ferroreport
+
+pdf = ferroreport.render(
+    "invoice.jrxml",                       # una ruta, o el texto JRXML mismo
+    data=rows,                             # lista de dicts u objetos, o texto JSON
+    params={"CUSTOMER": "Distribuidora Caribe"},
+    locale="es_DO",
+    resource_dirs=["./brand"],             # opcional: más carpetas para imágenes y subreportes
+    resources={"logo.png": logo_bytes},    # opcional: imágenes y subreportes en memoria
+    now=datetime(2026, 3, 5, 10, 0),       # opcional: valor de new Date() en las expresiones
+    format="pdf",                          # opcional: "pdf", "xlsx" (Excel), "docx", "pptx", "ods", "odt", "csv" o "html"
+)                                          # devuelve bytes
+
+ferroreport.render_to_file("invoice.jrxml", "invoice.xlsx", rows)   # el formato sale de la extensión
+
+# Filas que no caben en memoria: se leen de un archivo a medida que hacen falta y cada página se escribe apenas se termina
+stats = ferroreport.render_to_file("sales.jrxml", "sales.pdf", data_file="sales.jsonl",
+                                   max_pages=50_000, timeout=120)
+print(stats)                               # {"pages": 23810, "rows": 1000000}</pre>
+      <table>
+        <tr><th>Función</th><th>Qué hace</th></tr>
+        <tr><td><code>render(template, data=None, params=None, *, locale, resources, resource_dirs, now, format, max_pages, timeout, csv_safe, xlsx_numbers, tagged, pdfa, attachments, password, owner_password, permissions)</code></td><td>Devuelve el archivo como <code>bytes</code>: PDF por defecto, Excel con <code>format="xlsx"</code>, Word con <code>format="docx"</code>, PowerPoint con <code>format="pptx"</code>, OpenDocument con <code>format="ods"</code> o <code>format="odt"</code>, CSV con <code>format="csv"</code>, HTML con <code>format="html"</code>. <code>max_pages</code> y <code>timeout</code> (segundos) detienen un reporte que crece más de lo esperado; <code>pdfa</code>, <code>attachments</code>, las contraseñas y <code>permissions</code> se describen en <a href="#pdf">PDF/A, adjuntos, cifrado</a></td></tr>
+        <tr><td><code>render_to_file(template, output, data=None, params=None, *, data_file, ...)</code></td><td>Los mismos argumentos; escribe el archivo en <code>output</code> a medida que se hace y devuelve <code>{"pages", "rows"}</code>. Sin <code>format</code>, decide la extensión (<code>.pdf</code>, <code>.xlsx</code>, <code>.docx</code>, <code>.pptx</code>, <code>.ods</code>, <code>.odt</code>, <code>.csv</code>, <code>.html</code>). <code>data_file</code> es un archivo de filas (un arreglo JSON o un objeto por línea) que se lee a medida que el reporte lo necesita, en vez de <code>data</code></td></tr>
+        <tr><td><code>inspect(template)</code></td><td>Devuelve un dict con <code>name</code>, <code>parameters</code>, <code>fields</code> y <code>warnings</code></td></tr>
+        <tr><td><code>convert(template, to="ferro")</code></td><td>Devuelve la plantilla reescrita, como <code>.ferro</code> o (<code>to="jrxml"</code>) JRXML 7. Ver <a href="#ferro">Plantillas en .ferro</a></td></tr>
+        <tr><td><code>FerroreportError</code></td><td>Se lanza cuando una plantilla no se puede interpretar, llenar o exportar</td></tr>
+      </table>
+      <p>Los valores de Python se convierten solos: <code>datetime</code> y <code>date</code> pasan a fechas, <code>Decimal</code> conserva sus
+        dígitos exactos, <code>bytes</code> pasan a imágenes, y los objetos comunes se leen por sus atributos. Cuando la plantilla es una ruta, su
+        carpeta se usa para buscar imágenes y subreportes. La generación libera el GIL, así que los hilos generan en paralelo.</p>
+<pre data-lang="python"># Django
+def invoice_pdf(request, pk):
+    invoice = Invoice.objects.get(pk=pk)
+    pdf = ferroreport.render("reports/invoice.jrxml", list(invoice.lines.values()),
+                             {"CUSTOMER": invoice.customer.name}, locale="es_DO")
+    return HttpResponse(pdf, content_type="application/pdf")
+
+# FastAPI
+@app.get("/invoices/{pk}.pdf")
+def invoice_pdf(pk: int):
+    rows, params = load_invoice(pk)
+    return Response(ferroreport.render("reports/invoice.jrxml", rows, params), media_type="application/pdf")</pre>
+
+      <h2 id="java">Java</h2>
+      <p>Una librería sin dependencias, para Java 11 y más nuevo (Quarkus, Spring, Java sin framework). Corre el motor nativo y le pasa
+        las filas a medida que se leen, así que un reporte puede ser mucho más grande que el heap.</p>
+<pre data-lang="xml">&lt;!-- pom.xml --&gt;
+&lt;repositories&gt;
+  &lt;repository&gt;&lt;id&gt;jitpack.io&lt;/id&gt;&lt;url&gt;https://jitpack.io&lt;/url&gt;&lt;/repository&gt;
+&lt;/repositories&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;com.github.cristianEncarnacion&lt;/groupId&gt;
+  &lt;artifactId&gt;ferroreport&lt;/artifactId&gt;
+  &lt;version&gt;v1.2.0&lt;/version&gt;
+&lt;/dependency&gt;</pre>
+<pre data-lang="java">Ferroreport reports = Ferroreport.local();
+
+byte[] pdf = reports.template(Path.of("reports/invoice.jrxml"))
+    .rows(lines)                                  // List&lt;Map&lt;String, Object&gt;&gt;, o cualquier Iterable
+    .param("CUSTOMER", "Distribuidora Caribe")
+    .locale("es_DO")
+    .render();
+
+// Una consulta directo a un archivo, en memoria constante
+try (ResultSet sales = statement.executeQuery("select * from sales order by region")) {
+    reports.template(Path.of("reports/sales.jrxml"))
+        .rows(sales)
+        .maxPages(50_000).timeout(Duration.ofMinutes(2))
+        .renderTo(Path.of("sales.pdf"));          // .xlsx, .docx, .pptx, .ods, .odt, .csv y .html funcionan igual
+}
+
+// Quarkus / JAX-RS: el PDF va directo a la respuesta
+StreamingOutput body = out -&gt; reports.template(Path.of("reports/invoice.jrxml")).rows(lines).renderTo(out);</pre>
+      <table>
+        <tr><th>Llamada</th><th>Qué hace</th></tr>
+        <tr><td><code>Ferroreport.local()</code>, <code>local(Path)</code></td><td>El motor en esta máquina. Se busca con <code>-Dferroreport.bin</code> o <code>FERROREPORT_BIN</code>, después en el <code>PATH</code>, y si no, se descarga una vez de los releases del proyecto y se verifica contra su lista SHA-256 (<code>-Dferroreport.download=false</code> lo prohíbe)</td></tr>
+        <tr><td><code>Ferroreport.server(URI, token)</code></td><td>Una instancia de <code>ferroreport serve</code> (0.9.0 o posterior), para un sidecar o un servicio compartido. Las filas se le envían una por línea a medida que se leen, así que un <code>ResultSet</code> grande nunca está en memoria de ningún lado, y la respuesta es el documento entero o una excepción</td></tr>
+        <tr><td><code>.template(Path)</code>, <code>.source(String)</code>, <code>.named(String)</code></td><td>Un reporte desde un archivo, desde texto JRXML, o por el nombre con que lo conoce un servidor</td></tr>
+        <tr><td><code>.rows(Iterable)</code>, <code>.rows(ResultSet)</code></td><td>Las filas, leídas de a una: Maps de nombre de campo a valor (los Maps y Lists anidados alimentan subreportes y tablas), o las columnas de una consulta</td></tr>
+        <tr><td><code>.param</code>, <code>.params</code>, <code>.locale</code>, <code>.now</code>, <code>.format</code>, <code>.resources</code></td><td>Parámetros, locale del formato, el valor de <code>new Date()</code>, formato de salida, más carpetas para imágenes y subreportes</td></tr>
+        <tr><td><code>.maxPages(n)</code>, <code>.timeout(Duration)</code>, <code>.csvSafe(true)</code>, <code>.xlsxNumbers(true)</code>, <code>.tagged(true)</code>, <code>.pdfa("3b")</code>, <code>.attach(Path)</code>, <code>.password(user, owner)</code>, <code>.permissions("print", ...)</code></td><td>Límites y opciones de exportación, como en la línea de comandos (el motor local recibe las contraseñas por su entorno, nunca por su línea de comandos; los adjuntos necesitan el motor local)</td></tr>
+        <tr><td><code>.render()</code>, <code>.renderTo(Path)</code>, <code>.renderTo(OutputStream)</code></td><td>El documento como bytes, como un archivo escrito página por página (si falla no queda nada), o en un stream a medida que se hace</td></tr>
+        <tr><td><code>FerroreportException</code></td><td>Se lanza con el mensaje del motor cuando un reporte no se puede generar</td></tr>
+      </table>
+      <p>En un contenedor, copia el motor dentro de la imagen para que no se descargue nada al correr:
+        <code>COPY --from=ghcr.io/cristianencarnacion/ferroreport /ferroreport /usr/local/bin/ferroreport</code>.</p>
+
+      <h2 id="rust">Rust</h2>
+<pre data-lang="rust">use ferroreport::Renderer;
+
+let template = std::fs::read_to_string("invoice.jrxml")?;
+let rows: serde_json::Value = serde_json::from_str(&amp;std::fs::read_to_string("rows.json")?)?;
+let params = serde_json::json!({ "CUSTOMER": "Distribuidora Caribe" });
+
+let pdf: Vec&lt;u8&gt; = Renderer::new()
+    .locale("es_DO")
+    .resource_dir("reports")                 // las imágenes y subreportes se leen de aquí
+    .render_json(&amp;template, &amp;rows, &amp;params)?;
+std::fs::write("invoice.pdf", pdf)?;</pre>
+      <table>
+        <tr><th>Método</th><th>Qué hace</th></tr>
+        <tr><td><code>Renderer::new()</code></td><td>Un renderer con las fuentes incluidas y el locale <code>en_US</code></td></tr>
+        <tr><td><code>.locale(tag)</code></td><td>El formato de números y fechas</td></tr>
+        <tr><td><code>.now(datetime)</code></td><td>Fija el valor de <code>new Date()</code></td></tr>
+        <tr><td><code>.resource_dir(dir)</code></td><td>Agrega una carpeta para imágenes y subreportes. Las plantillas no pueden leer fuera de estas carpetas</td></tr>
+        <tr><td><code>.resource(name, bytes)</code>, <code>add_resource(name, bytes)</code></td><td>Agrega una imagen o un subreporte que está en memoria</td></tr>
+        <tr><td><code>register_font(family, bold, italic, data)</code></td><td>Registra una fuente TrueType u OpenType</td></tr>
+        <tr><td><code>register_font_set(name, &amp;[families])</code></td><td>Define un conjunto de fuentes (ver <a href="#fonts">Fuentes</a>)</td></tr>
+        <tr><td><code>.font_fallback(true)</code>, <code>set_font_fallback(true)</code></td><td>Dibuja los caracteres que le faltan a la fuente de un texto con otra fuente que sí los tiene</td></tr>
+        <tr><td><code>render_json(template, rows, params)</code></td><td>Interpreta, llena y exporta a PDF en una sola llamada</td></tr>
+        <tr><td><code>render_json_as(template, rows, params, Format::Xlsx)</code></td><td>Lo mismo, a <code>Format::Pdf</code>, <code>Format::Xlsx</code>, <code>Format::Docx</code>, <code>Format::Pptx</code>, <code>Format::Ods</code>, <code>Format::Odt</code>, <code>Format::Csv</code> o <code>Format::Html</code></td></tr>
+        <tr><td><code>ferroreport::parse</code>, <code>fill</code>, <code>to_pdf</code> en el renderer</td><td>Los tres pasos por separado, para interpretar una plantilla una vez y llenarla muchas veces</td></tr>
+        <tr><td><code>render_report_json(&amp;report, rows, params, format)</code></td><td>Genera una plantilla ya interpretada con <code>ferroreport::parse</code></td></tr>
+        <tr><td><code>render_to(&amp;report, rows, params, format, writer)</code></td><td>Genera filas que llegan de a una (cualquier iterador de registros; <code>JsonRows</code> las lee de un texto JSON) a cualquier <code>std::io::Write</code>, página por página. Devuelve la cantidad de páginas y de filas. Ver <a href="#large">Reportes grandes y límites</a></td></tr>
+        <tr><td><code>fill_to(&amp;report, rows, params, &amp;mut sink)</code></td><td>Entrega cada página terminada a un <code>PageSink</code> propio</td></tr>
+        <tr><td><code>.limits(Limits { max_pages, timeout })</code></td><td>Detiene una generación que se pasa, con <code>Error::Limit</code></td></tr>
+        <tr><td><code>.csv_options(...)</code>, <code>.xlsx_options(...)</code></td><td>Las opciones que usan los métodos <code>render</code> para CSV, y para Excel y ODS</td></tr>
+        <tr><td><code>to_xlsx(doc, &amp;XlsxOptions)</code>, <code>to_ods(doc, &amp;XlsxOptions)</code>, <code>to_csv(doc, &amp;CsvOptions)</code>, <code>export(doc, format)</code></td><td>Exportan un documento ya llenado a Excel, ODS o CSV (<code>export</code> a cualquier formato). <code>XlsxOptions { detect_cell_type }</code> escribe los números como números; <code>CsvOptions</code> fija los delimitadores de campo y de registro</td></tr>
+        <tr><td><code>font_substitutions()</code></td><td>Las familias de fuentes que las últimas generaciones tuvieron que reemplazar</td></tr>
+      </table>
+
+      <h2 id="resources">Imágenes, subreportes y plantillas de estilos</h2>
+      <p>Una plantilla nombra otros archivos por su ruta relativa: <code>"logo.png"</code> en la expresión de una imagen, <code>"lines.jasper"</code> en la
+        expresión de un subreporte. ferroreport los busca en la carpeta de la plantilla, después en las carpetas de recursos que agregas, y después entre los
+        recursos que pasas en memoria. Una ruta nunca puede salir de esas carpetas, y las URL remotas no se descargan.</p>
+      <p>Las imágenes son PNG, JPEG o GIF (su primera imagen, con su color transparente). También pueden venir de los datos: un campo <code>byte[]</code> con contenido en base64, o un campo de texto con una
+        expresión en base64.</p>
+      <p>Un subreporte recibe sus filas de un arreglo anidado en la fila del reporte principal:</p>
+<pre data-lang="json xml"># Fila del reporte principal
+{ "order": "ORD-2026000", "customer": "Grupo Ramos",
+  "lines": [ { "product": "Clavos 3\"", "qty": 26, "price": 65.0 }, ... ] }
+
+# En la plantilla principal: un campo de clase java.util.List, y
+&lt;dataSourceExpression&gt;&lt;![CDATA[new JRMapCollectionDataSource($F{lines})]]&gt;&lt;/dataSourceExpression&gt;
+&lt;subreportExpression&gt;&lt;![CDATA["lines.jasper"]]&gt;&lt;/subreportExpression&gt;    # se lee de lines.jrxml</pre>
+      <p><code>JRBeanCollectionDataSource</code>, <code>((JsonDataSource)$P{REPORT_DATA_SOURCE}).subDataSource("lines")</code> y
+        <code>JREmptyDataSource</code> funcionan igual. Se soportan los parámetros de los subreportes y los valores que devuelven.</p>
+      <p>Las plantillas de estilos se buscan igual: <code>&lt;template&gt;&lt;![CDATA["styles.jrtx"]]&gt;&lt;/template&gt;</code> lee
+        <code>styles.jrtx</code> de la carpeta de la plantilla, de una carpeta de recursos o de los recursos en memoria (por HTTP, los
+        <code>resources</code> de la petición). Un <code>.jrtx</code> que incluye otro se lee con él, y el incluido se busca
+        primero junto a él. Los estilos se toman en el orden de JasperReports: los de cada plantilla después de las plantillas que incluye, y después
+        los del propio reporte; un estilo definido otra vez reemplaza al anterior para lo que viene después. La ubicación puede ser un texto o un
+        parámetro cuyo valor por defecto sea uno. En Rust, interpreta con <code>Renderer::parse</code> en vez de <code>ferroreport::parse</code>,
+        que no lee archivos.</p>
+
+      <h2 id="tables">Tablas</h2>
+      <p>Las tablas (<code>jr:table</code>) funcionan como en JasperReports: la tabla recorre un <code>&lt;subDataset&gt;</code>
+        cuyas filas vienen de la <code>dataSourceExpression</code> de su <code>datasetRun</code>, por lo general un arreglo anidado de la
+        fila actual, y sus <code>datasetParameter</code> le pasan valores. Los campos del reporte principal no se ven dentro de la
+        tabla; pásalos como parámetros.</p>
+<pre data-lang="xml">&lt;subDataset name="lines"&gt;
+  &lt;parameter name="ORDER" class="java.lang.String"/&gt;
+  &lt;field name="product" class="java.lang.String"/&gt; ...
+&lt;/subDataset&gt;
+...
+&lt;jr:table&gt;
+  &lt;datasetRun subDataset="lines"&gt;
+    &lt;datasetParameter name="ORDER"&gt;&lt;datasetParameterExpression&gt;&lt;![CDATA[$F{order}]]&gt;&lt;/datasetParameterExpression&gt;&lt;/datasetParameter&gt;
+    &lt;dataSourceExpression&gt;&lt;![CDATA[new JRMapCollectionDataSource($F{lines})]]&gt;&lt;/dataSourceExpression&gt;
+  &lt;/datasetRun&gt;
+  &lt;jr:column width="235"&gt; ... &lt;/jr:column&gt;
+&lt;/jr:table&gt;</pre>
+      <p>Se soportan: columnas y grupos de columnas anidados, encabezado y pie de tabla, encabezados de columna (que se vuelven a imprimir en cada página
+        en la que sigue la tabla), pies de columna, celdas de detalle, celdas de encabezado y pie de grupo para los grupos del subdataset,
+        <code>printWhenExpression</code> en las columnas, la celda sin datos (<code>whenNoDataType="NoDataCell"</code>) y las
+        variables del subdataset. Las filas vienen de la expresión de la fuente de datos o, cuando el dataset run pasa <code>$P{REPORT_CONNECTION}</code>, de la consulta SQL del subdataset en la base de datos del reporte.</p>
+      <p>Las listas (<code>jr:list</code>) usan el mismo <code>datasetRun</code>: el contenido de la lista se repite por cada fila, una
+        debajo de otra, y sigue en la página siguiente cuando no cabe.</p>
+
+      <h2 id="crosstabs">Crosstabs</h2>
+      <p>Los crosstabs (tablas cruzadas) hechos en Jaspersoft Studio salen como en JasperReports. Las filas vienen del propio reporte (pon el crosstab
+        en la banda summary) o de un subdataset por su <code>datasetRun</code>, por ejemplo un crosstab por fila de detalle sobre un arreglo
+        JSON anidado.</p>
+      <ul>
+        <li>Los grupos de filas y de columnas ordenan sus valores de forma ascendente o descendente, e imprimen sus totales al principio, al final o nunca.
+          Los encabezados de grupo van al principio, en el medio o al final de las celdas que abarcan (<code>headerPosition</code>).</li>
+        <li>Las medidas pueden ser Sum, Count, DistinctCount, Average, Highest, Lowest, First o Nothing. En una celda, <code>$V{measure}</code> es el
+          valor de esa celda, <code>$V{measure_group_ALL}</code> el total de un grupo, <code>$V{measure_rowGroup_columnGroup_ALL}</code> el total de
+          los dos, y <code>$V{group}</code> el valor del grupo. Las celdas sin datos muestran cero en sumas y conteos. Los totales suman los totales de los
+          grupos de abajo, como lo hace Jasper, así que los decimales se redondean igual.</li>
+        <li>Un crosstab más ancho que su elemento se corta en partes de columnas, impresas una debajo de otra (a <code>columnBreakOffset</code> de distancia) con
+          los encabezados de fila repetidos. Uno más alto que la página sigue en la página siguiente con los encabezados de columna repetidos
+          (<code>repeatColumnHeaders</code>, <code>repeatRowHeaders</code>).</li>
+        <li>Los valores de <code>&lt;crosstabParameter&gt;</code> se evalúan en el reporte y se leen con <code>$P{}</code> dentro del crosstab.</li>
+        <li><code>percentageOf="GrandTotal"</code> muestra una medida como porcentaje del total general (<code>100 × valor / total</code>, en la
+          clase de la medida: los enteros se dividen como enteros, BigDecimal redondea hacia arriba desde la mitad).</li>
+        <li><code>orderByExpression</code> ordena los valores de un grupo por un valor calculado sobre los totales de cada uno, por ejemplo
+          <code>$V{amountMeasure}</code> para listar las regiones por sus ventas; los empates mantienen el orden natural.</li>
+      </ul>
+      <p>Todavía no: comparadores de valores (<code>comparatorExpression</code>), y crosstabs solo sobre las filas de un grupo (usan todas las filas
+        leídas hasta ese momento). <code>ferroreport doctor</code> avisa de ambos.</p>
+
+      <h2 id="excel">Excel y CSV</h2>
+      <p>Una plantilla que se genera en PDF también se exporta a un libro de Excel (<code>.xlsx</code>) o a un archivo CSV. Los dos siguen los
+        exportadores del propio JasperReports con su configuración por defecto, así que la hoja de cálculo sale como salía con Jasper: cada fixture de la batería de pruebas da
+        la misma hoja, los mismos estilos y el mismo texto CSV que JasperReports 6.20, byte por byte.</p>
+      <h3>Excel</h3>
+      <ul>
+        <li>Todas las páginas van en una hoja con el nombre del reporte, una debajo de otra, con los márgenes de página incluidos.</li>
+        <li>Los bordes de los elementos cortan cada página en columnas y filas. Una columna es tan ancha como el espacio entre dos cortes (en unidades de Excel de
+          6 puntos) y una fila tan alta como el suyo, en puntos.</li>
+        <li>Cada texto ocupa las celdas que cubre, combinadas, con su fuente, tamaño, negrita, cursiva, subrayado, color, fondo, bordes y
+          alineación. El texto rotado se rota en la celda. El texto con estilos y el HTML conservan su formato tramo por tramo.</li>
+        <li>Un texto que no cabe en su caja se corta igual que en el PDF.</li>
+        <li>Las líneas pasan a ser el borde de las celdas sobre las que están, los rectángulos rellenan y bordean sus celdas, y los frames dan su fondo y
+          sus bordes a las celdas de adentro.</li>
+        <li>Las imágenes van sobre sus celdas con el mismo modo de escala (RetainShape, FillFrame, Clip) y la misma alineación. Los gráficos y los códigos de barras se dibujan como
+          imágenes al doble de la resolución de Jasper, así que se ven nítidos.</li>
+        <li>Donde dos elementos se enciman, gana el de arriba, como en Jasper; el otro se deja fuera.</li>
+        <li>Los valores se escriben como el texto que ves en el PDF (<code>3,885.00</code>), igual que en Jasper. Con <code>--xlsx-numbers</code> en la
+          línea de comandos, o <code>XlsxOptions { detect_cell_type: true }</code> en Rust, los números se escriben como números con su patrón
+          de formato, así que la hoja de cálculo los puede sumar.</li>
+      </ul>
+      <h3>CSV</h3>
+      <p>Solo se exportan los textos. Cada línea de una página donde empieza un texto pasa a ser una fila, y cada columna donde empieza un texto en esa página
+        pasa a ser un campo. Los campos que llevan una coma, una comilla o un salto de línea van entre comillas; las comillas se duplican. Las páginas van una tras otra.</p>
+      <p>Un valor que empieza con <code>=</code>, <code>+</code>, <code>-</code> o <code>@</code> puede ejecutarse como fórmula en la hoja de cálculo
+        que abre el CSV. Cuando los datos vienen de otras personas, activa la protección (<code>--csv-safe</code>, <code>csv_safe=True</code>,
+        <code>csvSafe: true</code>): esos valores llevan un apóstrofo delante, que las hojas de cálculo muestran como texto. Los números como
+        <code>-12.50</code> no se tocan. Está desactivada por defecto para que el CSV sea exactamente el que escribe JasperReports.</p>
+      <p>Todavía no está disponible: el formato XLS antiguo y las propiedades <code>net.sf.jasperreports.export.*</code> salvo la detección de
+        números.</p>
+
+      <h2 id="word">Word</h2>
+      <p>Pide <code>docx</code> (<code>-o report.docx</code>, <code>format="docx"</code>, <code>Format::Docx</code>,
+        <code>Format.DOCX</code>) y obtienes un documento de Word armado como el del exportador DOCX de JasperReports: cada página es una tabla cortada en los
+        bordes de sus elementos, y cada elemento ocupa las celdas que cubre. Los textos conservan sus fuentes, tamaños, colores, tramos con estilo,
+        alineación, márgenes internos, bordes y fondos; las imágenes, los gráficos y los códigos de barras son imágenes; las líneas y los rectángulos pasan a ser bordes
+        y fondos de celda. Un salto de página separa las páginas, así que el documento tiene tantas páginas como el PDF. Como el de Jasper, el documento está
+        hecho para leer y editar un poco, no para que el texto se reacomode: los rectángulos redondeados y las elipses salen como cajas simples.</p>
+
+      <h2 id="powerpoint">PowerPoint</h2>
+      <p>Pide <code>pptx</code> (<code>-o report.pptx</code>, <code>format="pptx"</code>, <code>Format::Pptx</code>,
+        <code>Format.PPTX</code>) y obtienes una presentación armada como la del exportador PPTX de JasperReports: cada página es una diapositiva del
+        tamaño de página del reporte, y cada elemento es una forma en el lugar que ocupa en la página. Los textos son cuadros de texto con sus fuentes, tamaños, negrita,
+        cursiva, subrayado, tachado, colores, tramos con estilo, alineación, márgenes internos, fondo, interlineado y rotación; los rectángulos
+        (también redondeados), las elipses y las líneas son formas con su relleno y su trazo; los frames son rectángulos debajo de sus elementos; las imágenes son
+        imágenes recortadas a su elemento como en el PDF, y los gráficos y los códigos de barras se dibujan como imágenes. Una caja con el mismo borde en
+        todos los lados lo lleva como contorno de la forma, y los bordes distintos en cada lado se dibujan como líneas (el exportador de Jasper los deja
+        fuera). Los enlaces a páginas web y a otros archivos funcionan, y los enlaces a una página o a un ancla del reporte saltan a su diapositiva. Las diapositivas se
+        escriben a medida que se llenan las páginas.</p>
+      <p>Todavía no está disponible: las propiedades <code>net.sf.jasperreports.export.pptx.*</code> (como una página usada como patrón de diapositivas)
+        y las fuentes incrustadas en el archivo. PowerPoint y LibreOffice reparten el texto en líneas con sus propias medidas de fuente, así que una línea que apenas cabe en
+        el PDF puede partirse en la diapositiva.</p>
+
+      <h2 id="opendocument">OpenDocument (ODS y ODT)</h2>
+      <p>Pide <code>ods</code> u <code>odt</code> (<code>-o report.ods</code>, <code>format="odt"</code>, <code>Format::Ods</code>,
+        <code>Format.ODT</code>) y obtienes los archivos que abren LibreOffice y las demás aplicaciones OpenDocument, armados como
+        arman un reporte los exportadores ODS y ODT de JasperReports. La hoja de cálculo es la cuadrícula de <a href="#excel">Excel</a>: todas las páginas en una
+        hoja, las mismas columnas, filas, celdas combinadas, fuentes, colores, bordes, alineación y rotación, las imágenes sobre sus celdas, los gráficos y
+        códigos de barras como imágenes. Los valores son texto por defecto, como en Jasper; con <code>--xlsx-numbers</code> los números son números, con un
+        estilo de número hecho de su patrón (decimales, separador de miles, porcentaje, notación científica, texto alrededor). El documento de texto es el
+        armado de <a href="#word">Word</a>: una tabla por página, cada elemento en las celdas que cubre, un salto de página entre páginas; las elipses y las
+        líneas inclinadas se dibujan como imágenes. Los enlaces, las anclas y las anclas de página se conservan, y la página tiene el tamaño del reporte.</p>
+      <p>Todavía no está disponible: las propiedades <code>net.sf.jasperreports.export.ods.*</code> y <code>.odt.*</code>, celdas de fecha para patrones con nombres de mes o
+        de día, AM/PM, año de dos dígitos o milisegundos (quedan como texto), el signo por mil en los estilos de número, y el texto de cabeza en ODT.</p>
+      <p>Los reportes grandes se escriben a medida que se hacen, en más o menos la memoria de uno pequeño. Los estilos de un documento van antes de su contenido
+        en el archivo, así que un reporte grande se llena una vez más antes para encontrarlos (una hoja de cálculo tres veces en total: sus columnas, sus
+        estilos, sus filas; un texto dos), y sus filas después se comprimen y se escriben a medida que llegan: 100,000 filas en 68 MiB como ODS
+        y 37 MiB como ODT, un millón de filas en 37 MiB como ODT. Eso necesita filas que se puedan leer otra vez, como en los
+        <a href="#large">libros de Excel grandes</a>; con filas que solo se pueden leer una vez igual se obtiene el documento, que se guarda en memoria hasta
+        que se escribe.</p>
+
+      <h2 id="tagged">PDF accesibles</h2>
+      <p>Un PDF es una imagen de páginas salvo que también diga qué hay en ellas. Con el etiquetado activado, el documento lleva esa descripción
+        (un <i>PDF etiquetado</i>): cada elemento de texto es un párrafo y cada imagen, gráfico y código de barras una figura, en orden de lectura; las tablas
+        y los crosstabs son tablas, con sus filas, sus celdas de datos y sus celdas de encabezado, cada encabezado diciendo si nombra una
+        columna o una fila y cada celda cuántas columnas y filas abarca; las listas de un texto HTML son listas, cada elemento con su
+        viñeta o su número y su contenido; las líneas, los bordes y los fondos se marcan como decoración, así que un lector de pantalla se los salta; y el documento
+        tiene su título y el idioma del locale. Las páginas se ven exactamente igual.</p>
+      <table>
+        <tr><th>Desde</th><th>Cómo</th></tr>
+        <tr><td>Línea de comandos</td><td><code>--tagged</code></td></tr>
+        <tr><td>HTTP</td><td><code>"tagged": true</code> en la petición</td></tr>
+        <tr><td>Python</td><td><code>tagged=True</code></td></tr>
+        <tr><td>Java</td><td><code>.tagged(true)</code></td></tr>
+        <tr><td>JavaScript</td><td><code>{ tagged: true }</code></td></tr>
+        <tr><td>Rust</td><td><code>Renderer::new().tagged(true)</code></td></tr>
+        <tr><td>La plantilla</td><td><code>&lt;property name="net.sf.jasperreports.export.pdf.tagged" value="true"/&gt;</code> (y
+          <code>...pdf.tag.language</code> para su idioma); las plantillas <code>.ferro</code> van etiquetadas salvo que digan <code>tagged=false</code></td></tr>
+      </table>
+      <p>Hay dos cosas que te toca decir en la plantilla, como las tiene JasperReports:</p>
+      <table>
+        <tr><th>Qué</th><th>Cómo</th></tr>
+        <tr><td>Qué muestra una imagen</td><td>Su <code>&lt;hyperlinkTooltipExpression&gt;</code> pasa a ser el texto alternativo de la figura. Las imágenes sin ella se anuncian como "Image", los gráficos como "Chart", los códigos de barras como "Barcode"</td></tr>
+        <tr><td>Títulos</td><td><code>&lt;property name="net.sf.jasperreports.export.accessibility.tag" value="h1"/&gt;</code> dentro del <code>&lt;reportElement&gt;</code> del texto, con <code>h1</code> a <code>h6</code></td></tr>
+        <tr><td>Una tabla dibujada a mano con frames</td><td>La misma propiedad en los frames: <code>table</code> en el de afuera, <code>th</code> (o <code>columnheader</code>, <code>rowheader</code>) y <code>td</code> en sus celdas. Las celdas a la misma altura forman una fila. <code>jr:table</code> y los crosstabs no necesitan nada</td></tr>
+      </table>
+      <p>Los PDF etiquetados dicen que siguen PDF/UA-1, el estándar de accesibilidad, y cada reporte de prueba se verifica contra él en cada cambio
+        con veraPDF, el validador que mantiene la PDF Association: todos pasan. Cada reporte de prueba etiquetado también tiene los mismos píxeles que
+        el que no lo está. Un PDF etiquetado pesa más (una entrada por texto), y un valor que solo se conoce después, como "página 3 de 240", hace esperar a su página en vez
+        de agregarse después.</p>
+
+      <h2 id="pdf">PDF/A, adjuntos, firmas, cifrado, enlaces</h2>
+      <h3>PDF/A</h3>
+      <p>Para documentos que hay que guardar por años (facturas, estados de cuenta, registros). <code>--pdfa 2b</code> (o <code>2u</code>,
+        <code>2a</code>, <code>3b</code>, <code>3u</code>, <code>3a</code>; <code>pdfa</code> en los paquetes y la API HTTP) escribe PDF/A:
+        todas las fuentes dentro del documento, un perfil de color sRGB, la conformidad declarada en los metadatos. El nivel a además va
+        <a href="#tagged">etiquetado</a>. Un texto en una de las fuentes estándar del PDF (una fuente que nadie provee) es un error, como en JasperReports:
+        registra la fuente con <code>--font</code>. La propiedad <code>net.sf.jasperreports.export.pdfa.conformance</code> de la plantilla
+        (<code>pdfa2b</code>...) pide lo mismo. Cada fixture se verifica con veraPDF como PDF/A-2a y PDF/A-3b en cada push.</p>
+      <h3>Adjuntos</h3>
+      <p><code>--attach invoice.xml</code> (o <code>invoice.xml:application/xml</code>) lleva un archivo dentro del PDF, como las facturas
+        electrónicas llevan su XML. PDF/A-3 acepta cualquier archivo; PDF/A-2 los rechaza. En los paquetes: <code>attachments</code>, una lista de
+        rutas o de (nombre, bytes, tipo MIME).</p>
+      <h3>Firmas</h3>
+      <p><code>--sign-key</code> firma el PDF con PAdES baseline B-B: una firma CAdES separada (<code>/ETSI.CAdES.detached</code>) sobre
+        todo el archivo, con el certificado del firmante ligado a ella por el atributo <code>signing-certificate-v2</code>, como esperan Adobe Reader, los
+        validadores europeos y <code>pdfsig</code>.</p>
+<pre data-lang="shell">FERROREPORT_SIGN_PASSWORD=... ferroreport render invoice.jrxml -d rows.json -o invoice.pdf --sign-key company.p12 --sign-reason "Approved"
+ferroreport render invoice.jrxml -d rows.json -o invoice.pdf --sign-key key.pem --sign-cert cert.pem --sign-location "Santo Domingo"</pre>
+      <table>
+        <tr><th>Opción</th><th>Qué hace</th></tr>
+        <tr><td><code>--sign-key</code></td><td>Un <code>.p12</code>/<code>.pfx</code> (los AES que escribe OpenSSL 3, y los antiguos Triple DES y RC2), con su contraseña en <code>FERROREPORT_SIGN_PASSWORD</code>; o una clave privada PEM, RSA (2048 bits o más) o ECDSA P-256. <code>FERROREPORT_SIGN_KEY</code> hace lo mismo</td></tr>
+        <tr><td><code>--sign-cert</code></td><td>Con una clave PEM: el certificado del firmante y su cadena (se puede repetir). El que corresponde a la clave va primero</td></tr>
+        <tr><td><code>--sign-reason</code>, <code>--sign-location</code>, <code>--sign-name</code>, <code>--sign-contact</code></td><td>Los datos de la firma, que muestran los lectores</td></tr>
+      </table>
+      <p>Una firma va con PDF/A (cada fixture se firma como PDF/A-2b, lo verifica veraPDF y lo comprueban pdfsig y pyHanko en cada
+        push), no con cifrado. <code>serve --sign-key</code> firma cada PDF que envía el servidor. En Rust, implementa
+        <code>ferroreport::sign::Signer</code> (un token de hardware, un servicio de firma) y pásalo a <code>Renderer::sign</code>: la clave privada
+        nunca tiene que llegar a ferroreport. Un documento firmado se escribe en memoria antes de enviarse, ya que la firma lo cubre entero.</p>
+      <h3>Cifrado</h3>
+      <p>El PDF se cifra con AES-256, el manejador de seguridad de PDF 2.0, que abren todos los lectores actuales.</p>
+      <table>
+        <tr><th>Línea de comandos</th><th>Paquetes y API HTTP</th><th>Propiedad de la plantilla (<code>net.sf.jasperreports.export.pdf.</code>...)</th><th>Qué hace</th></tr>
+        <tr><td><code>--user-password</code></td><td><code>password</code></td><td><code>encrypted</code> + <code>user.password</code></td><td>Se pide para abrir el documento; vacía lo abre sin preguntar (los permisos igual se aplican)</td></tr>
+        <tr><td><code>--owner-password</code></td><td><code>owner_password</code> / <code>ownerPassword</code></td><td><code>owner.password</code></td><td>Levanta los permisos. Sin ella, se usa una contraseña aleatoria que nadie conoce</td></tr>
+        <tr><td><code>--permissions</code></td><td><code>permissions</code></td><td><code>permissions.allowed</code>, <code>permissions.denied</code></td><td>Lo que los lectores permiten sin la contraseña de propietario: <code>print</code>, <code>copy</code>, <code>modify</code>, <code>annotate</code>, <code>fill</code>, <code>accessibility</code>, <code>assemble</code>, <code>all</code> (los nombres de JasperReports, como <code>PRINTING|COPY</code>, también funcionan)</td></tr>
+      </table>
+      <p>Un PDF etiquetado siempre deja entrar a los lectores de pantalla, como pide PDF/UA. PDF/A prohíbe el cifrado, así que pedir los dos es un error. Saca
+        las contraseñas de la línea de comandos con <code>FERROREPORT_PDF_USER_PASSWORD</code> y <code>FERROREPORT_PDF_OWNER_PASSWORD</code> (el
+        paquete de Java lo hace, con su motor local). Los objetos se cifran a medida que se escriben, así que un reporte grande se queda en memoria constante.</p>
+      <h3>Enlaces y marcadores</h3>
+      <p>Los campos de texto, las imágenes y los frames aceptan los hipervínculos de JasperReports: <code>hyperlinkType</code> <code>Reference</code> (una URL),
+        <code>LocalAnchor</code>, <code>LocalPage</code>, <code>RemoteAnchor</code> y <code>RemotePage</code>, con
+        <code>hyperlinkReferenceExpression</code>, <code>hyperlinkAnchorExpression</code>, <code>hyperlinkPageExpression</code> y
+        <code>hyperlinkTooltipExpression</code>. <code>anchorNameExpression</code> le pone nombre a un lugar, y <code>bookmarkLevel</code> lo pone en
+        el índice del PDF (el panel de marcadores). Funcionan en PDF (anotaciones de enlace y destinos con nombre), Excel (hipervínculos de celda y
+        nombres definidos), Word (campos de hipervínculo y marcadores) y HTML, como los escribe JasperReports. Los enlaces <code>javascript:</code> y
+        <code>data:</code> no se siguen en las vistas previas en HTML.</p>
+
+      <h2 id="html">Vistas previas en HTML</h2>
+      <p>Pide <code>html</code> (<code>-o report.html</code>, <code>format="html"</code>, <code>Format::Html</code>,
+        <code>Format.HTML</code>) y obtienes una página web con todas las páginas del reporte dibujadas como en el PDF: las mismas posiciones,
+        fuentes, colores, imágenes, gráficos y códigos de barras. El texto es texto de verdad, así que se puede seleccionar, buscar y leer en voz alta, y
+        todo lo que viene de la plantilla o de los datos se escapa. La página no tiene scripts y no carga nada de la red.</p>
+      <p>Cada línea de texto lleva su ancho medido, así que el diseño se mantiene incluso donde el navegador no tiene la fuente del reporte
+        y usa otra. Úsala para mostrar un reporte en un navegador sin visor de PDF; el PDF sigue siendo el documento para imprimir
+        o guardar. En Rust, <code>HtmlOptions { fragment: true, .. }</code> da solo las páginas, para ponerlas dentro de una página propia.</p>
+
+      <h2 id="large">Reportes grandes y límites</h2>
+      <p>Un reporte no tiene que caber en memoria. Las filas se leen a medida que el reporte las pide y cada página se escribe apenas
+        se termina, así que un millón de filas y 23,810 páginas se generan en unos 16 MB, a unas 80,000 filas por segundo en un núcleo.</p>
+      <table>
+        <tr><th>Desde</th><th>Cómo</th></tr>
+        <tr><td>Línea de comandos</td><td>No hay nada que hacer: <code>ferroreport render sales.jrxml -d sales.json -o sales.pdf</code> ya lee y escribe sobre la marcha. Las filas pueden ser un arreglo JSON o un objeto por línea, de un archivo o de la entrada estándar</td></tr>
+        <tr><td>Python</td><td><code>render_to_file("sales.jrxml", "sales.pdf", data_file="sales.jsonl")</code></td></tr>
+        <tr><td>Rust</td><td><code>renderer.render_to(&amp;report, Box::new(rows), params, Format::Pdf, writer)</code>, donde <code>rows</code> es cualquier iterador de registros (un cursor de base de datos, una cola, <code>JsonRows</code> sobre un archivo)</td></tr>
+        <tr><td>HTTP</td><td>Envía las filas <a href="#http-large">una por línea</a> (<code>application/x-ndjson</code>): se leen a medida que el reporte las necesita</td></tr>
+        <tr><td>Java</td><td><code>.rows(resultSet)</code> o cualquier <code>Iterable</code>: las filas van al motor (un proceso local o un servidor) a medida que se leen</td></tr>
+        <tr><td>JavaScript</td><td>Las filas llegan en la llamada, así que están en memoria; el documento igual se arma página por página</td></tr>
+      </table>
+      <p>Lo que esto cubre, y lo que no:</p>
+      <ul>
+        <li><b>PDF y CSV</b> se escriben página por página. También los libros de <b>Excel</b>, en dos pasadas: las columnas de una hoja salen de
+          todas las páginas, así que un reporte grande se llena una vez para encontrarlas y otra para escribir sus filas, que se comprimen y se envían
+          a medida que se hacen (100,000 filas: unos 3 s y 66 MiB; 500,000: 15 s y 116 MiB). Eso necesita filas que se puedan leer dos veces: un
+          archivo, o las filas que la línea de comandos, el servidor, Python y Java guardan aparte por ti; en Rust, <code>render_rows_to</code>. Los libros
+          pequeños se siguen llenando una sola vez. Un reporte con más filas de las que caben en una hoja (1,048,576) se detiene con un error que lo dice.
+          Los archivos <b>OpenDocument</b> también se escriben a medida que se hacen, llenándose una vez más antes para encontrar sus estilos (100,000 filas: 68 MiB
+          como ODS, 37 MiB como ODT; un millón de filas como ODT: 37 MiB).</li>
+        <li><b>Los valores que se conocen después</b>, como "página 3 de 240", un total general en el título o el total de un grupo en su encabezado,
+          se agregan a su página cuando se conocen, sin retener la página. Si algo se dibuja encima de uno de esos valores, su página lo espera
+          en su lugar, así que el resultado siempre es el mismo documento.</li>
+        <li><b>Un crosstab sobre las filas del propio reporte</b> las necesita todas, así que esas filas se guardan hasta que se imprime el crosstab. Los crosstabs,
+          tablas, listas y subreportes sobre datos anidados no se ven afectados.</li>
+      </ul>
+      <p>Dos límites detienen un reporte que crece más de lo esperado. Ponlos siempre que las plantillas o los datos vengan de otras personas:</p>
+      <table>
+        <tr><th>Límite</th><th>Línea de comandos y servidor</th><th>Python</th><th>Rust</th><th>JavaScript</th></tr>
+        <tr><td>Páginas</td><td><code>--max-pages</code></td><td><code>max_pages=</code></td><td><code>Limits::max_pages</code></td><td><code>maxPages</code></td></tr>
+        <tr><td>Tiempo</td><td><code>--timeout</code> (60 s por defecto en <code>serve</code>)</td><td><code>timeout=</code></td><td><code>Limits::timeout</code></td><td>no disponible: en WebAssembly no hay reloj que consultar</td></tr>
+      </table>
+      <p>Una generación que se pasa se detiene con un error (<code>413</code> desde el servidor) y no deja ningún archivo.</p>
+
+      <h2 id="database">Filas desde una base de datos</h2>
+      <p>La consulta SQL de la plantilla se ejecuta como la ejecuta JasperReports por JDBC: los valores de <code>$P{}</code> van como parámetros,
+        <code>$P!{}</code> se pega en el texto del SQL, y <code>$X{IN, column, PARAM}</code> (con <code>NOTIN</code>, <code>EQUAL</code>,
+        <code>NOTEQUAL</code>, <code>LESS</code>, <code>LESS]</code>, <code>GREATER</code>, <code>[GREATER</code> y las formas <code>BETWEEN</code>)
+        se convierte en su condición. Los subreportes, tablas, listas, crosstabs y gráficos que pasan <code>$P{REPORT_CONNECTION}</code> hacen su
+        propia consulta en la misma base. Las filas se leen a medida que el reporte las necesita.</p>
+<pre data-lang="shell">ferroreport render sales.jrxml --db postgres://reports@db:5432/erp -p params.json -o sales.pdf
+ferroreport render sales.jrxml --db mysql://reports@db:3306/erp -o sales.xlsx
+ferroreport render sales.jrxml --db "jdbc:sqlserver://db:1433;databaseName=erp;user=reports" -o sales.pdf
+ferroreport render sales.jrxml --db sqlite:app.db -o sales.pdf</pre>
+      <table>
+        <tr><th>Base de datos</th><th>URL</th></tr>
+        <tr><td>PostgreSQL</td><td><code>postgres://user@host:5432/db</code> (o <code>postgresql://</code>, <code>jdbc:postgresql://</code>); <code>sslmode</code> como en <code>psql</code>: <code>disable</code>, <code>prefer</code> (por defecto) y <code>require</code> cifran sin verificar el certificado, <code>verify-ca</code> / <code>verify-full</code> lo verifican, contra <code>sslrootcert</code> si se da</td></tr>
+        <tr><td>MySQL, MariaDB</td><td><code>mysql://user@host:3306/db</code> (o <code>mariadb://</code>, <code>jdbc:mysql://</code>)</td></tr>
+        <tr><td>SQL Server</td><td><code>sqlserver://host:1433;databaseName=db;user=u</code> (la forma JDBC; o <code>mssql://</code>)</td></tr>
+        <tr><td>SQLite</td><td><code>sqlite:file.db</code>, o una ruta que termina en <code>.db</code> / <code>.sqlite</code>; se abre en solo lectura</td></tr>
+      </table>
+      <p>La contraseña va en <code>FERROREPORT_DB_PASSWORD</code> y no en la URL, donde la mostraría la lista de procesos;
+        <code>FERROREPORT_DB</code> puede llevar la URL. Usa un usuario de base de datos que solo pueda leer: la consulta se ejecuta tal como la escribió la plantilla.
+        <code>serve --db</code> le da la base de datos solo a las plantillas de <code>--templates</code>; una plantilla enviada en una petición nunca
+        la recibe, y una petición no puede fijar un parámetro que se pega en una consulta (<code>$P!{}</code>). En Rust, implementa
+        <code>ferroreport::sql::Connection</code> para tu propio pool y usa <code>Renderer::connection</code> y
+        <code>Renderer::render_query_to</code>.</p>
+      <p>Las consultas en otros lenguajes (HQL, XPath, MDX, MongoDB...) y otras bases de datos (Oracle) no se ejecutan: pásale al motor las filas
+        que tu aplicación ya lee, a medida que llegan, y no se guarda nada en memoria.</p>
+<pre data-lang="shell"># PostgreSQL: un objeto JSON por fila, directo al reporte
+psql -At -c "select row_to_json(s) from (select * from sales order by region) s" mydb \
+  | ferroreport render sales.jrxml -d - -o sales.pdf
+
+# SQLite, MySQL
+sqlite3 -json app.db "select * from sales order by region" | ferroreport render sales.jrxml -d - -o sales.pdf
+mysql -N -B -e "select json_object('region', region, 'amount', amount) from sales" mydb \
+  | ferroreport render sales.jrxml -d - -o sales.pdf</pre>
+<pre data-lang="java">// Java: el ResultSet se lee a medida que el reporte lo necesita
+reports.template(Path.of("sales.jrxml")).rows(statement.executeQuery("select * from sales")).renderTo(Path.of("sales.pdf"));</pre>
+<pre data-lang="python"># Python: cualquier cursor o generador se lee fila por fila
+cursor.execute("select region, amount from sales order by region")
+rows = (dict(zip(("region", "amount"), r)) for r in cursor)
+ferroreport.render_to_file("sales.jrxml", "sales.pdf", rows)</pre>
+
+      <h2 id="fonts">Fuentes</h2>
+      <p>DejaVu Sans, DejaVu Serif y DejaVu Sans Mono vienen incluidas. Son las familias de la extensión <code>jasperreports-fonts</code>,
+        así que las plantillas que las usan coinciden exactamente con JasperReports. Una familia que el motor no tiene se reemplaza por una de las incluidas.</p>
+      <p>Agrega tus propias fuentes TrueType u OpenType con <code>--font</code> en la línea de comandos o <code>register_font</code> en Rust. Los
+        paquetes de JavaScript y Python usan por ahora las familias incluidas.</p>
+      <p>Un carácter que la fuente del texto no tiene se deja fuera del PDF, como lo deja fuera JasperReports (cuando se mide el texto
+        para calcular su altura igual cuenta tan ancho como la caja de glifo faltante de la fuente, como en JasperReports). Para dibujarlo con otra fuente, usa un
+        conjunto de fuentes o las fuentes de reemplazo:</p>
+      <ul>
+        <li><strong>Los conjuntos de fuentes</strong> funcionan como el <code>&lt;fontSet&gt;</code> de una extensión de fuentes de JasperReports. Con
+          <code>--font-set "Serif Fallback=DejaVu Serif,DejaVu Sans"</code> (o <code>register_font_set</code>), un texto cuyo nombre de fuente es
+          <code>Serif Fallback</code> se dibuja en DejaVu Serif, y los caracteres que le faltan a DejaVu Serif, en DejaVu Sans. Como en JasperReports,
+          el texto se corta en los tramos más largos que tiene una familia, cada uno dibujado con la primera familia (en el orden dado) que lo tiene completo;
+          así que las palabras alrededor de un carácter faltante van con él a la otra familia. Un carácter que ninguna familia tiene se queda en la primera familia,
+          la principal. El texto en negrita y en cursiva busca primero en las caras de su estilo. Las familias tienen que ser fuentes registradas o las
+          incluidas.</li>
+        <li><strong>Las fuentes de reemplazo</strong> (<code>--font-fallback</code>, o <code>font_fallback(true)</code>) hacen lo mismo con todas las fuentes,
+          como si cada una fuera un conjunto de sí misma seguida de las familias de <code>--font</code>, en el orden dado, y después DejaVu Sans, DejaVu
+          Serif y DejaVu Sans Mono. Están desactivadas por defecto, porque JasperReports no lo hace, y los textos cuyos caracteres están todos en
+          su fuente se dibujan igual que sin ellas.</li>
+      </ul>
+      <p>De cualquiera de las dos formas, el texto se mide, se reparte en líneas y se incrusta en el PDF con la fuente que dibuja cada tramo. Un texto simple dibujado
+        con más de una fuente se arma como el texto con estilos, como en JasperReports, y sigue siendo texto simple en Excel, Word y CSV.</p>
+
+      <h2 id="hyphenation">Separación en sílabas</h2>
+      <p>JasperReports no separa en sílabas: una palabra que no cabe al final de una línea pasa a la siguiente, y una palabra más larga que
+        la línea se corta entre letras. ferroreport hace lo mismo salvo que la plantilla pida separar en sílabas con su propia propiedad,
+        <code>ferroreport.text.hyphenate</code>, que JasperReports ignora:</p>
+<pre data-lang="xml">&lt;!-- todos los textos del reporte, en el idioma del locale con que se genera (--locale) --&gt;
+&lt;property name="ferroreport.text.hyphenate" value="true"/&gt;
+
+&lt;!-- o en un idioma propio; "false" la desactiva --&gt;
+&lt;property name="ferroreport.text.hyphenate" value="es"/&gt;</pre>
+      <p>En <code>.ferro</code>: <code>property ferroreport.text.hyphenate value=true</code> debajo de <code>report</code>. El ajuste es del
+        reporte: las tablas, listas y subreportes lo siguen salvo que tengan el suyo, y en un elemento no se lee (la plantilla
+        carga con una advertencia; un texto en otro idioma puede ir en un subreporte). También es un parámetro con el mismo nombre, así que una generación
+        puede activarlo sin cambiar la plantilla: <code>{"ferroreport.text.hyphenate": "es"}</code> en los parámetros. Una palabra que no cabe se corta después de la última de sus sílabas que cabe con un guion, y el guion se
+        dibuja; el resto de la palabra empieza la línea siguiente. Solo se separan las palabras hechas de letras, nunca dentro de números o códigos,
+        con al menos dos letras antes del guion y dos o tres después, según los patrones de cada idioma. La altura de un
+        texto que crece y el lugar donde un texto se corta entre páginas siguen las líneas con guiones. El texto con estilos y el HTML, el de derecha a izquierda y el
+        de escrituras complejas no se separan en sílabas.</p>
+      <p>Los patrones de inglés, español, francés, italiano, portugués y catalán vienen incluidos (unos 60 KB). Quien usa Rust y necesita
+        más compila con la feature <code>hyphenation-all</code> (los 48 idiomas de <code>hypher</code>, unos 1.1 MB más), o sin las
+        features por defecto para dejar fuera la separación en sílabas. Un idioma sin patrones no se separa en sílabas.</p>
+
+      <h2 id="locale">Locale y fechas</h2>
+      <p>El locale decide cómo se escriben patrones como <code>#,##0.00</code> y <code>dd MMMM yyyy</code>: los separadores decimales y de
+        miles, los nombres de los meses y de los días. Soportados: <code>en_US</code>, <code>es_DO</code>, <code>es_MX</code>, <code>es_ES</code>.</p>
+      <p>Las fechas se conservan tal como están escritas, sin conversión de zona horaria. <code>new Date()</code> en una expresión es la hora actual, salvo que
+        la fijes con <code>now</code>, lo que hace que la salida sea igual byte por byte cada vez.</p>
+
+      <h2 id="expressions">Expresiones</h2>
+      <p>Las expresiones se escriben en Java (<code>language="java"</code>, el valor por defecto) o en Groovy (<code>language="groovy"</code>), como en
+        JasperReports, y dan lo que da JasperReports. Se interpretan a partir de una lista cerrada de operaciones: una plantilla no puede
+        cargar clases, leer archivos ni llegar a la red, y una expresión de Groovy que da vueltas demasiado tiempo se detiene con un error.</p>
+      <p><b>La librería de funciones de JasperReports</b>, tal como la lista el editor de expresiones de Jaspersoft Studio, con los resultados de JasperReports
+        (comprobados caso por caso contra JasperReports 6.20.6):</p>
+      <table>
+        <tr><th>Tipo</th><th>Funciones</th></tr>
+        <tr><td>Lógicas</td><td><code>IF</code>, <code>AND</code>, <code>OR</code>, <code>NOT</code>, <code>EQUALS</code>, <code>TRUE</code>, <code>FALSE</code></td></tr>
+        <tr><td>Matemáticas</td><td><code>ABS</code>, <code>SUM</code>, <code>PRODUCT</code>, <code>MAX</code>, <code>MIN</code>, <code>FLOOR</code>, <code>CEIL</code>, <code>SQRT</code>, <code>SIGN</code>, <code>FACT</code>, <code>ISEVEN</code>, <code>ISODD</code>, <code>RAND</code>, <code>RANDBETWEEN</code>, <code>ROUND_HALF_UP</code> y los demás modos <code>ROUND_*</code></td></tr>
+        <tr><td>Texto</td><td><code>LEFT</code>, <code>RIGHT</code>, <code>MID</code>, <code>LEN</code>, <code>FIND</code>, <code>SEARCH</code>, <code>SUBSTITUTE</code>, <code>REPLACE</code>, <code>REPT</code>, <code>TRIM</code>, <code>LTRIM</code>, <code>RTRIM</code>, <code>CLEAN</code>, <code>LOWER</code>, <code>UPPER</code>, <code>PROPER</code>, <code>CONCATENATE</code>, <code>EXACT</code>, <code>CHAR</code>, <code>CODE</code>, <code>BASE</code>, <code>T</code>, <code>DOUBLE_VALUE</code>, <code>INTEGER_VALUE</code>...</td></tr>
+        <tr><td>Fechas</td><td><code>DATE</code>, <code>TODAY</code>, <code>NOW</code>, <code>YEAR</code>, <code>MONTH</code>, <code>DAY</code>, <code>WEEKDAY</code>, <code>HOUR</code>, <code>DATEFORMAT</code>, <code>DATEVALUE</code>, <code>EDATE</code>, <code>WORKDAY</code>, <code>NETWORKDAYS</code>, <code>DAYS</code>, <code>WEEKS</code>, <code>MONTHS</code>, <code>YEARS</code>, <code>WEEKNUM</code>, <code>DAYSINMONTH</code>, <code>ISLEAPYEAR</code>, <code>TIME</code>, <code>DATERANGE</code></td></tr>
+      </table>
+      <p><code>DATERANGE("DAY")</code>, <code>"WEEK-1"</code>, <code>"MONTH+2"</code>, <code>"QUARTER"</code>, <code>"SEMI"</code>, <code>"YEAR"</code> (relativos a
+        la fecha de la generación) o <code>"2026-03-05"</code> / <code>"2026-03-05 14:30:00"</code> dan un rango con <code>getStart()</code> y
+        <code>getEnd()</code>; un parámetro <code>DateRange</code> acepta el mismo texto, y <code>$X{[GREATER, column, Range}</code> y las demás
+        condiciones <code>$X{}</code> comparan la columna con el inicio o el final del rango como lo hace JasperReports.</p>
+<pre data-lang="java">IF($F{balance} &lt; 0, "Overdue", "OK")
+DATEFORMAT(EDATE($F{issued}, 1), "dd/MM/yyyy")
+SUBSTITUTE(PROPER($F{name}), " ", "_")</pre>
+      <p><b>Groovy</b>: listas, mapas y rangos (<code>[1, 2]</code>, <code>[a: 1]</code>, <code>1..5</code>); closures pasadas a
+        <code>findAll</code>, <code>find</code>, <code>collect</code>, <code>sum</code>, <code>max</code>, <code>min</code>, <code>sort</code>,
+        <code>any</code>, <code>every</code>, <code>count</code>, <code>inject</code>, <code>groupBy</code>, <code>collectEntries</code>, <code>each</code>,
+        <code>withIndex</code>; textos con <code>${...}</code>; <code>?.</code>, <code>?:</code>, <code>**</code>, <code>&lt;=&gt;</code>, <code>in</code>,
+        <code>as</code>, <code>list[i]</code>, <code>text[0..2]</code>; <code>padLeft</code>, <code>padRight</code>, <code>center</code>, <code>tokenize</code>,
+        <code>capitalize</code>, <code>reverse</code>, <code>take</code>, <code>drop</code>, <code>toInteger</code>, <code>intdiv</code>, <code>round</code>.
+        También la aritmética de Groovy: <code>5 / 2</code> es 2.5 y <code>1234.50 / 3</code> es 411.50.</p>
+<pre data-lang="groovy">$F{lines}.findAll { it.qty &gt; 0 }.sum { it.qty * it.price }
+"${$F{first}} ${$F{last}}".toUpperCase()
+$F{tags}.collect { it.capitalize() }.join(", ")</pre>
+      <p>No se soportan: tus propias clases de Java y los scriptlets, ni las instrucciones de Groovy (<code>def</code>, bucles, bloques <code>if</code>).
+        <code>ferroreport doctor</code> lo dice cuando una plantilla los usa.</p>
+
+      <h2 id="check">Revisar una plantilla</h2>
+      <p>Antes de depender de una plantilla, pregúntale al motor qué opina de ella:</p>
+<pre data-lang="console">$ ferroreport doctor invoice.jrxml
+invoice.jrxml: report `invoice`
+  page 595x842 pt, margins 30/40/30/40, language Java
+  5 parameters, 5 fields, 3 variables, 0 groups
+  elements: line ×1, rectangle ×1, staticText ×9, textField ×17
+✓ every feature used by this template is supported</pre>
+      <p>Desde código, <code>inspect(template)</code> (JavaScript, Python) y <code>POST /inspect</code> devuelven el mismo veredicto como datos:
+        una lista <code>warnings</code> vacía quiere decir que todo lo que usa la plantilla está soportado.</p>
+
+      <h2 id="errors">Errores</h2>
+      <p>Una generación devuelve un PDF completo o falla con un mensaje que dice la causa. Los más comunes:</p>
+      <table>
+        <tr><th>Mensaje</th><th>Qué hacer</th></tr>
+        <tr><td><code>invalid report template</code></td><td>El texto no es JRXML. Envía el código fuente <code>.jrxml</code>, no un archivo <code>.jasper</code> compilado</td></tr>
+        <tr><td><code>cannot convert ... to ...</code></td><td>Un valor no corresponde a la clase que declara su campo. Mira la tabla de <a href="#inputs">Datos</a></td></tr>
+        <tr><td>Un error en una expresión</td><td>La expresión usa una clase o un método de Java fuera de lo soportado. <code>doctor</code> lo señala</td></tr>
+        <tr><td>No se encuentra una imagen o un subreporte</td><td>Agrega su carpeta como carpeta de recursos, o pasa el archivo en <code>resources</code></td></tr>
+      </table>
+      <p>Las plantillas no pueden ejecutar código, leer archivos fuera de las carpetas de recursos ni abrir conexiones de red, así que es seguro generar
+        las plantillas que suben tus usuarios.</p>
+
+      <h2 id="support">Qué está soportado</h2>
+      <p>Bandas y saltos de página, grupos y variables, frames, imágenes, subreportes, tablas (<code>jr:table</code>), listas (<code>jr:list</code>), crosstabs, todos los tipos de gráfico de JasperReports, códigos de barras (QR, DataMatrix, PDF417, Code 128, EAN-128, Code 39, EAN-13, EAN-8, UPC-A, UPC-E, Interleaved 2 of 5, Codabar, POSTNET, Royal Mail, USPS Intelligent Mail, y todos los tipos del componente Barbecue menos PostNet), enlaces, anclas y marcadores, campos de formulario PDF, icon labels, texto con estilos, HTML y RTF,
+        rotación, varias columnas en cualquiera de los dos órdenes de impresión, estilos condicionales y plantillas de estilos, imágenes PNG, JPEG, GIF y SVG (también RealHeight y RealSize), datos de JSON o de bases de datos SQL, expresiones Groovy y la librería de funciones de JasperReports, desde plantillas JRXML 6, JRXML 7 o
+        <code>.ferro</code>, exportado a PDF (etiquetado, PDF/UA-1; PDF/A-2 y PDF/A-3 con adjuntos; cifrado; firmado), Excel, Word, CSV o HTML. La
+        <a href="https://github.com/cristianEncarnacion/ferroreport#compatibility">tabla de compatibilidad</a> del repositorio (en inglés) lista cada
+        función y lo que todavía falta, y <code>ferroreport doctor</code> da la respuesta para tu propia plantilla.</p>
+    </article>
+  </div>
+
+  <footer>
+    ferroreport es independiente y no está afiliado a Jaspersoft ni a Cloud Software Group. JasperReports es una marca comercial de Cloud Software Group, Inc.
+    <a href="https://github.com/cristianEncarnacion/ferroreport">Código fuente en GitHub</a>, MIT o Apache-2.0.
+  </footer>
+</div>
+</body>
+</html>

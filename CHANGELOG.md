@@ -6,8 +6,12 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 
 ## Unreleased
 
-- Website: the home page is also in Spanish, at `/es/`, with an EN / ES switch in the menu of
-  both versions. The documentation page is still in English only.
+- Website: code blocks are in color, by language (shell, JSON, JavaScript, Python, Java, C#, PHP,
+  Rust, XML and `.ferro`), with a small script of the site's own (`site/highlight.js`) and
+  colors that keep WCAG AA contrast. Comments in the playground's editor are easier to read too.
+- Website: the home page and the documentation are also in Spanish, at `/es/` and
+  `/es/docs.html`, with an EN / ES switch in the menu of every page and the same section anchors
+  in both languages.
 - ODS: per-mille patterns such as `#,##0.0‰` stay formatted text, as in JasperReports, even
   when cell type detection is enabled. This preserves `12.3‰` for `0.0123` in LibreOffice,
   which ignores the numeric display factor needed to scale it. A quoted `‰` stays literal

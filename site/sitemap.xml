@@ -11,5 +11,14 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://cristianencarnacion.github.io/ferroreport/"/>
   </url>
   <url><loc>https://cristianencarnacion.github.io/ferroreport/designer/</loc><lastmod>2026-11-24</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://cristianencarnacion.github.io/ferroreport/docs.html</loc><lastmod>2026-11-23</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://cristianencarnacion.github.io/ferroreport/docs.html</loc><lastmod>2026-11-25</lastmod><changefreq>weekly</changefreq><priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cristianencarnacion.github.io/ferroreport/docs.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://cristianencarnacion.github.io/ferroreport/es/docs.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cristianencarnacion.github.io/ferroreport/docs.html"/>
+  </url>
+  <url><loc>https://cristianencarnacion.github.io/ferroreport/es/docs.html</loc><lastmod>2026-11-25</lastmod><changefreq>weekly</changefreq><priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cristianencarnacion.github.io/ferroreport/docs.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://cristianencarnacion.github.io/ferroreport/es/docs.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cristianencarnacion.github.io/ferroreport/docs.html"/>
+  </url>
 </urlset>

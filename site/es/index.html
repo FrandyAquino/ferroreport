@@ -23,6 +23,7 @@
 <meta property="og:description" content="Una factura en 2 ms, un millón de filas en 16 MB. Lee tus plantillas de JasperReports, sin JVM. Míralo competir contra JasperReports.">
 <link rel="preload" href="../fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../site.css">
+<script src="../highlight.js" defer></script>
 </head>
 <body>
 <div class="hero">
@@ -34,7 +35,7 @@
         <a class="wide" href="#benchmarks">Rendimiento</a>
         <a class="wide" href="#playground">Pruébalo</a>
         <a href="../designer/">Diseñador</a>
-        <a href="../docs.html" hreflang="en">Docs</a>
+        <a href="docs.html">Docs</a>
         <a href="https://github.com/cristianEncarnacion/ferroreport">GitHub</a>
         <span class="lang" role="group" aria-label="Idioma">
           <a href="../" hreflang="en" lang="en" aria-label="English">EN</a>
@@ -51,7 +52,7 @@
       <div class="cta">
         <a class="btn solid" href="#playground">Genera un reporte en tu navegador</a>
         <a class="btn quiet" href="../designer/">Diseña un reporte, sin código</a>
-        <a class="btn quiet" href="../docs.html" hreflang="en">Lee la documentación</a>
+        <a class="btn quiet" href="docs.html">Lee la documentación</a>
       </div>
     </div>
 
@@ -245,9 +246,9 @@
       <div class="feature"><h3>Un motor, cualquier lenguaje</h3><p>CLI, librería de Rust, JavaScript y WebAssembly, Python, Java (lee un <code>ResultSet</code> fila por fila), y una API HTTP en una imagen Docker de ~8 MB para C#, PHP, Go y los demás, con caché de plantillas y métricas de Prometheus. Arranca en milisegundos, así que también sirve para funciones serverless.</p></div>
       <div class="feature"><h3>Lo que usas</h3><p>Bandas que se dividen entre páginas, frames, imágenes, subreportes, tablas, listas, crosstabs, todos los tipos de gráfico de JasperReports, códigos QR, DataMatrix, PDF417, EAN, UPC, Code 128, Code 39 y otros códigos de barras (barcode4j y Barbecue), imágenes SVG, campos de formulario PDF, enlaces y marcadores, texto con estilos, HTML y RTF, rotación, varias columnas, estilos condicionales.</p></div>
       <div class="feature"><h3>PDF, Excel, Word, PowerPoint, OpenDocument, CSV y HTML</h3><p>La misma plantilla se exporta a un libro <code>.xlsx</code> con las celdas, celdas combinadas, fuentes, bordes, imágenes y gráficos que da el exportador de Jasper, a un <code>.docx</code> armado como el Word que exporta Jasper, a un <code>.pptx</code> con una diapositiva por página, a <code>.ods</code> y <code>.odt</code> para LibreOffice armados de la misma forma, a CSV, o a una página web que se ve como el PDF, para vistas previas en el navegador. Excel y CSV se comparan celda por celda con Jasper. Los PDF se pueden etiquetar para lectores de pantalla (PDF/UA-1, verificado con veraPDF): los textos como párrafos, las imágenes como figuras con su descripción, las tablas con sus celdas de encabezado, las listas como listas.</p></div>
-      <div class="feature"><h3>JRXML, o un formato propio</h3><p>Las plantillas de Jaspersoft Studio funcionan tal cual, JRXML 6 o 7. Las nuevas se pueden escribir en <code>.ferro</code>: el mismo reporte como un esquema con sangría, de la mitad del tamaño, accesible por defecto, y sin coordenadas si quieres: las partes se apilan y se ponen en filas, y lo que se repite se define una vez. <code>ferroreport convert</code> pasa de uno a otro, y <code>ferroreport migrate</code> revisa una carpeta entera de plantillas antes de que cambies de motor. <a href="../docs.html#ferro" hreflang="en">Cómo se lee</a>.</p></div>
+      <div class="feature"><h3>JRXML, o un formato propio</h3><p>Las plantillas de Jaspersoft Studio funcionan tal cual, JRXML 6 o 7. Las nuevas se pueden escribir en <code>.ferro</code>: el mismo reporte como un esquema con sangría, de la mitad del tamaño, accesible por defecto, y sin coordenadas si quieres: las partes se apilan y se ponen en filas, y lo que se repite se define una vez. <code>ferroreport convert</code> pasa de uno a otro, y <code>ferroreport migrate</code> revisa una carpeta entera de plantillas antes de que cambies de motor. <a href="docs.html#ferro">Cómo se lee</a>.</p></div>
       <div class="feature"><h3>Un diseñador en tu navegador</h3><p>Pega una muestra de tus datos, arrastra sus campos a la página, elige fuentes, colores, bordes y formatos de número, y mira cómo cambia el PDF mientras trabajas. Abre y guarda <code>.ferro</code> y <code>.jrxml</code> de JasperReports, y descarga PDF, Excel, Word y PowerPoint. No se sube nada: el motor corre en tu computadora. <a href="../designer/">Abre el diseñador</a>.</p></div>
-      <div class="feature"><h3>PDF para archivar y proteger</h3><p>PDF/A-2 y PDF/A-3, verificados con veraPDF en cada cambio; archivos dentro del PDF, como el XML de una factura electrónica; cifrado AES-256 con contraseña y permisos; enlaces, anclas y marcadores. Todo en el motor de código abierto, con las propiedades de plantilla que ya usa JasperReports. <a href="../docs.html#pdf" hreflang="en">Cómo</a>.</p></div>
+      <div class="feature"><h3>PDF para archivar y proteger</h3><p>PDF/A-2 y PDF/A-3, verificados con veraPDF en cada cambio; archivos dentro del PDF, como el XML de una factura electrónica; cifrado AES-256 con contraseña y permisos; enlaces, anclas y marcadores. Todo en el motor de código abierto, con las propiedades de plantilla que ya usa JasperReports. <a href="docs.html#pdf">Cómo</a>.</p></div>
       <div class="feature"><h3>Libre y de código abierto</h3><p>MIT o Apache-2.0, hecho para la comunidad. Las contribuciones y las nuevas plantillas de prueba son bienvenidas.</p></div>
     </div>
   </section>
@@ -324,7 +325,7 @@
     <div class="codes">
       <figure>
         <figcaption>Con JasperReports <span>Java, una JVM y sus dependencias jar</span></figcaption>
-<pre>JasperReport report =
+<pre data-lang="java">JasperReport report =
     JasperCompileManager.compileReport("invoice.jrxml");
 JsonDataSource rows =
     new JsonDataSource(new FileInputStream("rows.json"));
@@ -337,10 +338,10 @@ JasperExportManager.exportReportToPdfFile(print, "invoice.pdf");</pre>
       </figure>
       <figure class="ours">
         <figcaption>Con ferroreport <span>una llamada, en el lenguaje que ya usas</span></figcaption>
-<pre>import { render } from "ferroreport";
+<pre data-lang="js">import { render } from "ferroreport";
 
 const pdf = render(jrxml, rows, { CUSTOMER: "Distribuidora Caribe" });</pre>
-        <p>La misma llamada existe para Python, Rust, la línea de comandos y HTTP. <a href="../docs.html" hreflang="en">Todas las opciones están en la documentación (en inglés).</a></p>
+        <p>La misma llamada existe para Python, Rust, la línea de comandos y HTTP. <a href="docs.html">Todas las opciones están en la documentación.</a></p>
       </figure>
     </div>
   </section>
@@ -348,11 +349,11 @@ const pdf = render(jrxml, rows, { CUSTOMER: "Distribuidora Caribe" });</pre>
   <section id="install">
     <h2>Instalación</h2>
     <p class="sub">Elige cómo quieres llamarlo. Todas las opciones usan el mismo motor y dan el mismo PDF.</p>
-    <p class="note">El paquete de npm, el de PyPI, los crates de Rust, los binarios y la imagen Docker ya están disponibles. Cada función y opción se describe en la <a href="../docs.html" hreflang="en">documentación</a> (en inglés).</p>
+    <p class="note">El paquete de npm, el de PyPI, los crates de Rust, los binarios y la imagen Docker ya están disponibles. Cada función y opción se describe en la <a href="docs.html">documentación</a>.</p>
     <div class="tabs" id="langs">
       <button type="button" aria-pressed="true" data-l="cli">CLI</button><button type="button" aria-pressed="false" data-l="docker">Docker y HTTP</button><button type="button" aria-pressed="false" data-l="js">JavaScript</button><button type="button" aria-pressed="false" data-l="py">Python</button><button type="button" aria-pressed="false" data-l="java">Java</button><button type="button" aria-pressed="false" data-l="rust">Rust</button>
     </div>
-    <pre id="code"></pre>
+    <pre id="code" data-lang="shell"></pre>
   </section>
 
   <footer>
@@ -509,9 +510,16 @@ let pdf = ferroreport::Renderer::new().locale("es_DO").render_json(&template, &r
 };
 const pick = (group, btn) => group.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === btn)));
 const code = document.getElementById("code");
-code.textContent = snippets.cli;
+// The language of each snippet, for its colors (highlight.js); parts are separated by a blank line.
+const snippetLang = { cli: "shell", docker: "shell", java: "java", js: "shell js", py: "shell python", rust: "shell rust" };
+const show = (l) => {
+  code.textContent = snippets[l];
+  code.dataset.lang = snippetLang[l];
+  if (window.ferroHighlight) window.ferroHighlight(code);
+};
+show("cli");
 const langs = document.getElementById("langs");
-langs.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { pick(langs, b); code.textContent = snippets[b.dataset.l]; }));
+langs.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { pick(langs, b); show(b.dataset.l); }));
 
 const $ = (id) => document.getElementById(id);
 const status = $("status");

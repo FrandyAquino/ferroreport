@@ -216,7 +216,7 @@ h2 { font: 780 clamp(34px, 4.4vw, 52px)/1.02 var(--display); font-stretch: 82%; 
 .hl .v { color: #b5e08a; }
 .hl .x { color: #ffe3a8; }
 .hl .p { color: #8f8175; }
-.hl .c { color: #6f6359; }
+.hl .c { color: #a39484; }
 #status { margin: 10px 6px 4px; font-size: 14px; color: #b9aa9c; min-height: 1.5em; }
 #status.ok { color: var(--spark); }
 #status.err { color: #ff9c9c; }
@@ -237,6 +237,16 @@ h2 { font: 780 clamp(34px, 4.4vw, 52px)/1.02 var(--display); font-stretch: 82%; 
 .tabs button { border: 1px solid var(--line); background: #fff; padding: 8px 15px; border-radius: 999px; cursor: pointer; font: 600 14px var(--body); color: var(--ink); }
 .tabs button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
 pre { background: var(--coal); color: #f1e8de; border-radius: 14px; padding: 18px 20px; overflow: auto; font: 14px/1.6 var(--code); margin: 0; }
+/* Syntax colors (highlight.js): every one at least 6:1 on the code background, WCAG AA. */
+.tk-c { color: #a39484; font-style: italic; } /* comments */
+.tk-s { color: #b5e08a; }                    /* strings, attribute values */
+.tk-k { color: #ff8fb0; }                    /* keywords, classes in .ferro */
+.tk-t { color: #ffb43a; }                    /* types, tags, the kind of a .ferro line */
+.tk-a { color: #f7a07a; }                    /* attributes, keys, options */
+.tk-n { color: #d3a6f0; }                    /* numbers, true / false / null, sizes */
+.tk-v { color: #8fd0dc; }                    /* variables, fields, placeholders */
+.tk-f { color: #ffd166; }                    /* commands, functions */
+.tk-p { color: #b3a395; }                    /* punctuation, prompts */
 .note { background: #fff3df; border-left: 4px solid var(--gold); border-radius: 0 10px 10px 0; padding: 12px 16px; margin: 16px 0; font-size: 15.5px; }
 footer { padding: 70px 0 60px; color: var(--muted); font-size: 14px; }
 
