@@ -6,6 +6,9 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 
 ## Unreleased
 
+- Website: code blocks are in color, by language (shell, JSON, JavaScript, Python, Java, C#, PHP,
+  Rust, XML and `.ferro`), with a small script of the site's own (`site/highlight.js`) and
+  colors that keep WCAG AA contrast. Comments in the playground's editor are easier to read too.
 - Website: the home page is also in Spanish, at `/es/`, with an EN / ES switch in the menu of
   both versions. The documentation page is still in English only.
 - ODS: per-mille patterns such as `#,##0.0‰` stay formatted text, as in JasperReports, even

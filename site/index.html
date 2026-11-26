@@ -22,6 +22,7 @@
 <meta property="og:description" content="An invoice in 2 ms, a million rows in 16 MB. Reads your JasperReports templates, no JVM. Watch it race JasperReports.">
 <link rel="preload" href="fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="site.css">
+<script src="highlight.js" defer></script>
 </head>
 <body>
 <div class="hero">
@@ -323,7 +324,7 @@
     <div class="codes">
       <figure>
         <figcaption>With JasperReports <span>Java, a JVM and its jar dependencies</span></figcaption>
-<pre>JasperReport report =
+<pre data-lang="java">JasperReport report =
     JasperCompileManager.compileReport("invoice.jrxml");
 JsonDataSource rows =
     new JsonDataSource(new FileInputStream("rows.json"));
@@ -336,7 +337,7 @@ JasperExportManager.exportReportToPdfFile(print, "invoice.pdf");</pre>
       </figure>
       <figure class="ours">
         <figcaption>With ferroreport <span>one call, in the language you already use</span></figcaption>
-<pre>import { render } from "ferroreport";
+<pre data-lang="js">import { render } from "ferroreport";
 
 const pdf = render(jrxml, rows, { CUSTOMER: "Distribuidora Caribe" });</pre>
         <p>The same call exists for Python, Rust, the command line and HTTP. <a href="docs.html">See every option in the docs.</a></p>
@@ -351,7 +352,7 @@ const pdf = render(jrxml, rows, { CUSTOMER: "Distribuidora Caribe" });</pre>
     <div class="tabs" id="langs">
       <button type="button" aria-pressed="true" data-l="cli">CLI</button><button type="button" aria-pressed="false" data-l="docker">Docker and HTTP</button><button type="button" aria-pressed="false" data-l="js">JavaScript</button><button type="button" aria-pressed="false" data-l="py">Python</button><button type="button" aria-pressed="false" data-l="java">Java</button><button type="button" aria-pressed="false" data-l="rust">Rust</button>
     </div>
-    <pre id="code"></pre>
+    <pre id="code" data-lang="shell"></pre>
   </section>
 
   <footer>
@@ -508,9 +509,16 @@ let pdf = ferroreport::Renderer::new().locale("es_DO").render_json(&template, &r
 };
 const pick = (group, btn) => group.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === btn)));
 const code = document.getElementById("code");
-code.textContent = snippets.cli;
+// The language of each snippet, for its colors (highlight.js); parts are separated by a blank line.
+const snippetLang = { cli: "shell", docker: "shell", java: "java", js: "shell js", py: "shell python", rust: "shell rust" };
+const show = (l) => {
+  code.textContent = snippets[l];
+  code.dataset.lang = snippetLang[l];
+  if (window.ferroHighlight) window.ferroHighlight(code);
+};
+show("cli");
 const langs = document.getElementById("langs");
-langs.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { pick(langs, b); code.textContent = snippets[b.dataset.l]; }));
+langs.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { pick(langs, b); show(b.dataset.l); }));
 
 const $ = (id) => document.getElementById(id);
 const status = $("status");
