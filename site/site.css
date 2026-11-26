@@ -26,6 +26,9 @@ header.top { display: flex; justify-content: space-between; align-items: center;
 .brand span { color: var(--molten); }
 nav a { margin-left: 22px; text-decoration: none; color: var(--muted); font-weight: 550; font-size: 15px; }
 nav a:hover, nav a[aria-current] { color: var(--ink); }
+nav .lang { margin-left: 22px; white-space: nowrap; }
+nav .lang a { margin-left: 0; }
+nav .lang a + a { margin-left: 8px; }
 
 /* ---------- hero ---------- */
 .hero { position: relative; overflow: hidden; }
