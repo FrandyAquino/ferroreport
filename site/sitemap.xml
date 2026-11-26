@@ -21,4 +21,24 @@
     <xhtml:link rel="alternate" hreflang="es" href="https://cristianencarnacion.github.io/ferroreport/es/docs.html"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://cristianencarnacion.github.io/ferroreport/docs.html"/>
   </url>
+  <url><loc>https://cristianencarnacion.github.io/ferroreport/migrate.html</loc><lastmod>2026-11-26</lastmod><changefreq>monthly</changefreq><priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cristianencarnacion.github.io/ferroreport/migrate.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://cristianencarnacion.github.io/ferroreport/es/migrate.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cristianencarnacion.github.io/ferroreport/migrate.html"/>
+  </url>
+  <url><loc>https://cristianencarnacion.github.io/ferroreport/es/migrate.html</loc><lastmod>2026-11-26</lastmod><changefreq>monthly</changefreq><priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cristianencarnacion.github.io/ferroreport/migrate.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://cristianencarnacion.github.io/ferroreport/es/migrate.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cristianencarnacion.github.io/ferroreport/migrate.html"/>
+  </url>
+  <url><loc>https://cristianencarnacion.github.io/ferroreport/compare.html</loc><lastmod>2026-11-26</lastmod><changefreq>monthly</changefreq><priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cristianencarnacion.github.io/ferroreport/compare.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://cristianencarnacion.github.io/ferroreport/es/compare.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cristianencarnacion.github.io/ferroreport/compare.html"/>
+  </url>
+  <url><loc>https://cristianencarnacion.github.io/ferroreport/es/compare.html</loc><lastmod>2026-11-26</lastmod><changefreq>monthly</changefreq><priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cristianencarnacion.github.io/ferroreport/compare.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://cristianencarnacion.github.io/ferroreport/es/compare.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cristianencarnacion.github.io/ferroreport/compare.html"/>
+  </url>
 </urlset>

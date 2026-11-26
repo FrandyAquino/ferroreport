@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Migrate from JasperReports to ferroreport, step by step, keeping your JRXML</title>
+<link rel="canonical" href="https://cristianencarnacion.github.io/ferroreport/migrate.html">
+<link rel="alternate" hreflang="en" href="https://cristianencarnacion.github.io/ferroreport/migrate.html">
+<link rel="alternate" hreflang="es" href="https://cristianencarnacion.github.io/ferroreport/es/migrate.html">
+<link rel="alternate" hreflang="x-default" href="https://cristianencarnacion.github.io/ferroreport/migrate.html">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://cristianencarnacion.github.io/ferroreport/migrate.html">
+<meta property="og:site_name" content="ferroreport">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="es_LA">
+<meta property="og:title" content="Migrating from JasperReports to ferroreport">
+<meta property="og:description" content="Keep your JRXML templates, check them all with one command, and replace JasperFillManager with a Maven Central library that needs no JasperReports.">
+<meta property="og:image" content="https://cristianencarnacion.github.io/ferroreport/img/invoice.png">
+<meta name="description" content="Move a JasperReports project to ferroreport without rewriting reports: check every JRXML with ferroreport migrate, handle scriptlets and .jasper files, replace JasperFillManager with the Java library from Maven Central, keep SQL in subreports and subdatasets, and export PDF, Excel, Word, PowerPoint, ODS, ODT, CSV and HTML.">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Migrating from JasperReports to ferroreport", "description": "Step by step from a JasperReports project to ferroreport: checking templates, scriptlets and Java classes, the Java call, data sources, exports, running both engines side by side.", "inLanguage": "en", "url": "https://cristianencarnacion.github.io/ferroreport/migrate.html", "about": {"@type": "SoftwareSourceCode", "name": "ferroreport", "codeRepository": "https://github.com/cristianEncarnacion/ferroreport"}, "author": {"@type": "Person", "name": "Cristian Encarnación"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "inLanguage": "en", "mainEntity": [
+{"@type": "Question", "name": "Does ferroreport work from Java without a separate process?", "acceptedAnswer": {"@type": "Answer", "text": "There is nothing separate to install, deploy or keep running: add the Maven Central dependency io.github.cristianencarnacion:ferroreport (Java 11+, no dependencies, no JasperReports, no JNI) and call it. The rendering itself happens outside the JVM: Ferroreport.local() starts the native engine as a short-lived child process for each report and streams the rows to it. Ferroreport.server(...) talks to a ferroreport serve instance over HTTP instead."}},
+{"@type": "Question", "name": "Do I need the .jrxml?", "acceptedAnswer": {"@type": "Answer", "text": "Yes, or a .ferro template. ferroreport never loads compiled .jasper files. JasperReports can write a .jasper file back as JRXML with JRXmlWriter."}},
+{"@type": "Question", "name": "Does ferroreport run scriptlets?", "acceptedAnswer": {"@type": "Answer", "text": "No. It runs no Java code: scriptlets and Java classes of your own are not run. ferroreport doctor and ferroreport migrate name every template that has a scriptlet."}},
+{"@type": "Question", "name": "Does SQL work in subreports and subdatasets?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Subreports, and the subdatasets of tables, lists, crosstabs and charts, that pass $P{REPORT_CONNECTION} run their own SQL query on the same database (PostgreSQL, MySQL, MariaDB, SQL Server, SQLite), given with --db, serve --db or Renderer::connection."}},
+{"@type": "Question", "name": "Which outputs does ferroreport write?", "acceptedAnswer": {"@type": "Answer", "text": "PDF, Excel (XLSX), Word (DOCX), PowerPoint (PPTX), OpenDocument (ODS and ODT), CSV and HTML."}},
+{"@type": "Question", "name": "Which JasperReports versions does ferroreport read?", "acceptedAnswer": {"@type": "Answer", "text": "JRXML as JasperReports 6 and 7 write it. Output is compared with JasperReports 6.20.6, and JasperReports' own samples with 6.20.6 and 7.1.1."}}
+]}</script>
+<link rel="preload" href="fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="site.css">
+<script src="highlight.js" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="./">ferro<span>report</span></a>
+    <nav>
+      <a class="wide" href="./#playground">Playground</a>
+      <a class="wide" href="migrate.html" aria-current="page">Migrate</a>
+      <a class="wide" href="compare.html">Compare</a>
+      <a href="designer/">Designer</a>
+      <a href="docs.html">Docs</a>
+      <a href="https://github.com/cristianEncarnacion/ferroreport">GitHub</a>
+      <span class="lang" role="group" aria-label="Language">
+        <a href="migrate.html" hreflang="en" lang="en" aria-label="English" aria-current="true">EN</a>
+        <a href="es/migrate.html" hreflang="es" lang="es" aria-label="Español">ES</a>
+      </span>
+    </nav>
+  </header>
+
+  <div class="docs">
+    <nav class="toc" aria-label="Migration guide sections">
+      <b>Migration guide</b>
+      <a href="#before">Before you start</a>
+      <a href="#check">1. Check your templates</a>
+      <a href="#java-code">2. Scriptlets, Java classes, .jasper</a>
+      <a href="#call">3. Replace the Java call</a>
+      <a href="#data">4. Data sources</a>
+      <a href="#exports">5. Exports</a>
+      <a href="#side-by-side">6. Both engines side by side</a>
+      <a href="#faq">FAQ</a>
+      <b>More</b>
+      <a href="docs.html">Documentation</a>
+      <a href="compare.html">Compared with other tools</a>
+    </nav>
+
+    <article class="doc">
+      <h1>Migrating from JasperReports</h1>
+      <p>ferroreport reads the JRXML templates you already have (JasperReports 6 and 7), so a migration is not a rewrite: the templates
+        stay as they are, Jaspersoft Studio keeps working for them, and what changes is the code that fills and exports them. This guide
+        goes from a JasperReports project to the same reports rendered by ferroreport, one step at a time.</p>
+
+      <h2 id="before">Before you start</h2>
+      <ul>
+        <li>Keep the <code>.jrxml</code> sources. ferroreport never loads compiled <code>.jasper</code> files (<a href="#faq-jrxml">what to do if
+          you only have those</a>).</li>
+        <li>Put a sample of rows next to each template, as JSON: <code>invoice.json</code> beside <code>invoice.jrxml</code>, or one
+          <code>data.json</code> per folder (an array of objects whose keys are the template's <code>&lt;field&gt;</code> names), and its
+          parameters in <code>invoice.params.json</code> or <code>params.json</code>. Step 1 compares the two engines with those rows.</li>
+        <li>Have the folder of your JasperReports jars at hand (the <code>lib/</code> of your build, with your own jars if templates call
+          your classes) and a JDK 11 or newer on the <code>PATH</code>.</li>
+        <li>Install the command line: a binary from <a href="https://github.com/cristianEncarnacion/ferroreport/releases">GitHub Releases</a>,
+          <code>cargo install ferroreport-cli</code>, or the Docker image. Every package uses the same engine.</li>
+      </ul>
+
+      <h2 id="check">1. Check your templates</h2>
+<pre data-lang="shell">ferroreport migrate reports/ --jasper lib/ --report migration.md</pre>
+      <p><code>migrate</code> looks at every <code>.jrxml</code> and <code>.ferro</code> file in the folder and its subfolders (hidden folders,
+        <code>node_modules</code> and <code>target</code> are skipped) and reports, for each template:</p>
+      <ul>
+        <li>its format: JRXML 6, JRXML 7 or <code>.ferro</code>;</li>
+        <li>whether it loads, and if not, why;</li>
+        <li>each thing it uses that is not supported yet, in a sentence (for example
+          <code>scriptletClass (a Java scriptlet) is not run: expressions that call it fail</code>);</li>
+        <li>whether it renders with no rows (pictures are looked for next to the template, in its parent folder and in every
+          <code>--resources</code> folder);</li>
+        <li>a verdict: <em>supported</em>; <em>supported; its rows come from you</em> (its query is HQL, XPath, MDX or another language that is
+          not SQL, which ferroreport does not run); <em>partly supported</em>; or <em>cannot be loaded</em>.</li>
+      </ul>
+      <p>With <code>--jasper lib/</code>, every template that loads is also rendered by JasperReports (the jars of that folder, run with the
+        machine's <code>java</code>) and by ferroreport, from the same rows (<code>&lt;name&gt;.json</code> or <code>data.json</code>) and
+        parameters (<code>&lt;name&gt;.params.json</code> or <code>params.json</code>), and the two are compared: the number of pages, every text
+        and number in its place (their CSV exports, line by line), and the time each took. <code>--keep compared/</code> keeps both PDFs and
+        both CSVs of every template, to look at side by side. Nothing is written next to your templates.</p>
+      <p>This is what it printed for a folder of three templates: an invoice with its rows, the same invoice with a scriptlet, and a list
+        whose query is HQL (times left out; JasperReports could not render the second because the scriptlet's class was not among its jars):</p>
+<pre data-lang="console" class="out">$ ferroreport migrate reports/ --jasper jasperreports-6.20.6/lib --report migration.md
+rendering 3 templates with JasperReports and ferroreport...
+✓ reports/employees-hql.jrxml (JRXML 6)
+    - hql query is not run (only SQL is): pass the rows it gives
+    with no rows: no pages in either (give it rows to compare more), every text and number the same; …
+! reports/invoice-scriptlet.jrxml (JRXML 6)
+    - scriptletClass (a Java scriptlet) is not run: expressions that call it fail
+    JasperReports could not render it: JRRuntimeException: java.lang.ClassNotFoundException: com.acme.InvoiceScriptlet / ClassNotFoundException: com.acme.InvoiceScriptlet
+✓ reports/invoice.jrxml (JRXML 6)
+    with the rows of reports/invoice.json: 2 pages in both, every text and number the same; …
+
+3 templates: 1 supported, 1 supported once you pass the rows their non-SQL query gave, 1 use features not supported yet, 0 cannot be loaded; 0 stop when rendered with no rows (they may need rows, parameters or pictures)
+compared with JasperReports: 2 the same pages and text, 0 differ, 1 JasperReports could not render; …
+report written to migration.md</pre>
+      <ul>
+        <li><code>--report migration.md</code> writes a table with every template's result; <code>--report migration.json</code> writes the
+          same as JSON, with the elements each template uses.</li>
+        <li><code>--strict</code> makes the command fail when a template uses something not supported yet, stops when rendered with no rows, or
+          differs from JasperReports; without it, only a template that cannot be loaded fails it. Use it in CI once the folder passes.</li>
+        <li><code>--to ferro --out converted/</code> (or <code>--to jrxml</code>) also writes every template converted, in the same
+          folders. You don't need this to migrate: ferroreport renders JRXML as it is.</li>
+        <li>For a single template, <code>ferroreport doctor invoice.jrxml</code> lists what it uses and whether each part is supported.</li>
+      </ul>
+      <p class="note">With no rows, detail bands never run, and a template that prints nothing when it has no data (JasperReports' default)
+        gives no pages at all. A detail band that calls a Java class of your own shows up only when the template is rendered with rows, as an
+        error such as <code>unsupported static method Util.pretty()</code>. Give every template its rows before you trust a clean result.</p>
+
+      <h2 id="java-code">2. Scriptlets, your own Java classes, .jasper files</h2>
+      <p>ferroreport interprets expressions from a fixed list of operations and never runs Java code. That is what makes it safe with
+        templates from other people, and it means three things need a decision.</p>
+      <h3>Scriptlets</h3>
+      <p>A <code>scriptletClass</code> or <code>&lt;scriptlet&gt;</code> is not run, and expressions that call it fail. Move what it computes
+        to where ferroreport can do it: a report variable (Sum, Count, DistinctCount, Average, Lowest, Highest, First, StandardDeviation,
+        Variance, reset by report, page, column or group), an expression, or a value your code computes and passes as a field or parameter.</p>
+      <h3>Java classes in expressions</h3>
+      <p>Expressions can use literals, <code>$F{}</code>, <code>$P{}</code>, <code>$V{}</code>, Java arithmetic, common String, Number,
+        BigDecimal, Date and List methods, <code>Math</code>, <code>String.format</code>, <code>new DecimalFormat(..).format(..)</code>,
+        <code>new SimpleDateFormat(..).format(..)</code>, <code>msg()</code>, <code>$R{}</code> and JasperReports' function library
+        (<code>IF</code>, <code>SUM</code>, <code>DATEFORMAT</code>, <code>WORKDAY</code> and the rest: 78 functions), plus a Groovy subset with
+        closures. Static methods of your own classes are not available: rewrite the expression with the above, or compute the value in your
+        code and pass it in. The <a href="https://github.com/cristianEncarnacion/ferroreport#compatibility">compatibility table</a> lists
+        everything. A connection built in Java (<code>DriverManager.getConnection(...)</code> in an expression) is not either: pass
+        <code>$P{REPORT_CONNECTION}</code> (<a href="#data">step 4</a>).</p>
+      <h3>.jasper files</h3>
+      <p>Compiled <code>.jasper</code> files are never loaded. A subreport expression that names <code>lines.jasper</code> keeps working: it is
+        rendered from <code>lines.jrxml</code> (or <code>lines.ferro</code>) next to the template or in a resource folder. The compile step of
+        your build can go.</p>
+
+      <h2 id="call">3. Replace the Java call</h2>
+      <p>Add the library from Maven Central. It has no dependencies, needs Java 11 or newer, and does not need JasperReports on the classpath:</p>
+<pre data-lang="xml">&lt;dependency&gt;
+  &lt;groupId&gt;io.github.cristianencarnacion&lt;/groupId&gt;
+  &lt;artifactId&gt;ferroreport&lt;/artifactId&gt;
+  &lt;version&gt;1.2.0&lt;/version&gt;
+&lt;/dependency&gt;</pre>
+      <p>A typical JasperReports call compiles the JRXML, fills it from a data source and exports it:</p>
+<pre data-lang="java">// JasperReports
+JasperReport report = JasperCompileManager.compileReport("reports/sales.jrxml");
+Map&lt;String, Object&gt; params = new HashMap&lt;&gt;();
+params.put("REGION", "North");
+JasperPrint print = JasperFillManager.fillReport(report, params, new JRResultSetDataSource(resultSet));
+JasperExportManager.exportReportToPdfFile(print, "sales.pdf");</pre>
+      <p>With ferroreport there is no compile step and no intermediate print: the rows are read from the <code>ResultSet</code> as the report
+        needs them and pages are written as they are finished.</p>
+<pre data-lang="java">// ferroreport
+Ferroreport reports = Ferroreport.local();   // immutable and thread-safe: keep one
+reports.template(Path.of("reports/sales.jrxml"))
+    .rows(resultSet)
+    .param("REGION", "North")
+    .locale("es_DO")
+    .renderTo(Path.of("sales.pdf"));          // .xlsx, .docx, .pptx, .ods, .odt, .csv, .html: by the extension</pre>
+      <ul>
+        <li><code>.render()</code> returns the bytes; <code>.renderTo(OutputStream)</code> writes to an HTTP response as the document is made;
+          <code>.format(Format.XLSX)</code> picks the format when there is no file name.</li>
+        <li><code>.param(name, value)</code> and <code>.params(Map)</code> take the parameters. <code>BigDecimal</code> keeps every digit;
+          <code>LocalDate</code>, <code>LocalDateTime</code>, <code>java.util.Date</code> and <code>java.sql</code> dates become dates; and
+          <code>byte[]</code> becomes an image. <code>REPORT_LOCALE</code> becomes <code>.locale("es_DO")</code>: number and date formats
+          follow en_US, es_DO, es_MX and es_ES for now.</li>
+        <li><code>.maxPages(n)</code> and <code>.timeout(Duration)</code> stop a report that grows past what you expect.</li>
+        <li><code>Ferroreport.local()</code> runs the native engine as a child process for each report: the one named by
+          <code>-Dferroreport.bin</code> or <code>FERROREPORT_BIN</code>, else <code>ferroreport</code> on the <code>PATH</code>, else a copy
+          downloaded once from the GitHub release of the library's version and checked against its SHA-256 list. In a container, copy the
+          engine into the image and turn the download off (<code>-Dferroreport.download=false</code>):
+<pre data-lang="shell">COPY --from=ghcr.io/cristianencarnacion/ferroreport /ferroreport /usr/local/bin/ferroreport</pre></li>
+        <li>Or run <code>ferroreport serve</code> next to your application and use
+          <code>Ferroreport.server(URI.create("http://reports:8080"), token)</code>: the same calls, over HTTP, with the rows sent one per line.</li>
+        <li>Fonts: DejaVu Sans, Serif and Sans Mono (the <code>jasperreports-fonts</code> families) are built in. Other TrueType or OpenType
+          fonts are added with <code>--font</code> on the command line or <code>register_font</code> in Rust; the JavaScript, Python and Java
+          packages use the built-in families. Font extension jars are not read.</li>
+      </ul>
+      <p>The whole API, with Quarkus and Spring examples, is in the <a href="https://github.com/cristianEncarnacion/ferroreport/blob/main/bindings/java/README.md">Java library's README</a>.
+        From other languages, the <a href="docs.html">documentation</a> has the same steps for the command line, HTTP, JavaScript, Python and Rust.</p>
+
+      <h2 id="data">4. Data sources</h2>
+      <table class="map">
+        <tr><th>In JasperReports</th><th>With ferroreport</th></tr>
+        <tr><td><code>JRResultSetDataSource</code></td><td><code>.rows(resultSet)</code> in Java, read row by row</td></tr>
+        <tr><td>A <code>Connection</code> and the template's SQL query</td><td><code>--db</code> on the command line, <code>serve --db</code> for the
+          HTTP server, <code>Renderer::connection</code> in Rust: PostgreSQL, MySQL and MariaDB, SQL Server, SQLite, with a JDBC-style URL if you
+          like. <code>$P{}</code> is bound, <code>$P!{}</code> pasted, and <code>$X{IN, ...}</code> and the other <code>$X{}</code> forms become
+          their clause. With Java's local engine, run the query yourself and pass the <code>ResultSet</code></td></tr>
+        <tr><td>Subreports, tables, lists, crosstabs and charts with <code>$P{REPORT_CONNECTION}</code></td><td>Their own SQL query runs on the
+          same database: the queries of subreports, and of the subdatasets of tables, lists, crosstabs and charts. That works wherever a database
+          is given (above), and from Java with <code>Ferroreport.server(...).named("sales")</code> on a server started with
+          <code>--templates</code> and <code>--db</code>: your rows feed the report, and its subreports and subdatasets query the server's
+          database</td></tr>
+        <tr><td><code>JRBeanCollectionDataSource</code>, <code>JRMapCollectionDataSource</code></td><td>A list of Maps in Java (your objects'
+          data as <code>Map.of("sku", line.sku, "qty", line.qty)</code>); any iterable of dicts in Python; an array of objects in
+          JavaScript and JSON</td></tr>
+        <tr><td>Nested collections for subreports (<code>new JRBeanCollectionDataSource($F{lines})</code>)</td><td>Work as they are: nested
+          Lists and Maps (or nested JSON arrays) feed subreports, tables and lists, through <code>JRMapCollectionDataSource</code>,
+          <code>JRBeanCollectionDataSource</code>, <code>subDataSource("lines")</code> or <code>JREmptyDataSource</code></td></tr>
+        <tr><td><code>JsonDataSource</code></td><td>A JSON array of objects, or one object per line, read as the report needs it (a file can be
+          larger than memory); dotted field names such as <code>customer.name</code> reach into nested objects</td></tr>
+        <tr><td>HQL, XPath, MDX, MongoDB queries; Oracle</td><td>Not run: read the rows in your code and pass them</td></tr>
+      </table>
+
+      <h2 id="exports">5. Exports</h2>
+      <table class="map">
+        <tr><th>JasperReports exporter</th><th>ferroreport</th></tr>
+        <tr><td><code>JRPdfExporter</code></td><td>PDF (the default). Tagged PDF (PDF/UA-1), PDF/A-2 and PDF/A-3, attachments, AES-256 encryption
+          and PAdES B-B signatures, from the template properties JasperReports uses or from options</td></tr>
+        <tr><td><code>JRXlsxExporter</code></td><td><code>.xlsx</code>, laid out like Jasper's exporter with its default settings;
+          <code>.xlsxNumbers(true)</code> (<code>--xlsx-numbers</code>) writes numbers as numbers</td></tr>
+        <tr><td><code>JRDocxExporter</code></td><td><code>.docx</code>, laid out like Jasper's Word export</td></tr>
+        <tr><td><code>JRPptxExporter</code></td><td><code>.pptx</code>, a slide per page</td></tr>
+        <tr><td><code>JROdsExporter</code>, <code>JROdtExporter</code></td><td><code>.ods</code>, <code>.odt</code></td></tr>
+        <tr><td><code>JRCsvExporter</code></td><td><code>.csv</code>; <code>.csvSafe(true)</code> guards against formulas in the data</td></tr>
+        <tr><td><code>HtmlExporter</code></td><td><code>.html</code>: a web page that looks like the PDF, for previews</td></tr>
+        <tr><td>XLS, RTF, XML and text exporters</td><td>Not available</td></tr>
+      </table>
+      <p>Exporter properties (<code>net.sf.jasperreports.export.*</code>) are not read yet, apart from number detection and the PDF ones for
+        tagging, PDF/A, encryption and form fields. The Excel and CSV exports of the test templates are compared cell by cell with Jasper's
+        (<a href="https://github.com/cristianEncarnacion/ferroreport#how-output-is-verified">how output is verified</a>).</p>
+
+      <h2 id="side-by-side">6. Run both engines side by side</h2>
+      <ol>
+        <li>Keep the JasperReports dependency while you switch. Route one report at a time to ferroreport (a flag per report is enough),
+          starting with those <code>migrate</code> marks <em>supported</em> and <em>the same pages and text</em>.</li>
+        <li>Save real rows for the reports you move, next to their templates, and run
+          <code>ferroreport migrate reports/ --jasper lib/ --keep compared/</code> again: it compares pages, texts, numbers and time with those
+          rows, and keeps both PDFs to look at.</li>
+        <li>Add <code>ferroreport migrate reports/ --jasper lib/ --strict</code> to CI, so that a template edited in Jaspersoft Studio that stops
+          rendering the same is caught before it ships.</li>
+        <li>Remove JasperReports when the last report has moved, and the <code>.jasper</code> compile step with it.</li>
+      </ol>
+      <p>When the two engines disagree on a template, that is a bug of ferroreport. A JRXML with sample rows that renders differently is the
+        most useful <a href="https://github.com/cristianEncarnacion/ferroreport/issues">issue</a> you can open: it becomes a new test template.</p>
+
+      <h2 id="faq">FAQ</h2>
+      <h3 id="faq-process">Does it work from Java without a separate process?</h3>
+      <p>There is nothing separate to install, deploy or keep running: no JNI, no JasperReports, no service of your own. You add one Maven
+        dependency (<code>io.github.cristianencarnacion:ferroreport</code>) and call it from your code. The rendering itself does happen outside
+        the JVM: <code>Ferroreport.local()</code> starts the native engine as a short-lived child process for each report and streams the rows
+        to it; the engine is found on the machine or downloaded once and checked. If your platform does not allow starting processes, run
+        <code>ferroreport serve</code> (a Docker image is published) and use <code>Ferroreport.server(...)</code> instead.</p>
+      <h3 id="faq-jrxml">Do I need the .jrxml?</h3>
+      <p>Yes, or a <code>.ferro</code> template. ferroreport reads the template's source and never loads compiled <code>.jasper</code> files.
+        If a project only kept the <code>.jasper</code> files, JasperReports itself writes them back as JRXML, with the version that compiled
+        them: <code>JRXmlWriter.writeReport(JRLoader.loadObjectFromFile("report.jasper"), "report.jrxml", "UTF-8")</code>. (For a test invoice
+        compiled by JasperReports 6.20.6 and by 7.1.1, the JRXML written back rendered the same pages as the original.)</p>
+      <h3 id="faq-scriptlets">What about scriptlets?</h3>
+      <p>They are not run, and neither is any other Java code of yours. <code>ferroreport doctor</code> and <code>ferroreport migrate</code>
+        name every template that has one. Move the logic to variables, expressions or the rows you pass (<a href="#java-code">step 2</a>).</p>
+      <h3 id="faq-sql">Does SQL work in subreports and subdatasets?</h3>
+      <p>Yes. The report's own query, the queries of its subreports, and the queries of the subdatasets of tables, lists, crosstabs and charts
+        that pass <code>$P{REPORT_CONNECTION}</code> all run on the same database, with <code>$P{}</code>, <code>$P!{}</code> and
+        <code>$X{}</code> handled as JasperReports handles them. The database is given with <code>--db</code> (command line),
+        <code>serve --db</code> (HTTP server, also for Java's <code>Ferroreport.server(...)</code>) or <code>Renderer::connection</code> (Rust).
+        The drivers are PostgreSQL, MySQL and MariaDB, SQL Server and SQLite. Queries in HQL, XPath, MDX or other languages are not run.</p>
+      <h3 id="faq-outputs">Which outputs?</h3>
+      <p>PDF, Excel (XLSX), Word (DOCX), PowerPoint (PPTX), OpenDocument (ODS and ODT), CSV and HTML, from every package, the command line and
+        the HTTP server. Not XLS, RTF, XML or plain text.</p>
+      <h3 id="faq-versions">Which JasperReports versions?</h3>
+      <p>JRXML as JasperReports 6 and 7 write it. Every test template is compared with JasperReports 6.20.6, JasperReports' own samples with
+        6.20.6 and 7.1.1, and charts are drawn as JasperReports 7.1 draws them.
+        <code>ferroreport convert old.jrxml --to jrxml -o new.jrxml</code> turns a JRXML 6 template into JRXML 7, if you move Jaspersoft Studio
+        to 7 too. For templates written by older versions, run <code>ferroreport migrate</code>: it says whether each one loads.</p>
+    </article>
+  </div>
+
+  <footer>
+    ferroreport is independent and not affiliated with Jaspersoft or Cloud Software Group. JasperReports is a trademark of Cloud Software Group, Inc.
+    <a href="https://github.com/cristianEncarnacion/ferroreport">Source on GitHub</a>, MIT or Apache-2.0.
+  </footer>
+</div>
+</body>
+</html>

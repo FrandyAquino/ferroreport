@@ -16,8 +16,8 @@
 <meta property="og:locale:alternate" content="en_US">
 <meta property="og:title" content="Documentación de ferroreport">
 <meta property="og:image" content="https://cristianencarnacion.github.io/ferroreport/img/invoice.png">
-<meta name="description" content="Cómo generar plantillas JRXML de JasperReports en PDF, Excel, Word, PowerPoint, CSV y HTML con ferroreport: línea de comandos, API HTTP, JavaScript, Python, Java y Rust; PDF/A, cifrado, plantillas .ferro y cómo migrar un proyecto.">
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Documentación de ferroreport", "description": "Cómo generar plantillas JRXML de JasperReports en PDF, Excel, Word, PowerPoint, CSV y HTML con ferroreport: línea de comandos, API HTTP, JavaScript, Python, Java y Rust.", "inLanguage": "es", "url": "https://cristianencarnacion.github.io/ferroreport/es/docs.html", "about": {"@type": "SoftwareSourceCode", "name": "ferroreport", "codeRepository": "https://github.com/cristianEncarnacion/ferroreport"}, "author": {"@type": "Person", "name": "Cristian Encarnación"}}</script>
+<meta name="description" content="Cómo generar plantillas JRXML de JasperReports en PDF, Excel, Word, PowerPoint, OpenDocument, CSV y HTML con ferroreport: línea de comandos, API HTTP, JavaScript, Python, Java y Rust; PDF/A, cifrado, plantillas .ferro y cómo migrar un proyecto.">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Documentación de ferroreport", "description": "Cómo generar plantillas JRXML de JasperReports en PDF, Excel, Word, PowerPoint, OpenDocument, CSV y HTML con ferroreport: línea de comandos, API HTTP, JavaScript, Python, Java y Rust.", "inLanguage": "es", "url": "https://cristianencarnacion.github.io/ferroreport/es/docs.html", "about": {"@type": "SoftwareSourceCode", "name": "ferroreport", "codeRepository": "https://github.com/cristianEncarnacion/ferroreport"}, "author": {"@type": "Person", "name": "Cristian Encarnación"}}</script>
 <link rel="preload" href="../fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../site.css">
 <script src="../highlight.js" defer></script>
@@ -28,6 +28,8 @@
     <a class="brand" href="./">ferro<span>report</span></a>
     <nav>
       <a class="wide" href="./#playground">Pruébalo</a>
+      <a class="wide" href="migrate.html">Migrar</a>
+      <a class="wide" href="compare.html">Comparación</a>
       <a href="../designer/">Diseñador</a>
       <a href="docs.html" aria-current="page">Docs</a>
       <a href="https://github.com/cristianEncarnacion/ferroreport">GitHub</a>
@@ -46,6 +48,8 @@
       <a href="#inputs">Plantilla, datos y parámetros</a>
       <a href="#ferro">Plantillas en .ferro</a>
       <a href="#designer">El diseñador</a>
+      <a href="migrate.html">Migrar desde JasperReports</a>
+      <a href="compare.html">Comparación con otras herramientas</a>
       <b>Cómo llamarlo</b>
       <a href="#cli">Línea de comandos</a>
       <a href="#http">API HTTP (cualquier lenguaje)</a>
@@ -110,9 +114,10 @@ curl -X POST localhost:8080/render/invoice -H 'Content-Type: application/json' \
         <tr><td>Docker, HTTP</td><td><code>docker pull ghcr.io/cristianencarnacion/ferroreport</code></td></tr>
         <tr><td>JavaScript</td><td><code>npm install ferroreport</code></td></tr>
         <tr><td>Python</td><td><code>pip install ferroreport</code></td></tr>
+        <tr><td>Java</td><td>Maven Central: <code>io.github.cristianencarnacion:ferroreport</code> (<a href="#java">detalles</a>)</td></tr>
         <tr><td>Rust</td><td><code>cargo add ferroreport</code></td></tr>
       </table>
-      <p class="note">El paquete de npm, el de PyPI, los crates de Rust, los binarios y la imagen Docker ya están disponibles.</p>
+      <p class="note">El paquete de npm, el de PyPI, la librería de Java en Maven Central, los crates de Rust, los binarios y la imagen Docker ya están disponibles.</p>
 
       <h2 id="inputs">Plantilla, datos y parámetros</h2>
       <h3>Plantilla</h3>
@@ -390,6 +395,7 @@ ferroreport render invoice.jrxml -d rows.json \
         (o <code>--to jrxml</code>, para JRXML 7) también escribe cada plantilla convertida, en las mismas carpetas. Termina con 1 cuando una
         plantilla no se puede cargar, así que puede detener un build; con <code>--strict</code> también cuando una usa algo que todavía no está soportado,
         se detiene al generarla sin filas, o difiere de JasperReports.</p>
+      <p>La <a href="migrate.html">guía de migración</a> lleva un proyecto de JasperReports por este proceso paso a paso.</p>
       <h3 id="migrate-jasper">Comparado con el propio JasperReports</h3>
       <p>Con <code>--jasper lib/</code>, la carpeta de tus jars de JasperReports (6 o 7, con sus dependencias, como los corre tu
         aplicación) y un JDK 11 o más nuevo en el PATH, cada plantilla que carga también la genera JasperReports, en un solo proceso de Java,
@@ -638,14 +644,11 @@ def invoice_pdf(pk: int):
       <h2 id="java">Java</h2>
       <p>Una librería sin dependencias, para Java 11 y más nuevo (Quarkus, Spring, Java sin framework). Corre el motor nativo y le pasa
         las filas a medida que se leen, así que un reporte puede ser mucho más grande que el heap.</p>
-<pre data-lang="xml">&lt;!-- pom.xml --&gt;
-&lt;repositories&gt;
-  &lt;repository&gt;&lt;id&gt;jitpack.io&lt;/id&gt;&lt;url&gt;https://jitpack.io&lt;/url&gt;&lt;/repository&gt;
-&lt;/repositories&gt;
+<pre data-lang="xml">&lt;!-- pom.xml: desde Maven Central --&gt;
 &lt;dependency&gt;
-  &lt;groupId&gt;com.github.cristianEncarnacion&lt;/groupId&gt;
+  &lt;groupId&gt;io.github.cristianencarnacion&lt;/groupId&gt;
   &lt;artifactId&gt;ferroreport&lt;/artifactId&gt;
-  &lt;version&gt;v1.2.0&lt;/version&gt;
+  &lt;version&gt;1.2.0&lt;/version&gt;
 &lt;/dependency&gt;</pre>
 <pre data-lang="java">Ferroreport reports = Ferroreport.local();
 
@@ -1127,7 +1130,7 @@ invoice.jrxml: report `invoice`
       <h2 id="support">Qué está soportado</h2>
       <p>Bandas y saltos de página, grupos y variables, frames, imágenes, subreportes, tablas (<code>jr:table</code>), listas (<code>jr:list</code>), crosstabs, todos los tipos de gráfico de JasperReports, códigos de barras (QR, DataMatrix, PDF417, Code 128, EAN-128, Code 39, EAN-13, EAN-8, UPC-A, UPC-E, Interleaved 2 of 5, Codabar, POSTNET, Royal Mail, USPS Intelligent Mail, y todos los tipos del componente Barbecue menos PostNet), enlaces, anclas y marcadores, campos de formulario PDF, icon labels, texto con estilos, HTML y RTF,
         rotación, varias columnas en cualquiera de los dos órdenes de impresión, estilos condicionales y plantillas de estilos, imágenes PNG, JPEG, GIF y SVG (también RealHeight y RealSize), datos de JSON o de bases de datos SQL, expresiones Groovy y la librería de funciones de JasperReports, desde plantillas JRXML 6, JRXML 7 o
-        <code>.ferro</code>, exportado a PDF (etiquetado, PDF/UA-1; PDF/A-2 y PDF/A-3 con adjuntos; cifrado; firmado), Excel, Word, CSV o HTML. La
+        <code>.ferro</code>, exportado a PDF (etiquetado, PDF/UA-1; PDF/A-2 y PDF/A-3 con adjuntos; cifrado; firmado), Excel, Word, PowerPoint, OpenDocument (ODS, ODT), CSV o HTML. La
         <a href="https://github.com/cristianEncarnacion/ferroreport#compatibility">tabla de compatibilidad</a> del repositorio (en inglés) lista cada
         función y lo que todavía falta, y <code>ferroreport doctor</code> da la respuesta para tu propia plantilla.</p>
     </article>
