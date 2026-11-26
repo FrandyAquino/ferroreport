@@ -10,6 +10,9 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   `IS_EVEN_COLUMN` work in cells, headers and their styles, with JasperReports' values (detail
   rows and columns counted from 1, totals not counted, null where JasperReports leaves them
   null). JasperReports' `book` and `crosstabs` samples (`OrdersReport`) use them for striped rows.
+- Expressions: `new ArrayList()`, `new LinkedList()` and `new Vector()` (empty, with an initial
+  capacity, or a copy of a list), as in a variable's initial value. JasperReports'
+  `nopagebreak` sample (`NoPageBreakReport`) now renders the same as JasperReports 7.1.1.
 - Website: code blocks are in color, by language (shell, JSON, JavaScript, Python, Java, C#, PHP,
   Rust, XML and `.ferro`), with a small script of the site's own (`site/highlight.js`) and
   colors that keep WCAG AA contrast. Comments in the playground's editor are easier to read too.

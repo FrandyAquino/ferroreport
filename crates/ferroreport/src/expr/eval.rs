@@ -782,6 +782,15 @@ fn construct(class: &str, args: Vec<Value>, env: &EvalEnv) -> Result<Value> {
             Value::Double(x) => Value::Decimal(Decimal::try_from(x).map_err(|e| Error::eval(e.to_string()))?),
             v => Value::Decimal(v.as_decimal().ok_or_else(|| Error::eval("new BigDecimal: number expected"))?),
         },
+        // An empty list (a variable's initial value, which expressions may read), or a copy.
+        "ArrayList" | "LinkedList" | "Vector" => match args.as_slice() {
+            [] => Value::List(std::sync::Arc::new(Vec::new())),
+            // `new ArrayList(int initialCapacity)`.
+            [Value::Int(_) | Value::Long(_)] if class != "LinkedList" => Value::List(std::sync::Arc::new(Vec::new())),
+            [list @ Value::List(_)] => list.clone(),
+            [Value::Json(j)] if j.is_array() => Value::Json(j.clone()),
+            _ => return Err(Error::eval(format!("{what}: expected no argument, a capacity or a collection"))),
+        },
         _ => return Err(Error::eval(format!("unsupported constructor {what}()"))),
     })
 }
@@ -881,6 +890,15 @@ mod tests {
             let result = parsed.map_err(Error::eval).and_then(|e| eval(&e, &scope, &env));
             assert!(result.is_err(), "{src} should be rejected");
         }
+    }
+
+    #[test]
+    fn new_lists_are_empty() {
+        // NoPageBreakReport (JasperReports' nopagebreak sample) starts a variable with one.
+        assert_eq!(run("new java.util.ArrayList()").to_java_string(), "[]");
+        assert_eq!(run("new ArrayList(10).size()").to_java_string(), "0");
+        assert_eq!(run("new java.util.LinkedList().isEmpty()").to_java_string(), "true");
+        assert_eq!(run("new java.util.Vector()").type_name(), "List");
     }
 
     #[test]
