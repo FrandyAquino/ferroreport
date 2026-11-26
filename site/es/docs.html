@@ -1028,6 +1028,8 @@ ferroreport.render_to_file("sales.jrxml", "sales.pdf", rows)</pre>
         (<code>net.sf.jasperreports.extension.simple.font.families.*</code>), con los archivos de fuente en las rutas que da la extensión,
         y avisan de los que no pueden leer; en Rust, <code>load_font_extensions</code> lo hace con los recursos del renderer. Las extensiones
         dentro de jars no se leen: descomprime el jar en una carpeta.</p>
+      <p>El texto en negrita o cursiva de una familia que no tiene cara para ese estilo se dibuja con su cara normal, y el PDF simula el
+        estilo como lo hace JasperReports: la negrita trazando también los contornos, la cursiva inclinando el texto.</p>
       <p>Un carácter que la fuente del texto no tiene se deja fuera del PDF, como lo deja fuera JasperReports (cuando se mide el texto
         para calcular su altura igual cuenta tan ancho como la caja de glifo faltante de la fuente, como en JasperReports). Para dibujarlo con otra fuente, usa un
         conjunto de fuentes o las fuentes de reemplazo:</p>

@@ -37,7 +37,20 @@ pub struct FaceData {
     cmap: HashMap<char, u16>,
     advances: Vec<u16>,
     shaping: crate::shape::ShapingCache,
+    /// A style the face's family has no face for, which PDF output simulates as JasperReports
+    /// (iText) does: bold by also stroking the outlines, italic by slanting the text.
+    pub(crate) simulated: Simulated,
 }
+
+/// Styles simulated on a face that lacks them (see [`FaceData`]).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct Simulated {
+    pub bold: bool,
+    pub italic: bool,
+}
+
+/// How far iText slants simulated italic text (`PdfChunk.ITALIC_ANGLE`).
+pub(crate) const SIMULATED_ITALIC_SKEW: f32 = 0.21256;
 
 impl FaceData {
     pub(crate) fn shaping_cache(&self) -> &crate::shape::ShapingCache {
@@ -103,7 +116,37 @@ impl FaceData {
             advances,
             data,
             shaping: Default::default(),
+            simulated: Simulated::default(),
         })
+    }
+
+    /// This face drawn in a style it does not have: `bold` and `italic` simulated.
+    fn simulating(&self, bold: bool, italic: bool) -> FaceData {
+        FaceData {
+            family: self.family.clone(),
+            postscript_name: self.postscript_name.clone(),
+            data: self.data.clone(),
+            units_per_em: self.units_per_em,
+            ascender: self.ascender,
+            descender: self.descender,
+            line_gap: self.line_gap,
+            typo_ascender: self.typo_ascender,
+            typo_descender: self.typo_descender,
+            cap_height: self.cap_height,
+            italic_angle: self.italic_angle,
+            bbox: self.bbox,
+            underline_position: self.underline_position,
+            underline_thickness: self.underline_thickness,
+            strikeout_position: self.strikeout_position,
+            strikeout_thickness: self.strikeout_thickness,
+            bold: self.bold || bold,
+            italic: self.italic || italic,
+            bmp: self.bmp.clone(),
+            cmap: self.cmap.clone(),
+            advances: self.advances.clone(),
+            shaping: Default::default(),
+            simulated: Simulated { bold, italic },
+        }
     }
 
     /// Appends the outline of `c` at `size` units per em, with its origin at `(x, y)` and y
@@ -308,6 +351,9 @@ pub struct FontSet {
     user_order: Vec<String>,
     /// Font sets by lowercase name: their families in search order, the first one primary.
     sets: HashMap<String, Vec<String>>,
+    /// Faces that simulate a style, with the face they are drawn from (whose font the PDF
+    /// embeds for both).
+    simulated_from: HashMap<FaceId, FaceId>,
     /// Whether every font falls back to the other fonts for characters it lacks.
     fallback: bool,
     /// The language of the render's locale (`en`), for texts hyphenated in it.
@@ -516,6 +562,11 @@ impl FontSet {
         Some(runs.into_iter().map(|(a, b, k)| (a, b, families[k].clone())).collect())
     }
 
+    /// The face whose font draws `id`: itself, or the face a simulated style is drawn from.
+    pub(crate) fn drawn_from(&self, id: FaceId) -> FaceId {
+        self.simulated_from.get(&id).copied().unwrap_or(id)
+    }
+
     pub fn face(&self, id: FaceId) -> &FaceData {
         &self.faces[id]
     }
@@ -561,8 +612,17 @@ impl FontSet {
         let id = if let Some(&id) = self.by_key.get(&key) {
             id
         } else if let Some(id) = user_regular {
-            // User family without the requested style: use its regular face.
-            id
+            // A registered family without the face asked for: its regular face, in the style
+            // asked for simulated, as JasperReports draws a font extension's family.
+            if spec.bold || spec.italic {
+                let face = self.faces[id].simulating(spec.bold, spec.italic);
+                let simulated = self.faces.len();
+                self.faces.push(Arc::new(face));
+                self.simulated_from.insert(simulated, id);
+                simulated
+            } else {
+                id
+            }
         } else {
             let family = match builtin_family(&spec.name) {
                 Some(f) => f,

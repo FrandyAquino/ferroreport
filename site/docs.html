@@ -1027,6 +1027,8 @@ ferroreport.render_to_file("sales.jrxml", "sales.pdf", rows)</pre>
         (<code>net.sf.jasperreports.extension.simple.font.families.*</code>), with the font files at the paths the extension gives them,
         and warn about any they cannot read; in Rust, <code>load_font_extensions</code> does it for the renderer's resources. Extensions
         inside jars are not read: unpack the jar into a folder.</p>
+      <p>Bold or italic text in a family that has no face for that style is drawn from its regular face, and the PDF simulates the
+        style as JasperReports does: bold by stroking the outlines as well, italic by slanting the text.</p>
       <p>A character the text's font does not have is left out of the PDF, as JasperReports leaves it out (when the text is measured
         for its height it still counts as wide as the font's missing-glyph box, as in JasperReports). To draw it in another font, use a
         font set or font fallback:</p>

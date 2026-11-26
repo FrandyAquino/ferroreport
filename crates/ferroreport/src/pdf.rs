@@ -630,7 +630,8 @@ fn show_shaped(
     let millis = 1000.0 / face.units_per_em;
     let clusters: Vec<(&str, &[crate::shape::Glyph])> = shaped.clusters(&line.text).collect();
     let x0 = r2(line.x) as f64;
-    c.set_text_matrix([1.0, 0.0, 0.0, 1.0, x0 as f32, r2(ph - line.baseline)]);
+    let skew = if face.simulated.italic { crate::fonts::SIMULATED_ITALIC_SKEW } else { 0.0 };
+    c.set_text_matrix([1.0, 0.0, skew, 1.0, x0 as f32, r2(ph - line.baseline)]);
     let (mut pen, mut cur, mut rise) = (x0, x0, 0.0f32);
     let mut ops: Vec<Op> = Vec::new();
     // Runs of clusters of one direction.
@@ -1465,13 +1466,23 @@ impl<W: std::io::Write> PdfStream<W> {
                         continue;
                     }
                     let next = self.faces.len() + 1;
-                    let used = self.faces.entry(t.face).or_insert_with(|| FaceUse::new(next));
+                    // A face that simulates a style is written with the font it is drawn from.
+                    let used = self.faces.entry(fonts.drawn_from(t.face)).or_insert_with(|| FaceUse::new(next));
                     let resource = used.resource.clone();
                     let face = fonts.face(t.face);
                     let (r, g, b) = rgb(t.color);
                     c.set_fill_rgb(r, g, b);
                     c.begin_text();
                     c.set_font(Name(resource.as_bytes()), t.size);
+                    let simulated = face.simulated;
+                    let skew = if simulated.italic { crate::fonts::SIMULATED_ITALIC_SKEW } else { 0.0 };
+                    if simulated.bold {
+                        // iText's simulated bold: the outlines stroked as well, a thirtieth of the
+                        // size wide, in the text's color.
+                        c.set_text_rendering_mode(pdf_writer::types::TextRenderingMode::FillStroke);
+                        c.set_line_width(t.size / 30.0);
+                        c.set_stroke_rgb(r, g, b);
+                    }
                     for line in &t.lines {
                         if line.text.is_empty() {
                             continue;
@@ -1487,7 +1498,7 @@ impl<W: std::io::Write> PdfStream<W> {
                                 .flat_map(|ch| used.code(face.glyph(ch), ch).to_be_bytes())
                                 .collect()
                         };
-                        c.set_text_matrix([1.0, 0.0, 0.0, 1.0, r2(line.x), r2(ph - line.baseline)]);
+                        c.set_text_matrix([1.0, 0.0, skew, 1.0, r2(line.x), r2(ph - line.baseline)]);
                         if line.word_spacing.abs() > 1e-4 {
                             // Justified: move each word by the extra spacing after every space
                             // (Tw does not apply to two-byte fonts).
@@ -1504,6 +1515,9 @@ impl<W: std::io::Write> PdfStream<W> {
                         } else {
                             c.show(Str(&encode(&line.text)));
                         }
+                    }
+                    if simulated.bold {
+                        c.set_text_rendering_mode(pdf_writer::types::TextRenderingMode::Fill);
                     }
                     c.end_text();
                     if t.underline || t.strike {

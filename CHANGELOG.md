@@ -13,6 +13,10 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   their font files; what cannot be read is a warning. In Rust, `Renderer::load_font_extensions`
   does the same for the renderer's resources. JasperReports' `unicode` sample, which brings its
   own Noto and Arphic fonts this way, now has its Indic scripts, Tibetan, Khmer and Chinese.
+- Fonts: bold and italic text in a registered family that has no bold or italic face is
+  drawn, as in JasperReports, from the family's regular face with the style simulated in PDF
+  output: bold as outlines stroked as well (a thirtieth of the size wide), italic slanted by
+  iText's angle. It used to be drawn plain.
 - A summary with `splitType="Immediate"` that does not fit the rest of the page starts there,
   as in JasperReports, when its first element fits, and goes on over the next pages (with the
   page header and footer only with `isSummaryWithPageHeaderAndFooter`); it used to move whole
