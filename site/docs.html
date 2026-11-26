@@ -1021,6 +1021,12 @@ ferroreport.render_to_file("sales.jrxml", "sales.pdf", rows)</pre>
         extension, so templates that use them match JasperReports exactly. A family the engine does not have is replaced by a built-in one.</p>
       <p>Add your own TrueType or OpenType fonts with <code>--font</code> on the command line or <code>register_font</code> in Rust. The
         JavaScript and Python packages use the built-in families for now.</p>
+      <p>A JasperReports font extension is read where JasperReports would find it on its class path: in a resource folder (the
+        template's folder or one given with <code>-r</code>) with a <code>jasperreports_extension.properties</code> at its root.
+        <code>render</code> and <code>check</code> register the font families and font sets of the <code>fonts.xml</code> files it names
+        (<code>net.sf.jasperreports.extension.simple.font.families.*</code>), with the font files at the paths the extension gives them,
+        and warn about any they cannot read; in Rust, <code>load_font_extensions</code> does it for the renderer's resources. Extensions
+        inside jars are not read: unpack the jar into a folder.</p>
       <p>A character the text's font does not have is left out of the PDF, as JasperReports leaves it out (when the text is measured
         for its height it still counts as wide as the font's missing-glyph box, as in JasperReports). To draw it in another font, use a
         font set or font fallback:</p>

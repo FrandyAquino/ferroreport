@@ -580,6 +580,91 @@ impl FontSet {
     }
 }
 
+/// The file a JasperReports extension is declared in, at the root of the class path.
+pub(crate) const EXTENSION_PROPERTIES: &str = "jasperreports_extension.properties";
+
+/// The properties of a `jasperreports_extension.properties` that name font extension files.
+const FONT_FAMILIES_PROPERTY: &str = "net.sf.jasperreports.extension.simple.font.families.";
+
+/// Registers the font families and font sets of the JasperReports font extensions that
+/// `properties` (a `jasperreports_extension.properties`) declares, the way JasperReports finds
+/// them on its class path. `read` reads a file by its class path location (the `fonts.xml`
+/// files and the fonts they name). Families come first, then the sets that use them, so a set
+/// may name a family of another extension. Returns what could not be registered.
+pub(crate) fn load_extensions(
+    fonts: &mut FontSet,
+    properties: &[Vec<u8>],
+    read: &dyn Fn(&str) -> Option<Vec<u8>>,
+) -> Vec<String> {
+    let mut problems = Vec::new();
+    let mut files: Vec<String> = Vec::new();
+    for bytes in properties {
+        let mut entries: Vec<(String, String)> = crate::format::message::parse_properties(bytes)
+            .into_iter()
+            .filter(|(k, _)| k.starts_with(FONT_FAMILIES_PROPERTY))
+            .collect();
+        entries.sort();
+        for (_, file) in entries {
+            let file = file.trim().trim_start_matches('/').to_string();
+            if !files.contains(&file) {
+                files.push(file);
+            }
+        }
+    }
+    let mut sets = Vec::new();
+    for file in &files {
+        let Some(bytes) = read(file) else {
+            problems.push(format!("font extension `{file}` not found"));
+            continue;
+        };
+        let root = match std::str::from_utf8(&bytes)
+            .map_err(|e| e.to_string())
+            .and_then(|s| crate::xml::parse(s).map_err(|e| e.to_string()))
+        {
+            Ok(root) => root,
+            Err(e) => {
+                problems.push(format!("font extension `{file}`: {e}"));
+                continue;
+            }
+        };
+        for family in root.children_named("fontFamily") {
+            let Some(name) = family.attr("name").map(str::trim).filter(|n| !n.is_empty()) else { continue };
+            for (tag, bold, italic) in
+                [("normal", false, false), ("bold", true, false), ("italic", false, true), ("boldItalic", true, true)]
+            {
+                let Some(face) = family.child(tag) else { continue };
+                // `<normal>fonts/a.ttf</normal>`, or the TrueType one of several formats:
+                // `<normal><ttf>fonts/a.ttf</ttf><eot>…</eot></normal>`.
+                let location = face.child("ttf").map_or(face.text.trim(), |t| t.text.trim()).trim_start_matches('/');
+                if location.is_empty() {
+                    continue;
+                }
+                let registered = read(location)
+                    .ok_or_else(|| "not found".to_string())
+                    .and_then(|data| fonts.register(name, bold, italic, data).map_err(|e| e.to_string()));
+                if let Err(e) = registered {
+                    problems.push(format!("font family `{name}` ({tag}), `{location}`: {e}"));
+                }
+            }
+        }
+        for set in root.children_named("fontSet") {
+            let Some(name) = set.attr("name").map(str::trim).filter(|n| !n.is_empty()) else { continue };
+            // In the order written, which is the order JasperReports searches them in. (The
+            // set's primary family, which draws what no family has, is taken to be the first.)
+            let families: Vec<String> =
+                set.children_named("family").filter_map(|f| Some(f.attr("familyName")?.trim().to_string())).collect();
+            sets.push((name.to_string(), families));
+        }
+    }
+    for (name, families) in sets {
+        let families: Vec<&str> = families.iter().map(String::as_str).collect();
+        if let Err(e) = fonts.register_set(&name, &families) {
+            problems.push(e.to_string());
+        }
+    }
+    problems
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -678,6 +763,38 @@ mod tests {
         // A text the primary family has whole is one run in it.
         let runs = families(fonts.fallback_runs(&spec("Serif Fallback", true, false), "plain"), "plain");
         assert_eq!(runs, [("plain".to_string(), "DejaVu Serif".to_string())]);
+    }
+
+    #[test]
+    fn font_extensions_register_families_and_sets() {
+        let properties = b"net.sf.jasperreports.extension.registry.factory.x=net.sf.jasperreports.engine.fonts.SimpleFontExtensionsRegistryFactory\n\
+            net.sf.jasperreports.extension.simple.font.families.x=fonts/fonts.xml\n\
+            net.sf.jasperreports.extension.simple.font.families.y=/fonts/missing.xml\n";
+        let xml = r#"<fontFamilies>
+            <fontFamily name="Ext Mono"><normal>fonts/mono.ttf</normal><bold><ttf>fonts/mono-bold.ttf</ttf></bold></fontFamily>
+            <fontFamily name="Ext Broken"><normal>fonts/nowhere.ttf</normal></fontFamily>
+            <fontSet name="Ext Set"><family familyName="Ext Mono" primary="true"/><family familyName="DejaVu Sans"/></fontSet>
+        </fontFamilies>"#;
+        let read = |location: &str| -> Option<Vec<u8>> {
+            match location {
+                "fonts/fonts.xml" => Some(xml.as_bytes().to_vec()),
+                "fonts/mono.ttf" => Some(builtin_files().nth(8).unwrap().to_vec()),
+                "fonts/mono-bold.ttf" => Some(builtin_files().nth(9).unwrap().to_vec()),
+                _ => None,
+            }
+        };
+        let mut fonts = FontSet::new();
+        let problems = load_extensions(&mut fonts, &[properties.to_vec()], &read);
+        assert_eq!(problems.len(), 2, "{problems:?}");
+        assert!(problems.iter().any(|p| p.contains("fonts/missing.xml")) && problems.iter().any(|p| p.contains("Ext Broken")));
+        let regular = fonts.resolve(&spec("ext mono", false, false));
+        let bold = fonts.resolve(&spec("Ext Mono", true, false));
+        assert_eq!(fonts.face(regular).family, "Ext Mono");
+        assert!(!fonts.face(regular).bold && fonts.face(bold).bold);
+        // The set's first family draws the text it has.
+        let text = "mono ★";
+        let runs = families(fonts.fallback_runs(&spec("Ext Set", false, false), text), text);
+        assert_eq!(runs.first().map(|r| r.1.as_str()), Some("Ext Mono"));
     }
 
     #[test]

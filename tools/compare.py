@@ -120,6 +120,10 @@ def main() -> int:
             for spec in (fx / "fonts.txt").read_text().split():
                 if Path(spec.split("=", 1)[-1].split(":")[0]).exists():
                     cmd += ["--font", spec]
+        # The fixture's font extension is read from a resource folder, as Jasper reads it
+        # from its class path.
+        if (fx / "jasper-extension").is_dir():
+            cmd += ["-r", str(fx / "jasper-extension")]
         # Font sets the fixture defines (fontsets.txt: Name=Family,Family per line).
         if (fx / "fontsets.txt").exists():
             for spec in (fx / "fontsets.txt").read_text().splitlines():

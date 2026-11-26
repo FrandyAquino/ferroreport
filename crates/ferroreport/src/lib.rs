@@ -308,6 +308,24 @@ impl Renderer {
         self.fonts.register_set(name, families)
     }
 
+    /// Registers the fonts of the JasperReports font extensions in the renderer's resources,
+    /// as JasperReports finds them on its class path: each resource folder (and the files
+    /// added with [`Renderer::add_resource`]) with a `jasperreports_extension.properties` at
+    /// its root is read for the `fonts.xml` files it names
+    /// (`net.sf.jasperreports.extension.simple.font.families.*`), whose `<fontFamily>` faces
+    /// and `<fontSet>`s are registered as [`Renderer::register_font`] and
+    /// [`Renderer::register_font_set`] would. Font files are looked up in the resources by
+    /// the path the extension gives them. Returns what could not be registered (a missing
+    /// file, a font that does not parse); the rest is registered.
+    pub fn load_font_extensions(&mut self) -> Vec<String> {
+        let properties = self.images.read_every(fonts::EXTENSION_PROPERTIES);
+        if properties.is_empty() {
+            return Vec::new();
+        }
+        let images = &self.images;
+        fonts::load_extensions(&mut self.fonts, &properties, &|location| images.read_resource(location))
+    }
+
     /// Draws characters a text's font lacks in another font that has them (off by default:
     /// JasperReports leaves them out unless the font is a font set). The fonts are looked at
     /// in this order: the registered families, in the order they were registered, then the

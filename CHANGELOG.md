@@ -6,6 +6,13 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 
 ## Unreleased
 
+- Fonts: JasperReports font extensions are read from resource folders, where JasperReports
+  finds them on its class path. `render` and `check` look for a `jasperreports_extension.properties`
+  at the root of the template's folder and of each `-r` folder, and register the families
+  (`normal`, `bold`, `italic`, `boldItalic`) and font sets of the `fonts.xml` files it names, with
+  their font files; what cannot be read is a warning. In Rust, `Renderer::load_font_extensions`
+  does the same for the renderer's resources. JasperReports' `unicode` sample, which brings its
+  own Noto and Arphic fonts this way, now has its Indic scripts, Tibetan, Khmer and Chinese.
 - Website: code blocks are in color, by language (shell, JSON, JavaScript, Python, Java, C#, PHP,
   Rust, XML and `.ferro`), with a small script of the site's own (`site/highlight.js`) and
   colors that keep WCAG AA contrast. Comments in the playground's editor are easier to read too.

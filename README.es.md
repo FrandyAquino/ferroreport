@@ -546,8 +546,8 @@ códigos de barras y un formato de plantilla propio. Lo que viene, en versiones 
 - **Texto de cualquier escritura, lo que falta:** el árabe y el hebreo ya van de derecha a
   izquierda y el devanagari, el tailandés y las demás escrituras complejas ya se componen con su
   forma (ver Text en la tabla de compatibilidad del README en inglés), y los caracteres que le
-  faltan a la fuente elegida se pueden dibujar con otra (conjuntos de fuentes con `--font-set` y
-  `--font-fallback`) y el texto simple se puede separar en sílabas al final de la línea
+  faltan a la fuente elegida se pueden dibujar con otra (conjuntos de fuentes con `--font-set` o
+  de una extensión de fuentes de JasperReports en una carpeta de recursos, y `--font-fallback`) y el texto simple se puede separar en sílabas al final de la línea
   (`ferroreport.text.hyphenate`); falta un diccionario para cortar líneas en tailandés, lao,
   jemer y birmano, y separar en sílabas el texto con formato (styled y HTML). El motor de
   composición es harfrust, el port a Rust que mantiene el proyecto HarfBuzz (reemplazó a
