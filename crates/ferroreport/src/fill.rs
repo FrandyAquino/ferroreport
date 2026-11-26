@@ -1541,6 +1541,12 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
     for (i, el) in elements.iter().enumerate() {
         let m = &mut measured[i];
         if !m.visible {
+            // A blank element that removes its line still does where the band continues.
+            if el.remove_line_when_blank && m.blank && limit.is_some_and(|a| new_y[i] >= a - 1e-3) {
+                let mut blank = freeze(el, None);
+                blank.print_when = Some(Expr::Lit(Value::Bool(false)));
+                rest.push(blank);
+            }
             continue;
         }
         let mut h = m.new_h;
@@ -1565,6 +1571,12 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
             }
             if y + h > a + 1e-3 {
                 match &el.kind {
+                    // A text whose own height does not fit moves whole to the next page, as in
+                    // JasperReports; only one that fits and then stretches past the cut splits.
+                    ElementKind::Text(_) if y + el.height > a + 1e-3 => {
+                        rest.push(freeze(el, m.text.take()));
+                        continue;
+                    }
                     ElementKind::Text(te) if te.stretch && m.text.is_some() => {
                         let text = m.text.take().unwrap_or_default();
                         let p = te.boxed.padding;
@@ -4173,9 +4185,18 @@ impl<'a> Filler<'a> {
             Some(summary) => {
                 let layout = self.layout(summary, Values::Committed)?;
                 let h = layout.as_ref().map(|l| l.height).unwrap_or(0.0);
-                // Like JasperReports, a summary that would start beside a column other than the
-                // first goes to a new page.
-                if r.summary_new_page || self.column > 0 || self.offset_y + h > self.body_limit() + 1e-3 {
+                // A summary with splitType="Immediate" starts on this page when its first
+                // element fits (JasperReports' break height), and goes on over the next pages.
+                let break_height = summary.elements.iter().map(|e| e.y + e.height).fold(summary.height, f32::min);
+                let splits_here = summary.split_type == SplitType::Immediate
+                    && layout.is_some()
+                    && !r.summary_new_page
+                    && self.column == 0
+                    && self.offset_y + h > self.body_limit() + 1e-3
+                    && self.offset_y + break_height <= self.body_limit() + 1e-3;
+                if splits_here {
+                    self.split_summary(summary)?;
+                } else if r.summary_new_page || self.column > 0 || self.offset_y + h > self.body_limit() + 1e-3 {
                     self.page_footers(false, Values::Committed)?;
                     self.new_page()?;
                     if r.summary_with_page_header_and_footer {
@@ -4203,6 +4224,68 @@ impl<'a> Filler<'a> {
             }
         }
         self.resolve_pending(|_| true, Values::Committed)
+    }
+
+    /// Prints a summary that does not fit the rest of the page and may split there, as
+    /// JasperReports does (`fillSummaryNoLastFooterSamePage`): what fits on this page, which
+    /// keeps its page footer, then the rest on new pages, which have the page header and
+    /// footer only with `isSummaryWithPageHeaderAndFooter`.
+    fn split_summary(&mut self, summary: &Band) -> Result<()> {
+        let r = self.report;
+        let mode = Values::Committed;
+        let mut elements = summary.elements.clone();
+        let mut design_h = summary.height;
+        let mut first = true;
+        loop {
+            let limit = if first {
+                self.body_limit()
+            } else {
+                let pf =
+                    if r.summary_with_page_header_and_footer { r.page_footer.as_ref().map_or(0.0, |b| b.height) } else { 0.0 };
+                r.page_height - r.margins.bottom - pf
+            };
+            let space = limit - self.offset_y;
+            let full = self.layout_elems(&elements, design_h, mode, None)?;
+            if full.height <= space + 1e-3 {
+                let (y, h) = (self.offset_y, full.height);
+                self.emit(full, y);
+                self.offset_y += h;
+                self.page_has_content = true;
+                break;
+            }
+            let part = self.layout_elems(&elements, design_h, mode, Some(space))?;
+            let rest = part.rest.clone().unwrap_or_default();
+            if part.items.is_empty() && !self.page_has_content {
+                // Nothing fits even on an empty page: print it whole rather than loop forever.
+                let (y, h) = (self.offset_y, full.height);
+                self.emit(full, y);
+                self.offset_y += h;
+                break;
+            }
+            let y = self.offset_y;
+            self.emit(part, y);
+            self.page_has_content = true;
+            if first || r.summary_with_page_header_and_footer {
+                self.page_footers(false, mode)?;
+            }
+            self.new_page()?;
+            if r.summary_with_page_header_and_footer {
+                self.page_headers()?;
+            } else {
+                self.footers_done = true;
+            }
+            first = false;
+            if rest.is_empty() {
+                break;
+            }
+            elements = rest;
+            let moved = move_to_top(&mut elements);
+            design_h = (design_h - moved).max(0.0);
+        }
+        if first || r.summary_with_page_header_and_footer {
+            self.page_footers(true, mode)?;
+        }
+        Ok(())
     }
 }
 

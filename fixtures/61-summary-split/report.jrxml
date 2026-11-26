@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" name="summary-split" whenNoDataType="AllSectionsNoDetail" pageWidth="595" pageHeight="842" columnWidth="515" leftMargin="40" rightMargin="40" topMargin="40" bottomMargin="40">
+	<!-- A summary with splitType="Immediate" that does not fit after the title: it starts on the
+	     first page and goes on over the next ones, its frames floating under texts that stretch.
+	     The fourth frame starts above the page's end with room for one line of its text but
+	     not for its own height, so its texts move to the next page whole; a hidden frame
+	     removes its line also where the summary continues. The page footer is
+	     printed on the first page only (no isSummaryWithPageHeaderAndFooter). -->
+	<style name="Base" isDefault="true" fontName="DejaVu Sans" fontSize="11"/>
+	<parameter name="ShowHidden" class="java.lang.Boolean">
+		<defaultValueExpression><![CDATA[false]]></defaultValueExpression>
+	</parameter>
+	<parameter name="Long" class="java.lang.String">
+		<defaultValueExpression><![CDATA["A text that stretches over several lines, long enough to push the frames under it down the page and, near the bottom, to split across the page break: the lines that fit stay on the first page and the rest continue at the top of the next one, as JasperReports does with a stretching text field."]]></defaultValueExpression>
+	</parameter>
+	<title>
+		<band height="520">
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="0" width="515" height="500" backcolor="#EEEEEE"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="20"/></textElement>
+				<text><![CDATA[A tall title]]></text>
+			</staticText>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="20">
+			<staticText>
+				<reportElement x="0" y="0" width="515" height="20"/>
+				<text><![CDATA[Page header]]></text>
+			</staticText>
+		</band>
+	</pageHeader>
+	<pageFooter>
+		<band height="20">
+			<textField>
+				<reportElement x="0" y="0" width="515" height="20"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	<summary>
+		<band height="440" splitType="Immediate">
+			<frame>
+				<reportElement positionType="Float" x="0" y="0" width="515" height="30"/>
+				<staticText>
+					<reportElement x="0" y="0" width="100" height="30"/>
+					<textElement verticalAlignment="Middle"><font isBold="true"/></textElement>
+					<text><![CDATA[First]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true">
+					<reportElement x="110" y="0" width="405" height="30"/>
+					<textFieldExpression><![CDATA[$P{Long}]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement positionType="Float" x="0" y="40" width="515" height="30"/>
+				<staticText>
+					<reportElement x="0" y="0" width="100" height="30"/>
+					<textElement verticalAlignment="Middle"><font isBold="true"/></textElement>
+					<text><![CDATA[Second]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true">
+					<reportElement x="110" y="0" width="405" height="30"/>
+					<textFieldExpression><![CDATA["Short text"]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement positionType="Float" x="0" y="80" width="515" height="30"/>
+				<staticText>
+					<reportElement x="0" y="0" width="100" height="30"/>
+					<textElement verticalAlignment="Middle"><font isBold="true"/></textElement>
+					<text><![CDATA[Third]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true">
+					<reportElement x="110" y="0" width="405" height="30"/>
+					<textFieldExpression><![CDATA[$P{Long}]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement x="0" y="182" width="515" height="30"/>
+				<staticText>
+					<reportElement x="0" y="0" width="100" height="30"/>
+					<textElement verticalAlignment="Middle"><font isBold="true"/></textElement>
+					<text><![CDATA[Fourth]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true">
+					<reportElement x="110" y="0" width="405" height="30"/>
+					<textFieldExpression><![CDATA["Moves whole when its own height does not fit"]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement positionType="Float" x="0" y="220" width="515" height="30" isRemoveLineWhenBlank="true">
+					<printWhenExpression><![CDATA[$P{ShowHidden}]]></printWhenExpression>
+				</reportElement>
+				<staticText>
+					<reportElement x="0" y="0" width="515" height="30"/>
+					<text><![CDATA[Hidden]]></text>
+				</staticText>
+			</frame>
+			<frame>
+				<reportElement positionType="Float" x="0" y="260" width="515" height="30"/>
+				<box><pen lineWidth="0.5"/></box>
+				<staticText>
+					<reportElement x="0" y="0" width="100" height="30"/>
+					<textElement verticalAlignment="Middle"><font isBold="true"/></textElement>
+					<text><![CDATA[Fifth]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true">
+					<reportElement x="110" y="0" width="405" height="30"/>
+					<textFieldExpression><![CDATA[$P{Long} + " " + $P{Long}]]></textFieldExpression>
+				</textField>
+			</frame>
+			<staticText>
+				<reportElement positionType="Float" x="0" y="410" width="515" height="30"/>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[The end of the summary]]></text>
+			</staticText>
+		</band>
+	</summary>
+</jasperReport>

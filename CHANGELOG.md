@@ -13,6 +13,12 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   their font files; what cannot be read is a warning. In Rust, `Renderer::load_font_extensions`
   does the same for the renderer's resources. JasperReports' `unicode` sample, which brings its
   own Noto and Arphic fonts this way, now has its Indic scripts, Tibetan, Khmer and Chinese.
+- A summary with `splitType="Immediate"` that does not fit the rest of the page starts there,
+  as in JasperReports, when its first element fits, and goes on over the next pages (with the
+  page header and footer only with `isSummaryWithPageHeaderAndFooter`); it used to move whole
+  to a new page. Where a band splits, a text whose own height does not fit above the page's
+  end moves whole to the next page instead of leaving its first lines behind, and a blank
+  element with `isRemoveLineWhenBlank` still removes its line where the band continues.
 - Website: code blocks are in color, by language (shell, JSON, JavaScript, Python, Java, C#, PHP,
   Rust, XML and `.ferro`), with a small script of the site's own (`site/highlight.js`) and
   colors that keep WCAG AA contrast. Comments in the playground's editor are easier to read too.
