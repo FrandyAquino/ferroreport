@@ -6,6 +6,10 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 
 ## Unreleased
 
+- Crosstabs: the built-in variables `ROW_COUNT`, `COLUMN_COUNT`, `IS_EVEN_ROW` and
+  `IS_EVEN_COLUMN` work in cells, headers and their styles, with JasperReports' values (detail
+  rows and columns counted from 1, totals not counted, null where JasperReports leaves them
+  null). JasperReports' `book` and `crosstabs` samples (`OrdersReport`) use them for striped rows.
 - Website: code blocks are in color, by language (shell, JSON, JavaScript, Python, Java, C#, PHP,
   Rust, XML and `.ferro`), with a small script of the site's own (`site/highlight.js`) and
   colors that keep WCAG AA contrast. Comments in the playground's editor are easier to read too.

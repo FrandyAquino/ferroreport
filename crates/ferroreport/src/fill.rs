@@ -2347,6 +2347,17 @@ struct CellScope<'a> {
     row: &'a [Value],
     column: &'a [Value],
     outer: &'a dyn Scope,
+    /// `ROW_COUNT` and `COLUMN_COUNT` of the cell: how many detail rows (columns) of the grid
+    /// come up to its first one, totals not counted (`JRFillCrosstab.computeCounts`). `None`
+    /// where JasperReports sets them to null: the header cell, row headers for the columns,
+    /// column headers for the rows, and order-by expressions.
+    counts: (Option<usize>, Option<usize>),
+}
+
+impl<'a> CellScope<'a> {
+    fn new(filled: &'a crate::crosstab::Filled, row: &'a [Value], column: &'a [Value], outer: &'a dyn Scope) -> Self {
+        CellScope { filled, row, column, outer, counts: (None, None) }
+    }
 }
 
 impl Scope for CellScope<'_> {
@@ -2408,7 +2419,16 @@ impl Scope for CellScope<'_> {
             }
             return Ok(value);
         }
-        Err(Error::eval(format!("variable `{name}` is not a measure or group of the crosstab")))
+        // The crosstab's built-in variables (`JRDesignCrosstab.BUILT_IN_VARIABLES`).
+        let count = |n: Option<usize>| n.map_or(Value::Null, |n| Value::Int(n as i32));
+        let even = |n: Option<usize>| n.map_or(Value::Null, |n| Value::Bool(n % 2 == 0));
+        match name {
+            "ROW_COUNT" => Ok(count(self.counts.0)),
+            "IS_EVEN_ROW" => Ok(even(self.counts.0)),
+            "COLUMN_COUNT" => Ok(count(self.counts.1)),
+            "IS_EVEN_COLUMN" => Ok(even(self.counts.1)),
+            _ => Err(Error::eval(format!("variable `{name}` is not a measure or group of the crosstab"))),
+        }
     }
 }
 
@@ -2621,7 +2641,7 @@ fn fill_crosstab(le: &mut LayoutEnv, ct: &CrosstabElement, el: &Element) -> Resu
             for prefix in crate::crosstab::prefixes(&sorted, i + 1) {
                 let none: &[Value] = &[];
                 let (row, column) = if row_axis { (&prefix[..], none) } else { (none, &prefix[..]) };
-                let v = eval(e, &CellScope { filled: &filled, row, column, outer: le.scope }, le.env)?;
+                let v = eval(e, &CellScope::new(&filled, row, column, le.scope), le.env)?;
                 if row_axis {
                     row_order.insert(key(&prefix), v);
                 } else {
@@ -2727,6 +2747,7 @@ fn render_crosstab(
     outer.mode = Mode::Transparent;
     outer.tag = outer.tag.or(Some(Tag::Table));
     let none: &[Value] = &[];
+    let (row_counts, column_counts) = (f.detail_counts(true), f.detail_counts(false));
     for ch in chunks {
         let top = y + ch.y;
         let hh = if ch.with_headers { f.header_height() } else { 0.0 };
@@ -2735,21 +2756,14 @@ fn render_crosstab(
         let mark = open_mark(out, &outer, Shape::Frame, None, x, top, f.part_width(ch.part), hh + rows_h);
         if ch.with_headers {
             if let (Some(c), true) = (&f.crosstab.header_cell, hw > 0.0 && hh > 0.0) {
-                place_cell(
-                    le,
-                    c,
-                    [x, top, hw, hh],
-                    (0.0, 0.0),
-                    &CellScope { filled: f, row: none, column: none, outer: le.scope },
-                    out,
-                    Tag::HeaderCell,
-                )?;
+                place_cell(le, c, [x, top, hw, hh], (0.0, 0.0), &CellScope::new(f, none, none, le.scope), out, Tag::HeaderCell)?;
             }
-            for hc in f.column_headers(ch.part) {
+            for (first, hc) in f.column_headers_from(ch.part) {
                 let Some(c) = hc.contents else { continue };
                 let g = &f.crosstab.column_groups[hc.group];
                 let dx = if hc.total { 0.0 } else { header_offset(g.header_position, hc.w, f.design_width(hc.group)) };
-                let scope = CellScope { filled: f, row: none, column: &hc.values, outer: le.scope };
+                let scope =
+                    CellScope { counts: (None, Some(column_counts[first])), ..CellScope::new(f, none, &hc.values, le.scope) };
                 place_cell(le, c, [x + hc.x, top + hc.y, hc.w, hc.h], (dx, 0.0), &scope, out, Tag::HeaderCell)?;
             }
         }
@@ -2761,7 +2775,8 @@ fn render_crosstab(
                     let Some(c) = hc.contents else { continue };
                     let g = &f.crosstab.row_groups[hc.group];
                     let dy = if hc.total { 0.0 } else { header_offset(g.header_position, hc.h, f.design_height(hc.group)) };
-                    let scope = CellScope { filled: f, row: &hc.values, column: none, outer: le.scope };
+                    let scope =
+                        CellScope { counts: (Some(row_counts[r]), None), ..CellScope::new(f, &hc.values, none, le.scope) };
                     place_cell(le, c, [x + hc.x, hc.y, hc.w, hc.h], (0.0, dy), &scope, out, Tag::RowHeaderCell)?;
                 }
             }
@@ -2770,7 +2785,10 @@ fn render_crosstab(
                 let column = &f.columns[c];
                 let w = f.column_widths[c];
                 if let Some(contents) = f.cell_contents(row, column) {
-                    let scope = CellScope { filled: f, row: &row.values, column: &column.values, outer: le.scope };
+                    let scope = CellScope {
+                        counts: (Some(row_counts[r]), Some(column_counts[c])),
+                        ..CellScope::new(f, &row.values, &column.values, le.scope)
+                    };
                     place_cell(le, contents, [cx, ry, w, f.row_heights[r]], (0.0, 0.0), &scope, out, Tag::DataCell)?;
                 }
                 cx += w;
