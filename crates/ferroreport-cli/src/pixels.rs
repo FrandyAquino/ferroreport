@@ -84,11 +84,12 @@ pub fn decode_png(bytes: &[u8]) -> Result<Gray, String> {
     let info = reader.next_frame(&mut buf).map_err(|e| format!("PNG: {e}"))?;
     let buf = &buf[..info.buffer_size()];
     let luma = |r: u8, g: u8, b: u8| ((r as u32 * 19595 + g as u32 * 38470 + b as u32 * 7471 + 0x8000) >> 16) as u8;
+    // One pixel is `samples` bytes: gray (and alpha), or red, green, blue (and alpha).
+    let samples = info.color_type.samples();
     let pixels: Vec<u8> = match info.color_type {
         png::ColorType::Grayscale => buf.to_vec(),
-        png::ColorType::GrayscaleAlpha => buf.chunks_exact(2).map(|p| p[0]).collect(),
-        png::ColorType::Rgb => buf.chunks_exact(3).map(|p| luma(p[0], p[1], p[2])).collect(),
-        png::ColorType::Rgba => buf.chunks_exact(4).map(|p| luma(p[0], p[1], p[2])).collect(),
+        png::ColorType::GrayscaleAlpha => buf.chunks_exact(samples).map(|p| p[0]).collect(),
+        png::ColorType::Rgb | png::ColorType::Rgba => buf.chunks_exact(samples).map(|p| luma(p[0], p[1], p[2])).collect(),
         png::ColorType::Indexed => return Err("PNG: unexpanded palette".into()),
     };
     Ok(Gray { width: info.width as usize, height: info.height as usize, pixels })
