@@ -6,6 +6,9 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 
 ## Unreleased
 
+- A text narrower than its characters, broken one character a line, no longer ends with an
+  empty line: a stretching text field 6 points wide with `Ab` is two lines tall, as in
+  JasperReports, not three.
 - Icon labels are sized as JasperReports 7 sizes them: the icon as wide as its text, half its
   font size from the label, which gets the rest of the width, or shrinks to its text unless
   `labelFill` is `Horizontal` or `Both`; with `Vertical` or `Both` it is as tall as the element.
