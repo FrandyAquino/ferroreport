@@ -11,6 +11,8 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   the range marks where each range starts in green, orange and red, the axis with whole-number
   ticks, and the value in the bulb or beside the stem. JRXML 7 ranges (`<lowRange>` without a
   `<dataRange>`) are read, and a thermometer without `mercuryColor` takes its range's color.
+- Build: simplify two boolean expressions, in DataMatrix encoding and JRXML element parsing, that
+  Clippy on Rust 1.96 reports. Rendering is unchanged.
 
 ## 1.3.0
 
