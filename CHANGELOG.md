@@ -6,6 +6,7 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 
 ## Unreleased
 
+- Build: simplify two boolean expressions, in DataMatrix encoding and JRXML element parsing, that Clippy on Rust 1.96 reports. Rendering is unchanged.
 - Website: code blocks are in color, by language (shell, JSON, JavaScript, Python, Java, C#, PHP,
   Rust, XML and `.ferro`), with a small script of the site's own (`site/highlight.js`) and
   colors that keep WCAG AA contrast. Comments in the playground's editor are easier to read too.
