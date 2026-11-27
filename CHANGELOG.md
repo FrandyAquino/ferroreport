@@ -14,6 +14,14 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   the range marks where each range starts in green, orange and red, the axis with whole-number
   ticks, and the value in the bulb or beside the stem. JRXML 7 ranges (`<lowRange>` without a
   `<dataRange>`) are read, and a thermometer without `mercuryColor` takes its range's color.
+- Benchmarks measured again with 1.3, against JasperReports 6.20.6 and 7.1.1 (README, website,
+  `docs/benchmarks*.json`). The machine was slower in this run (JasperReports itself took 10 to
+  30% longer), so the times are higher than 1.1.0's. Built on the same machine and run
+  alternately, 1.3.0 is within a few percent of 1.1.0 (8% at most), except Word (DOCX) export of
+  20,000 rows, about 17% slower, and ODS and ODT of 100,000 rows, slower by design since 1.2 in
+  exchange for a fraction of the memory (67 and 40 MiB instead of 248 and 264). The peak memory
+  of the same binary moves by a few MiB with the state of the page cache (the invoice: 15 MiB in
+  that comparison, 18 MiB in the published run).
 - Build: simplify two boolean expressions, in DataMatrix encoding and JRXML element parsing, that
   Clippy on Rust 1.96 reports. Rendering is unchanged.
 - A subreport or table whose report prints nothing (no rows, `whenNoDataType="NoPages"`)
@@ -36,6 +44,17 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   ticks, labels only where intervals end, the value with its units under the center, the
   needle only for a value in range, and JFreeChart's colors and fonts where the template sets
   none. The `shape` (pie, chord, circle) and a JRXML 7 `<tickLabelFont>` are read.
+- `migrate --jasper` also compares every page's pixels when `pdftoppm` (poppler) is on the PATH,
+  with the threshold and measure of `tools/compare.py`, and gives the worst page's share of
+  differing ink in its summary and `--report` (JSON: `pixels`, and `worstPage`, `worstPageDiff`,
+  `pagesDiffering` for each template); `--keep` also writes the diff picture of each page that
+  differs. Without `pdftoppm` the check is skipped, with a note. Whether a template is the
+  same (`same` in the JSON, and what `--strict` fails on) still means the same pages, texts and
+  numbers, as in 1.3: the pictures are reported beside it.
+- Docs: rows from pandas, Polars and SQLAlchemy in Python (README and the Data section of the
+  documentation, in English and Spanish).
+- Tests: every template in `examples/` (the `.ferro` files and each folder's report) is
+  rendered on every push, so an example that stops rendering fails CI.
 
 ## 1.3.0
 

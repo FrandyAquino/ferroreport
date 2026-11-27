@@ -139,6 +139,20 @@ curl -X POST localhost:8080/render/invoice -H 'Content-Type: application/json' \
         <tr><td><code>List</code>, <code>Collection</code></td><td>A nested array, usually the rows of a subreport</td></tr>
       </table>
       <p>Reports without a data source can omit the data. A template's SQL query runs on the database given with <code>--db</code> (see <a href="#database">Rows from a database</a>); without it, send the rows.</p>
+      <p>Rows from the libraries you read data with go in as they come, or with one call to make them plain values:</p>
+<pre data-lang="python"># pandas: hand over the DataFrame as JSON text. to_json writes NaN as null and dates as
+# ISO-8601; to_dict("records") would keep NaN, which is not valid JSON.
+pdf = ferroreport.render("orders.jrxml", df.to_json(orient="records", date_format="iso"))
+
+# Polars: to_dicts() gives plain Python values (None for nulls, datetime.date for dates)
+pdf = ferroreport.render("orders.jrxml", df.to_dicts())
+
+# SQLAlchemy: rows as dicts; a generator is read one row at a time
+from sqlalchemy import text
+
+with engine.connect() as conn:
+    result = conn.execute(text("select id, customer, placed, total from orders order by id"))
+    pdf = ferroreport.render("orders.jrxml", (dict(row) for row in result.mappings()))</pre>
 
       <h3>Parameters</h3>
       <p>A JSON object with one key per <code>&lt;parameter&gt;</code>, converted with the same rules. Parameters you leave out take
@@ -401,8 +415,12 @@ ferroreport render invoice.jrxml -d rows.json \
         and by ferroreport, from the same rows: <code>&lt;name&gt;.json</code> or <code>data.json</code> next to the template, and
         parameters from <code>&lt;name&gt;.params.json</code> or <code>params.json</code> (locale en_US, time zone UTC in both). For each
         it reports the pages of each, whether every text and number is the same and in the same place (their CSV exports, compared line
-        by line), and how long each took to fill and write the PDF. <code>--keep compared/</code> keeps both PDFs and both CSVs of every
-        template, to look at side by side. Images, styles and subreports are read from the template's folder; nothing is written there.</p>
+        by line), whether every page is the same picture, and how long each took to fill and write the PDF. The pictures are compared
+        when <code>pdftoppm</code> (poppler) is on the PATH, as <code>tools/compare.py</code> compares them: at 100 DPI in gray, a page
+        differs when more than 0.15% of its ink does; the worst page's share is given (and in the report, as <code>worstPage</code> and
+        <code>worstPageDiff</code>). Without <code>pdftoppm</code> they are not compared, and the report says so. <code>--keep compared/</code>
+        keeps both PDFs and both CSVs of every template, and the diff picture of every page that differs (red: only JasperReports, blue:
+        only ferroreport), to look at side by side. Images, styles and subreports are read from the template's folder; nothing is written there.</p>
       <p>Over this project's own test templates, with JasperReports 6.20.6:</p>
 <pre data-lang="console">$ ferroreport migrate fixtures/ --jasper jasperreports-6.20.6/lib --keep compared/
 ✓ fixtures/02-invoice/report.jrxml (JRXML 6)
@@ -852,8 +870,8 @@ std::fs::write("invoice.pdf", pdf)?;</pre>
         day names, AM/PM, two-digit years or milliseconds (they stay text), the per-mille sign in number styles, and upside-down text in ODT.</p>
       <p>Large reports are written as they are made, in about the memory of a small one. A document's styles come before its body
         in the file, so a large report is filled once more first to find them (a spreadsheet three times in all: its columns, its
-        styles, its rows; a text twice), and its rows are then compressed and written as they come: 100,000 rows in 68 MiB as ODS
-        and 37 MiB as ODT, a million rows in 37 MiB as ODT. That needs rows that can be read again, as for
+        styles, its rows; a text twice), and its rows are then compressed and written as they come: 100,000 rows in 69 MiB as ODS
+        and 39 MiB as ODT, a million rows in 41 MiB as ODT. That needs rows that can be read again, as for
         <a href="#large">large workbooks</a>; rows that can only be read once still give the document, kept in memory until
         it is written.</p>
 
@@ -946,7 +964,7 @@ ferroreport render invoice.jrxml -d rows.json -o invoice.pdf --sign-key key.pem 
 
       <h2 id="large">Large reports and limits</h2>
       <p>A report does not have to fit in memory. Rows are read as the report asks for them and each page is written as soon as it
-        is finished, so a million rows and 23,810 pages render in about 16 MB, at about 80,000 rows a second on one core.</p>
+        is finished, so a million rows and 23,810 pages render in about 19 MB, at about 55,000 rows a second on one core.</p>
       <table>
         <tr><th>From</th><th>How</th></tr>
         <tr><td>Command line</td><td>Nothing to do: <code>ferroreport render sales.jrxml -d sales.json -o sales.pdf</code> already reads and writes as it goes. The rows can be a JSON array or one object per line, from a file or from standard input</td></tr>
@@ -960,11 +978,11 @@ ferroreport render invoice.jrxml -d rows.json -o invoice.pdf --sign-key key.pem 
       <ul>
         <li><b>PDF and CSV</b> are written page by page. So are <b>Excel</b> workbooks, in two passes: the columns of a sheet come from
           every page, so a large report is filled once to find them and once more to write its rows, which are compressed and sent on
-          as they are made (100,000 rows: about 3 s and 66 MiB; 500,000: 15 s and 116 MiB). That needs rows that can be read twice: a
+          as they are made (100,000 rows: about 4.5 s and 69 MiB; 500,000: 22 s and 103 MiB). That needs rows that can be read twice: a
           file, or rows the command line, the server, Python and Java put aside for you; in Rust, <code>render_rows_to</code>. Small
           workbooks are still filled once. A report with more rows than a sheet holds (1,048,576) stops with an error that says so.
-          <b>OpenDocument</b> files are written as they are made too, filled once more first to find their styles (100,000 rows: 68 MiB
-          as ODS, 37 MiB as ODT; a million rows as ODT: 37 MiB).</li>
+          <b>OpenDocument</b> files are written as they are made too, filled once more first to find their styles (100,000 rows: 69 MiB
+          as ODS, 39 MiB as ODT; a million rows as ODT: 41 MiB).</li>
         <li><b>Values known only later</b>, such as "page 3 of 240", a grand total in the title or a group total in the group header, are
           added to their page when they are known, without holding the page back. If something is drawn over such a value, its page waits
           for it instead, so the result is always the same document.</li>
