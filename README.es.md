@@ -332,7 +332,7 @@ lista), así que el JRXML convertido funciona también en JasperReports:
   `isPrintRepeatedValues`, grupos, variables y tiempos de evaluación.
 - Expresiones en Java y en Groovy: la librería de funciones de JasperReports tal como la ofrece
   Jaspersoft Studio (`IF`, `SUM`, `ROUND_HALF_UP`, `LEFT`, `SUBSTITUTE`, `DATEFORMAT`, `EDATE`,
-  `WORKDAY`, `NETWORKDAYS`... 78 funciones, 265 casos comprobados contra JasperReports),
+  `WORKDAY`, `NETWORKDAYS`... 78 funciones, 272 casos comprobados contra JasperReports),
   `DATERANGE("MONTH-1")`, y de Groovy las listas, mapas, rangos, closures (`findAll`, `collect`,
   `sum`, `groupBy`...), los textos con `${...}`, `?.`, `**`, `in` y `as`, con los mismos
   resultados que JasperReports.

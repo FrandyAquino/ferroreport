@@ -166,7 +166,7 @@ def render(
         iterator of rows (a generator, a database cursor): an iterator is read one row at a
         time, so the rows are never all in memory.
     params: report parameters by name.
-    locale: number and date formatting locale (en_US, es_DO, es_MX, es_ES, fr_FR, ...).
+    locale: number and date formatting locale (en_US, es_DO, es_MX, es_ES, fr_FR, pt_BR, it_IT, de_DE, ...).
     resources: images and subreport templates in memory, by the relative path the template
         uses (for example {"logo.png": b"...", "lines.jrxml": "<jasperReport ..."}).
     resource_dirs: extra directories for images and subreports. The template's own directory
