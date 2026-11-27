@@ -788,7 +788,8 @@ fn tagged(mut item: PrintItem, tag: Option<Tag>) -> PrintItem {
     item
 }
 
-/// Wraps the item drawing a text element with what non-PDF exporters need.
+/// Wraps the item drawing a text element with what non-PDF exporters need. `printed` is the
+/// text the cell keeps when [`text_item_with_cell`] already has it.
 #[allow(clippy::too_many_arguments)]
 fn cell_item(
     fonts: &mut FontSet,
@@ -801,8 +802,12 @@ fn cell_item(
     h: f32,
     value: &TextValue,
     drawn: PrintItem,
+    printed: Option<String>,
 ) -> PrintItem {
-    let (text, runs) = printed_text(fonts, te, color, w, h, &value.text);
+    let (text, runs) = match printed {
+        Some(text) => (text, Vec::new()),
+        None => printed_text(fonts, te, color, w, h, &value.text),
+    };
     let info = CellInfo {
         tag: None,
         x,
@@ -875,15 +880,28 @@ fn printed_text(
     let hyphenator = fonts.hyphenator();
     let face_id = fonts.resolve(&te.style.font);
     let face = fonts.face(face_id);
+    let lines = break_lines_hyphenated(text, face, te.style.font.size, cw, Measure::Fill, hyphenator);
+    (printed_plain_text(te, face, text, &lines, cw, ch), Vec::new())
+}
+
+/// [`printed_text`] of a text in one font, from its fill-time `lines` in a box `cw` by `ch`
+/// inside the padding.
+fn printed_plain_text(
+    te: &TextElement,
+    face: &crate::fonts::FaceData,
+    text: &str,
+    lines: &[crate::text::Line],
+    cw: f32,
+    ch: f32,
+) -> String {
+    if te.truncate.keep_full {
+        return text.to_string();
+    }
     let size = te.style.font.size;
     let vm = vertical_metrics(face, size, te.style.line_spacing);
-    let lines = break_lines_hyphenated(text, face, size, cw, Measure::Fill, hyphenator);
     let fit = vm.lines_that_fit(ch).min(lines.len());
-    if te.truncate.keep_full {
-        return (text.to_string(), Vec::new());
-    }
-    let cut = if fit < lines.len() { cut_text(text, &lines, fit, face, size, cw, &te.truncate) } else { None };
-    let text = match lines.get(fit) {
+    let cut = if fit < lines.len() { cut_text(text, lines, fit, face, size, cw, &te.truncate) } else { None };
+    match lines.get(fit) {
         _ if cut.is_some() => cut.unwrap_or_default(),
         // Jasper keeps the spaces the last line ends with, and the line break too when the
         // rest of the text goes on to the next page.
@@ -893,8 +911,7 @@ fn printed_text(
             if te.stretch { head } else { head.strip_suffix('\n').unwrap_or(head) }.to_string()
         }
         None => text.to_string(),
-    };
-    (text, Vec::new())
+    }
 }
 
 /// What JasperReports keeps of a text cut after `fit` of its fill `lines` when the element
@@ -1001,8 +1018,40 @@ fn text_item(
     match text_form(fonts, te, color, text) {
         TextForm::Styled(st) => crate::rich::layout(fonts, te, &st, x, y, w, h, clip),
         TextForm::Plain(te) => {
-            let (t, needed) = plain_text_item(fonts, &te, color, x, y, w, h, text, clip);
+            let (t, needed, _) = plain_text_item(fonts, &te, color, x, y, w, h, text, clip);
             (PrintItem::Text(t), needed)
+        }
+    }
+}
+
+/// [`text_item`] (clipped to its box) for an element whose cell is wanted too, with the text
+/// the cell keeps ([`printed_text`]) when that comes from the same layout: for plain text that
+/// is not rotated, [`printed_text`] breaks the text with the same font, size, box and
+/// hyphenation as the fill-time lines laid out for drawing, so those lines are used instead of
+/// being broken again (and `text_form` is not run twice). `None`: [`cell_item`] works it out.
+#[allow(clippy::too_many_arguments)]
+fn text_item_with_cell(
+    fonts: &mut FontSet,
+    te: &TextElement,
+    color: Color,
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+    text: &str,
+) -> (PrintItem, Option<String>) {
+    if te.style.rotation != Rotation::None {
+        return (text_item(fonts, te, color, x, y, w, h, text, true).0, None);
+    }
+    match text_form(fonts, te, color, text) {
+        TextForm::Styled(st) => (crate::rich::layout(fonts, te, &st, x, y, w, h, true).0, None),
+        TextForm::Plain(te) => {
+            let (t, _, fill_lines) = plain_text_item(fonts, &te, color, x, y, w, h, text, true);
+            let p = te.boxed.padding;
+            let (cw, ch) = ((w - p.left - p.right).max(0.0), h - p.top - p.bottom);
+            // The face the text was laid out in (`plain_text_item` resolves the element's font).
+            let printed = printed_plain_text(&te, fonts.face(t.face), text, &fill_lines, cw, ch);
+            (PrintItem::Text(t), Some(printed))
         }
     }
 }
@@ -1065,7 +1114,7 @@ fn plain_text_item(
     h: f32,
     text: &str,
     clip: bool,
-) -> (PrintText, f32) {
+) -> (PrintText, f32, Vec<crate::text::Line>) {
     let face_id = fonts.resolve(&te.style.font);
     let face_arc = fonts.faces()[face_id].clone();
     let face = &*face_arc;
@@ -1171,6 +1220,7 @@ fn plain_text_item(
     (
         PrintText { face: face_id, size, color, underline: f.underline, strike: f.strike, lines: print_lines, standard, halign },
         needed,
+        fill_lines,
     )
 }
 
@@ -1839,13 +1889,13 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
                 }
                 match m.text.take() {
                     Some(text) => {
-                        let (item, _) = text_item(le.fonts, te, el.forecolor, x, y, w, h, &text, true);
-                        let value = TextValue { text, number: m.number, pattern: m.pattern.take() };
                         let back = (el.mode == Mode::Opaque).then_some(el.backcolor);
                         let item = if le.images.skip_cells && te.field.is_none() {
-                            item
+                            text_item(le.fonts, te, el.forecolor, x, y, w, h, &text, true).0
                         } else {
-                            tagged(cell_item(le.fonts, te, el.forecolor, back, x, y, w, h, &value, item), el.tag)
+                            let (item, printed) = text_item_with_cell(le.fonts, te, el.forecolor, x, y, w, h, &text);
+                            let value = TextValue { text, number: m.number, pattern: m.pattern.take() };
+                            tagged(cell_item(le.fonts, te, el.forecolor, back, x, y, w, h, &value, item, printed), el.tag)
                         };
                         out.items.push(Laid { item, deferred: None });
                     }
@@ -4104,11 +4154,11 @@ impl<'a> Filler<'a> {
             let item = match &d.what {
                 Deferred::Text(te) => {
                     let value = text_value_full(&te.content, &ctx, self.env)?;
-                    let item = text_item(self.fonts, te, d.forecolor, d.x, d.y, d.w, d.h, &value.text, true).0;
                     if self.images.skip_cells && te.field.is_none() {
-                        item
+                        text_item(self.fonts, te, d.forecolor, d.x, d.y, d.w, d.h, &value.text, true).0
                     } else {
-                        tagged(cell_item(self.fonts, te, d.forecolor, d.back, d.x, d.y, d.w, d.h, &value, item), d.tag)
+                        let (item, printed) = text_item_with_cell(self.fonts, te, d.forecolor, d.x, d.y, d.w, d.h, &value.text);
+                        tagged(cell_item(self.fonts, te, d.forecolor, d.back, d.x, d.y, d.w, d.h, &value, item, printed), d.tag)
                     }
                 }
                 Deferred::Chart(ch) => match &ch.dataset.run {
