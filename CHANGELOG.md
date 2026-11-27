@@ -71,6 +71,12 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   groups), currency, month and day names, short date and time, `TIME()` without a pattern, and
   weeks starting on Monday in `DATERANGE("WEEK")` for Italy and Switzerland. Before, these
   locales printed `en_US`'s.
+- German number and date formats, as Java 21 has them: `de`, `de_DE`, `de_AT` and `de_CH`
+  (`de_LI` takes de_CH's, other `de_` tags de_DE's), with their separators (in Austria a
+  no-break space between groups and a point in amounts with a currency, in Switzerland a point
+  for decimals and `’` between groups), currency, month and day names (Austria's "Jänner"),
+  short date and time, `TIME()` without a pattern, and weeks starting on Monday in
+  `DATERANGE("WEEK")`. Before, these locales printed `en_US`'s.
 
 ## 1.3.0
 

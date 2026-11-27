@@ -441,8 +441,7 @@ pub fn call(name: &str, args: Vec<Value>, env: &EvalEnv) -> Result<Value> {
                 None if env.locale.tag == "es_MX" => "HH:mm:ss z".to_string(),
                 None if matches!(env.locale.tag, "fr" | "fr_FR" | "fr_BE" | "fr_CH") => "HH:mm:ss z".to_string(),
                 None if env.locale.tag == "fr_CA" => "HH 'h' mm 'min' ss 's' z".to_string(),
-                None if env.locale.tag.starts_with("pt") => "HH:mm:ss z".to_string(),
-                None if env.locale.tag.starts_with("it") => "HH:mm:ss z".to_string(),
+                None if ["pt", "it", "de"].iter().any(|p| env.locale.tag.starts_with(p)) => "HH:mm:ss z".to_string(),
                 None if env.locale.tag.starts_with("es") => "H:mm:ss z".to_string(),
                 None => "h:mm:ss\u{202F}a z".to_string(),
             };
@@ -673,7 +672,7 @@ fn parse_prefix(text: &str) -> Option<NaiveDateTime> {
 /// `Calendar.getInstance(locale).getFirstDayOfWeek()` says (JasperReports' RelativeDateRange).
 fn first_day_of_week(locale: &Locale) -> u32 {
     match locale.tag {
-        "es_ES" | "fr_FR" | "fr_BE" | "fr_CH" | "it_IT" | "it_CH" => 1,
+        "es_ES" | "fr_FR" | "fr_BE" | "fr_CH" | "it_IT" | "it_CH" | "de_DE" | "de_AT" | "de_CH" => 1,
         _ => 0,
     }
 }

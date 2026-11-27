@@ -23,6 +23,7 @@ pub fn short_date_time(locale: &Locale) -> &'static str {
         "pt_PT" => "dd/MM/yy, HH:mm",
         "it" | "it_IT" => "dd/MM/yy, HH:mm",
         "it_CH" => "dd.MM.yy, HH:mm",
+        t if t.starts_with("de") => "dd.MM.yy, HH:mm",
         "es_DO" => "d/M/yy, h:mm\u{202F}a",
         "es_MX" => "dd/MM/yy, HH:mm",
         t if t.starts_with("es") => "d/M/yy, H:mm",

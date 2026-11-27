@@ -165,6 +165,53 @@ pub const IT_IT: Locale = Locale { tag: "it_IT", currency_symbol: "€", ..IT };
 pub const IT_CH: Locale =
     Locale { tag: "it_CH", decimal_separator: '.', grouping_separator: '\u{2019}', currency_symbol: "SFr.", ..IT };
 
+const DE_MONTHS: [&str; 12] =
+    ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+
+/// German without a country, as Java 21 has it: Germany's symbols with the generic currency
+/// sign `¤`.
+pub const DE: Locale = Locale {
+    tag: "de",
+    decimal_separator: ',',
+    grouping_separator: '.',
+    currency_symbol: "\u{A4}",
+    months: DE_MONTHS,
+    short_months: ["Jan.", "Feb.", "März", "Apr.", "Mai", "Juni", "Juli", "Aug.", "Sept.", "Okt.", "Nov.", "Dez."],
+    weekdays: ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"],
+    short_weekdays: ["So.", "Mo.", "Di.", "Mi.", "Do.", "Fr.", "Sa."],
+    am_pm: ["AM", "PM"],
+};
+
+pub const DE_DE: Locale = Locale { tag: "de_DE", currency_symbol: "€", ..DE };
+
+/// German (Austria): "Jänner" for January, a no-break space between groups (a point in amounts
+/// with a currency sign, see [`Locale::monetary_grouping_separator`]).
+pub const DE_AT: Locale = Locale {
+    tag: "de_AT",
+    grouping_separator: '\u{A0}',
+    currency_symbol: "€",
+    months: [
+        "Jänner",
+        "Februar",
+        "März",
+        "April",
+        "Mai",
+        "Juni",
+        "Juli",
+        "August",
+        "September",
+        "Oktober",
+        "November",
+        "Dezember",
+    ],
+    short_months: ["Jän.", "Feb.", "März", "Apr.", "Mai", "Juni", "Juli", "Aug.", "Sep.", "Okt.", "Nov.", "Dez."],
+    ..DE
+};
+
+/// German (Switzerland): a point for decimals and a right single quote (U+2019) between groups.
+pub const DE_CH: Locale =
+    Locale { tag: "de_CH", decimal_separator: '.', grouping_separator: '\u{2019}', currency_symbol: "CHF", ..DE };
+
 impl Locale {
     /// The decimal separator of a pattern with a currency sign (`¤`), Java's
     /// `DecimalFormatSymbols.getMonetaryDecimalSeparator`: a point in French Switzerland, the
@@ -173,6 +220,16 @@ impl Locale {
         match self.tag {
             "fr_CH" => '.',
             _ => self.decimal_separator,
+        }
+    }
+
+    /// The grouping separator of a pattern with a currency sign (`¤`), Java's
+    /// `DecimalFormatSymbols.getMonetaryGroupingSeparator`: a point in Austria, where other
+    /// numbers group with a no-break space, the grouping separator everywhere else.
+    pub(crate) fn monetary_grouping_separator(&self) -> char {
+        match self.tag {
+            "de_AT" => '.',
+            _ => self.grouping_separator,
         }
     }
 
@@ -196,6 +253,11 @@ impl Locale {
             "it" => &IT,
             "it_CH" => &IT_CH,
             _ if norm == "it_IT" || norm.starts_with("it_") => &IT_IT,
+            "de" => &DE,
+            "de_AT" => &DE_AT,
+            // Liechtenstein writes numbers as Switzerland does.
+            "de_CH" | "de_LI" => &DE_CH,
+            _ if norm == "de_DE" || norm.starts_with("de_") => &DE_DE,
             _ => &EN_US,
         }
     }
@@ -530,6 +592,85 @@ mod tests {
         }
         // San Marino and the Vatican take Italy's.
         assert_eq!(Locale::from_tag("it_SM").tag, "it_IT");
+    }
+
+    /// What Java 21.0.13 prints for German, for -1234567.5 and 5 July 2026 14:07:09 (the
+    /// patterns of `french_is_javas`) and a date without a pattern.
+    #[test]
+    fn german_is_javas() {
+        use crate::format::format_value;
+        use crate::value::Value;
+        let when = chrono::NaiveDate::from_ymd_opt(2026, 7, 5).unwrap().and_hms_opt(14, 7, 9).unwrap();
+        let cases = [
+            (
+                "de",
+                [
+                    "-1.234.567,50",
+                    "-\u{A4} 1.234.567,50",
+                    "-1.234.567,50 \u{A4}",
+                    "Sonntag 5 Juli 2026",
+                    "So. 5 Juli 26",
+                    "2:07 PM",
+                    "05.07.26, 14:07",
+                ],
+            ),
+            (
+                "de_DE",
+                [
+                    "-1.234.567,50",
+                    "-\u{20AC} 1.234.567,50",
+                    "-1.234.567,50 \u{20AC}",
+                    "Sonntag 5 Juli 2026",
+                    "So. 5 Juli 26",
+                    "2:07 PM",
+                    "05.07.26, 14:07",
+                ],
+            ),
+            // Austria groups with a no-break space, and with a point in amounts with a currency.
+            (
+                "de_AT",
+                [
+                    "-1\u{A0}234\u{A0}567,50",
+                    "-\u{20AC} 1.234.567,50",
+                    "-1.234.567,50 \u{20AC}",
+                    "Sonntag 5 Juli 2026",
+                    "So. 5 Juli 26",
+                    "2:07 PM",
+                    "05.07.26, 14:07",
+                ],
+            ),
+            (
+                "de_CH",
+                [
+                    "-1\u{2019}234\u{2019}567.50",
+                    "-CHF 1\u{2019}234\u{2019}567.50",
+                    "-1\u{2019}234\u{2019}567.50 CHF",
+                    "Sonntag 5 Juli 2026",
+                    "So. 5 Juli 26",
+                    "2:07 PM",
+                    "05.07.26, 14:07",
+                ],
+            ),
+        ];
+        let patterns =
+            ["#,##0.00", "\u{A4} #,##0.00", "#,##0.00 \u{A4};-#,##0.00 \u{A4}", "EEEE d MMMM yyyy", "EEE d MMM yy", "h:mm a"];
+        for (tag, expected) in cases {
+            for alias in [tag.to_string(), tag.replace('_', "-")] {
+                let locale = Locale::from_tag(&alias);
+                assert_eq!(locale.tag, tag);
+                for (i, pattern) in patterns.iter().enumerate() {
+                    let value = if i < 3 { Value::Double(-1234567.5) } else { Value::Date(when) };
+                    assert_eq!(format_value(&value, Some(pattern), locale), expected[i], "{tag} {pattern}");
+                }
+                assert_eq!(format_value(&Value::Date(when), None, locale), expected[6], "{tag} short");
+            }
+        }
+        let january = Value::Date(chrono::NaiveDate::from_ymd_opt(2026, 1, 5).unwrap().and_hms_opt(0, 0, 0).unwrap());
+        assert_eq!(format_value(&january, Some("MMMM MMM"), Locale::from_tag("de_DE")), "Januar Jan.");
+        assert_eq!(format_value(&january, Some("MMMM MMM"), Locale::from_tag("de_AT")), "Jänner Jän.");
+        // Liechtenstein writes numbers as Switzerland does; Luxembourg and Belgium as Germany.
+        assert_eq!(Locale::from_tag("de_LI").tag, "de_CH");
+        assert_eq!(Locale::from_tag("de_LU").tag, "de_DE");
     }
 
     #[test]

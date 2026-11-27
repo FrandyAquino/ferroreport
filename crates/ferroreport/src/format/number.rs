@@ -176,12 +176,17 @@ impl NumberPattern {
         if int_str.is_empty() && frac.is_empty() {
             int_str.push('0');
         }
+        // Java's DecimalFormat takes the monetary separators when the pattern has a `¤` anywhere.
+        let currency = [Some(&self.pos_prefix), Some(&self.pos_suffix), self.neg_prefix.as_ref(), self.neg_suffix.as_ref()]
+            .into_iter()
+            .any(|a| a.is_some_and(|a| a.currency));
+        let grouping = if currency { locale.monetary_grouping_separator() } else { locale.grouping_separator };
         let mut body = String::new();
         if self.grouping > 0 && int_str.len() > self.grouping {
             let first = int_str.len() % self.grouping;
             for (i, c) in int_str.chars().enumerate() {
                 if i > 0 && (i + self.grouping - first) % self.grouping == 0 {
-                    body.push(locale.grouping_separator);
+                    body.push(grouping);
                 }
                 body.push(c);
             }
@@ -189,10 +194,6 @@ impl NumberPattern {
             body.push_str(&int_str);
         }
         if !frac.is_empty() || self.decimal_always_shown {
-            // Java's DecimalFormat takes it when the pattern has a `¤` anywhere.
-            let currency = [Some(&self.pos_prefix), Some(&self.pos_suffix), self.neg_prefix.as_ref(), self.neg_suffix.as_ref()]
-                .into_iter()
-                .any(|a| a.is_some_and(|a| a.currency));
             body.push(if currency { locale.monetary_decimal_separator() } else { locale.decimal_separator });
             body.push_str(&frac);
         }
