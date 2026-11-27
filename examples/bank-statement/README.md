@@ -24,5 +24,4 @@ What it shows:
 
 It renders the same as in JasperReports 7.1.1, pixel for pixel (`tools/compare.py`). The
 expressions that format dates with `SimpleDateFormat` use the Java runtime's time zone, not the
-report's, so run JasperReports with `-Duser.timezone=UTC` when you compare it, as
-`tools/samples.py` does.
+report's; `tools/compare.py` runs JasperReports in UTC, so they match.
