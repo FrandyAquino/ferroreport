@@ -66,6 +66,38 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   printed again in full there, and a band that continues with such elements keeps its top, as
   in JasperReports. JasperReports' `stretch` sample (`StretchReport`) now has 14 pages, as in
   JasperReports 7.1.1, instead of 21; a template of that kind could also run without end.
+- Fonts: JasperReports font extensions are read from resource folders, where JasperReports
+  finds them on its class path. `render` and `check` look for a `jasperreports_extension.properties`
+  at the root of the template's folder and of each `-r` folder, and register the families
+  (`normal`, `bold`, `italic`, `boldItalic`) and font sets of the `fonts.xml` files it names, with
+  their font files; what cannot be read is a warning. In Rust, `Renderer::load_font_extensions`
+  does the same for the renderer's resources. JasperReports' `unicode` sample, which brings its
+  own Noto and Arphic fonts this way, now has its Indic scripts, Tibetan, Khmer and Chinese.
+- Text in a font with a line gap (leading; DejaVu has none) starts lower, as in
+  JasperReports: its first baseline is the gap and the ascent below the top of the text, not
+  the ascent alone. The lines after it keep their spacing.
+- Text: paragraph indents and tab stops (`<paragraph firstLineIndent leftIndent rightIndent
+  tabStopWidth>` and its `<tabStop>`s, in a style or on the element) are laid out as
+  JasperReports lays them out: each line in segments, each tab moving to the next stop (the
+  custom left, center and right stops, then the default ones every `tabStopWidth` points, 40
+  unless set), a segment that does not fit moving to the next line at the first stop, the
+  first line of each paragraph at its indent, and right-aligned and centered lines aligned as
+  a whole by their last segment; justified lines are spread over the room they had. They
+  used to be ignored, and tabs drawn as spaces. A text
+  with tabs and no paragraph settings now has the default stops too. JasperReports'
+  `paragraphs` sample now comes out the same. In 1.x the settings are kept in a hidden
+  report parameter, `ferroreport.text.paragraphs` (`text::PARAGRAPHS`), which `inspect` and
+  the server do not list.
+- Fonts: bold and italic text in a registered family that has no bold or italic face is
+  drawn, as in JasperReports, from the family's regular face with the style simulated in PDF
+  output: bold as outlines stroked as well (a thirtieth of the size wide), italic slanted by
+  iText's angle. It used to be drawn plain.
+- A summary with `splitType="Immediate"` that does not fit the rest of the page starts there,
+  as in JasperReports, when its first element fits, and goes on over the next pages (with the
+  page header and footer only with `isSummaryWithPageHeaderAndFooter`); it used to move whole
+  to a new page. Where a band splits, a text whose own height does not fit above the page's
+  end moves whole to the next page instead of leaving its first lines behind, and a blank
+  element with `isRemoveLineWhenBlank` still removes its line where the band continues.
 - Website: code blocks are in color, by language (shell, JSON, JavaScript, Python, Java, C#, PHP,
   Rust, XML and `.ferro`), with a small script of the site's own (`site/highlight.js`) and
   colors that keep WCAG AA contrast. Comments in the playground's editor are easier to read too.

@@ -1,0 +1,5 @@
+[
+ {"name": "Gap", "note": "A note on one line."},
+ {"name": "Stretch", "note": "A longer note that wraps over two or three lines of the column, so that the field stretches and the next row moves down by its height."},
+ {"name": "Last", "note": "End."}
+]

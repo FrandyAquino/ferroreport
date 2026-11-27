@@ -79,7 +79,9 @@ RENDER OPTIONS:
         --font-fallback         Draw characters a text's font lacks in another font that has
                                 them: the --font families, then DejaVu Sans, Serif, Sans Mono
     -r, --resources <dir>       Extra directory for images and other resources (repeatable;
-                                the template's own directory is always searched)
+                                the template's own directory is always searched). A JasperReports
+                                font extension at its root (jasperreports_extension.properties)
+                                is read, as from JasperReports' class path
         --now <YYYY-MM-DDTHH:MM:SS>
                                 Fixed value for `new Date()`
     -q, --quiet                 Do not print timing information
@@ -555,6 +557,7 @@ fn migrate(args: &[String]) -> CliResult {
         for r in &resources {
             renderer = renderer.resource_dir(r);
         }
+        let font_problems = renderer.load_font_extensions();
         let mut renderer =
             renderer.limits(ferroreport::Limits { max_pages: Some(50), timeout: Some(std::time::Duration::from_secs(10)) });
         let mut checked = Checked {
@@ -574,6 +577,7 @@ fn migrate(args: &[String]) -> CliResult {
             Ok(report) => {
                 checked.name = report.name.clone();
                 checked.warnings = report.warnings.clone();
+                checked.warnings.extend(font_problems);
                 let bands = [
                     &report.background,
                     &report.title,
@@ -930,6 +934,10 @@ fn render(args: &[String]) -> CliResult {
     }
     for dir in &resources {
         renderer = renderer.resource_dir(dir);
+    }
+    // Font extensions in the resource folders, as JasperReports finds them on its class path.
+    for problem in renderer.load_font_extensions() {
+        eprintln!("warning: {problem}");
     }
     if let Some(url) = &db {
         renderer = renderer.connection(Some(connect_db(url)?));
@@ -1302,8 +1310,12 @@ fn doctor(args: &[String]) -> CliResult {
     );
     println!(
         "  {} parameters, {} fields, {} variables, {} groups",
-        // The template's own parameters, not the one its hyphenation property stands for.
-        report.parameters.iter().filter(|p| p.name != ferroreport::text::HYPHENATE).count(),
+        // The template's own parameters, not the hidden ones ferroreport keeps settings in.
+        report
+            .parameters
+            .iter()
+            .filter(|p| p.name != ferroreport::text::HYPHENATE && p.name != ferroreport::text::PARAGRAPHS)
+            .count(),
         report.fields.len(),
         report.variables.len(),
         report.groups.len()

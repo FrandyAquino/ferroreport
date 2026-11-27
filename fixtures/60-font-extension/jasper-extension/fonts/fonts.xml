@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A font extension of the fixture: ferroreport reads it from the resource folder, as
+     JasperReports reads it from its class path. The fonts are DejaVu Sans Condensed, cut down
+     to Latin-1 (see LICENSE-DejaVu). -->
+<fontFamilies>
+	<fontFamily name="Fixture Condensed">
+		<normal>fonts/DejaVuSansCondensed-Latin.ttf</normal>
+		<bold><ttf>fonts/DejaVuSansCondensed-Bold-Latin.ttf</ttf></bold>
+		<pdfEncoding>Identity-H</pdfEncoding>
+		<pdfEmbedded>true</pdfEmbedded>
+	</fontFamily>
+	<fontSet name="Fixture Set">
+		<family familyName="Fixture Condensed" primary="true"/>
+		<family familyName="DejaVu Serif"/>
+	</fontSet>
+</fontFamilies>

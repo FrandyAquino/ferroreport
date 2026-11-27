@@ -1025,6 +1025,14 @@ ferroreport.render_to_file("sales.jrxml", "sales.pdf", rows)</pre>
         así que las plantillas que las usan coinciden exactamente con JasperReports. Una familia que el motor no tiene se reemplaza por una de las incluidas.</p>
       <p>Agrega tus propias fuentes TrueType u OpenType con <code>--font</code> en la línea de comandos o <code>register_font</code> en Rust. Los
         paquetes de JavaScript y Python usan por ahora las familias incluidas.</p>
+      <p>Una extensión de fuentes de JasperReports se lee donde JasperReports la encontraría en su class path: en una carpeta de recursos
+        (la de la plantilla o una dada con <code>-r</code>) con un <code>jasperreports_extension.properties</code> en su raíz.
+        <code>render</code> y <code>check</code> registran las familias y los conjuntos de fuentes de los <code>fonts.xml</code> que nombra
+        (<code>net.sf.jasperreports.extension.simple.font.families.*</code>), con los archivos de fuente en las rutas que da la extensión,
+        y avisan de los que no pueden leer; en Rust, <code>load_font_extensions</code> lo hace con los recursos del renderer. Las extensiones
+        dentro de jars no se leen: descomprime el jar en una carpeta.</p>
+      <p>El texto en negrita o cursiva de una familia que no tiene cara para ese estilo se dibuja con su cara normal, y el PDF simula el
+        estilo como lo hace JasperReports: la negrita trazando también los contornos, la cursiva inclinando el texto.</p>
       <p>Un carácter que la fuente del texto no tiene se deja fuera del PDF, como lo deja fuera JasperReports (cuando se mide el texto
         para calcular su altura igual cuenta tan ancho como la caja de glifo faltante de la fuente, como en JasperReports). Para dibujarlo con otra fuente, usa un
         conjunto de fuentes o las fuentes de reemplazo:</p>
@@ -1128,7 +1136,7 @@ invoice.jrxml: report `invoice`
         las plantillas que suben tus usuarios.</p>
 
       <h2 id="support">Qué está soportado</h2>
-      <p>Bandas y saltos de página, grupos y variables, frames, imágenes, subreportes, tablas (<code>jr:table</code>), listas (<code>jr:list</code>), crosstabs, todos los tipos de gráfico de JasperReports, códigos de barras (QR, DataMatrix, PDF417, Code 128, EAN-128, Code 39, EAN-13, EAN-8, UPC-A, UPC-E, Interleaved 2 of 5, Codabar, POSTNET, Royal Mail, USPS Intelligent Mail, y todos los tipos del componente Barbecue menos PostNet), enlaces, anclas y marcadores, campos de formulario PDF, icon labels, texto con estilos, HTML y RTF,
+      <p>Bandas y saltos de página, grupos y variables, frames, imágenes, subreportes, tablas (<code>jr:table</code>), listas (<code>jr:list</code>), crosstabs, todos los tipos de gráfico de JasperReports, códigos de barras (QR, DataMatrix, PDF417, Code 128, EAN-128, Code 39, EAN-13, EAN-8, UPC-A, UPC-E, Interleaved 2 of 5, Codabar, POSTNET, Royal Mail, USPS Intelligent Mail, y todos los tipos del componente Barbecue menos PostNet), enlaces, anclas y marcadores, campos de formulario PDF, icon labels, texto con estilos, HTML y RTF, sangrías de párrafo y tabulaciones,
         rotación, varias columnas en cualquiera de los dos órdenes de impresión, estilos condicionales y plantillas de estilos, imágenes PNG, JPEG, GIF y SVG (también RealHeight y RealSize), datos de JSON o de bases de datos SQL, expresiones Groovy y la librería de funciones de JasperReports, desde plantillas JRXML 6, JRXML 7 o
         <code>.ferro</code>, exportado a PDF (etiquetado, PDF/UA-1; PDF/A-2 y PDF/A-3 con adjuntos; cifrado; firmado), Excel, Word, PowerPoint, OpenDocument (ODS, ODT), CSV o HTML. La
         <a href="https://github.com/cristianEncarnacion/ferroreport#compatibility">tabla de compatibilidad</a> del repositorio (en inglés) lista cada

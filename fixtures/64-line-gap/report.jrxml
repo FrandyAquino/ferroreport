@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" name="line-gap" pageWidth="595" pageHeight="842" columnWidth="515" leftMargin="40" rightMargin="40" topMargin="40" bottomMargin="40">
+	<!-- "Fixture Gap" (jasper-extension/) has a line gap: JasperReports puts the first baseline
+	     of a text the gap and the ascent below its top, in plain and styled text, whatever the
+	     alignment and the line spacing. -->
+	<style name="Base" isDefault="true" fontName="Fixture Gap" fontSize="16"/>
+	<field name="name" class="java.lang.String"/>
+	<field name="note" class="java.lang.String"/>
+	<title>
+		<band height="250">
+			<staticText>
+				<reportElement x="0" y="0" width="250" height="110"/>
+				<box padding="4"><pen lineWidth="0.5"/></box>
+				<text><![CDATA[Plain text, top aligned,
+over three lines
+with a line gap.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="265" y="0" width="250" height="110"/>
+				<box padding="4"><pen lineWidth="0.5"/></box>
+				<textElement markup="styled"/>
+				<text><![CDATA[Styled text, <style size="22">larger</style> and
+<style fontName="DejaVu Sans" size="10">DejaVu Sans, which has no gap</style>,
+and <style isItalic="true">the gap again</style>.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="125" width="250" height="110"/>
+				<box padding="4"><pen lineWidth="0.5"/></box>
+				<textElement textAlignment="Right" verticalAlignment="Bottom">
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<text><![CDATA[Right aligned at the bottom,
+with one and a half spacing]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="265" y="125" width="250" height="110"/>
+				<box padding="4"><pen lineWidth="0.5"/></box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="styled">
+					<paragraph lineSpacing="Proportional" lineSpacingSize="1.2"/>
+				</textElement>
+				<text><![CDATA[Centered in the middle,
+<style isBold="true">styled</style>, proportional 1.2]]></text>
+			</staticText>
+		</band>
+	</title>
+	<detail>
+		<band height="24" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="0" width="150" height="24"/>
+				<textFieldExpression><![CDATA[$F{name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement x="150" y="0" width="365" height="24"/>
+				<textElement><font size="12"/></textElement>
+				<textFieldExpression><![CDATA[$F{note}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

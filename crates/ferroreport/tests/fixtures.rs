@@ -90,6 +90,13 @@ fn fixtures_render_with_expected_page_counts() {
             serde_json::from_str(&if p.exists() { std::fs::read_to_string(p).unwrap() } else { default.to_string() }).unwrap()
         };
         let mut renderer = ferroreport::Renderer::new().resource_dir(&dir);
+        // A fixture's JasperReports font extension, which the reference run has on its class path.
+        let extension = dir.join("jasper-extension");
+        if extension.is_dir() {
+            renderer = renderer.resource_dir(&extension);
+            let problems = renderer.load_font_extensions();
+            assert!(problems.is_empty(), "{}: {problems:?}", dir.display());
+        }
         register_fonts(&mut renderer, &dir);
         let report = renderer.parse(&template).unwrap();
         assert!(!report.warnings.iter().any(|w| w.contains("style template")), "{}: {:?}", dir.display(), report.warnings);

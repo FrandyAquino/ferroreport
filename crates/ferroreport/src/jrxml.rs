@@ -251,6 +251,11 @@ struct StyleProps {
     valign: Option<VAlign>,
     line_spacing: Option<String>,
     line_spacing_size: Option<f32>,
+    first_line_indent: Option<i32>,
+    left_indent: Option<i32>,
+    right_indent: Option<i32>,
+    tab_stop_width: Option<i32>,
+    tab_stops: Option<Vec<crate::paragraph::TabStop>>,
     pattern: Option<String>,
     blank_when_null: Option<bool>,
     radius: Option<f32>,
@@ -285,6 +290,11 @@ impl StyleProps {
             valign,
             line_spacing,
             line_spacing_size,
+            first_line_indent,
+            left_indent,
+            right_indent,
+            tab_stop_width,
+            tab_stops,
             pattern,
             blank_when_null,
             radius
@@ -366,6 +376,39 @@ impl StyleProps {
         if let Some(v) = p.attr("lineSpacingSize").and_then(number) {
             self.line_spacing_size = Some(v);
         }
+        // Whole points, as JasperReports reads them.
+        let int = |name: &str| p.attr(name).and_then(number::<f32>).filter(|v| v.is_finite()).map(|v| v.clamp(-1e6, 1e6) as i32);
+        self.first_line_indent = int("firstLineIndent").or(self.first_line_indent);
+        self.left_indent = int("leftIndent").or(self.left_indent);
+        self.right_indent = int("rightIndent").or(self.right_indent);
+        self.tab_stop_width = int("tabStopWidth").or(self.tab_stop_width);
+        let stops: Vec<crate::paragraph::TabStop> = p
+            .children_named("tabStop")
+            .filter_map(|t| {
+                let position = t.attr("position").and_then(number::<f32>).filter(|v| v.is_finite())?.clamp(-1e6, 1e6) as i32;
+                let align = match t.attr("alignment") {
+                    Some("Center") => crate::paragraph::TabAlign::Center,
+                    Some("Right") => crate::paragraph::TabAlign::Right,
+                    _ => crate::paragraph::TabAlign::Left,
+                };
+                Some(crate::paragraph::TabStop { position, align })
+            })
+            .collect();
+        if !stops.is_empty() {
+            self.tab_stops = Some(stops);
+        }
+    }
+
+    /// The paragraph settings that change how a text is laid out across its width.
+    fn paragraph(&self) -> crate::paragraph::Paragraph {
+        let d = crate::paragraph::Paragraph::default();
+        crate::paragraph::Paragraph {
+            first_line_indent: self.first_line_indent.unwrap_or(d.first_line_indent),
+            left_indent: self.left_indent.unwrap_or(d.left_indent),
+            right_indent: self.right_indent.unwrap_or(d.right_indent),
+            tab_stop_width: self.tab_stop_width.filter(|w| *w > 0).unwrap_or(d.tab_stop_width),
+            tab_stops: self.tab_stops.clone().unwrap_or_default(),
+        }
     }
 
     /// Properties declared directly by a `<style>` element.
@@ -444,6 +487,9 @@ struct Parser {
     /// How charts are drawn (`net.sf.jasperreports.chart.render.type`), from the report's
     /// properties or a `jasperreports.properties` among the resources.
     chart_render_type: Option<String>,
+    /// Paragraph settings of the text elements that have any, by fingerprint (see
+    /// [`crate::paragraph`]).
+    paragraphs: Vec<(u64, crate::paragraph::Paragraph)>,
     /// The application's own classes that parameters, fields and variables are declared with
     /// (simple names): their static fields are taken as enum constants, see [`enum_constants`].
     own_classes: Vec<String>,
@@ -582,6 +628,7 @@ impl Parser {
                 })
                 .collect(),
             chart_render_type: None,
+            paragraphs: Vec::new(),
             own_classes: own_classes(root),
         };
         const RENDER_TYPE: &str = "net.sf.jasperreports.chart.render.type";
@@ -772,6 +819,16 @@ impl Parser {
         };
 
         let mut report = report;
+        // Paragraph settings have no place in the model in 1.x: they go in a hidden parameter.
+        if !self.paragraphs.is_empty() {
+            let table: serde_json::Map<String, serde_json::Value> =
+                self.paragraphs.iter().map(|(key, p)| (format!("{key:016x}"), p.to_json())).collect();
+            report.parameters.push(Parameter {
+                name: crate::text::PARAGRAPHS.to_string(),
+                class: JavaType::Object,
+                default: Some(Expr::Lit(crate::value::Value::Json(std::sync::Arc::new(serde_json::Value::Object(table))))),
+            });
+        }
         let mut datasets: Vec<Dataset> = self.datasets.drain().map(|(_, d)| d).collect();
         datasets.sort_by(|a, b| a.name.cmp(&b.name));
         report.datasets = datasets;
@@ -2077,15 +2134,14 @@ impl Parser {
                         self.warnings.push(warning);
                     }
                 }
-                ElementKind::Text(TextElement {
-                    content,
-                    style,
-                    boxed: props.box_style(forecolor),
-                    stretch,
-                    markup,
-                    truncate,
-                    field,
-                })
+                let te = TextElement { content, style, boxed: props.box_style(forecolor), stretch, markup, truncate, field };
+                let paragraph = props.paragraph();
+                if !paragraph.is_default() {
+                    let key = crate::paragraph::fingerprint(&te);
+                    self.paragraphs.retain(|(k, _)| *k != key);
+                    self.paragraphs.push((key, paragraph));
+                }
+                ElementKind::Text(te)
             }
             "line" => ElementKind::Line {
                 direction: if n.attr("direction") == Some("BottomUp") { LineDirection::BottomUp } else { LineDirection::TopDown },

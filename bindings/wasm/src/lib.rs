@@ -150,7 +150,7 @@ pub fn inspect(template: &str) -> Result<JsValue, JsError> {
     let report = ferroreport::parse(template).map_err(js_err)?;
     let out = serde_json::json!({
         "name": report.name,
-        "parameters": report.parameters.iter().filter(|p| p.name != ferroreport::text::HYPHENATE).map(|p| p.name.clone()).collect::<Vec<_>>(),
+        "parameters": report.parameters.iter().filter(|p| p.name != ferroreport::text::HYPHENATE && p.name != ferroreport::text::PARAGRAPHS).map(|p| p.name.clone()).collect::<Vec<_>>(),
         "fields": report.fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>(),
         "warnings": report.warnings,
     });

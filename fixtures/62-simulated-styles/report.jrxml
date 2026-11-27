@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" name="simulated-styles" whenNoDataType="AllSectionsNoDetail" pageWidth="595" pageHeight="842" columnWidth="515" leftMargin="40" rightMargin="40" topMargin="40" bottomMargin="40">
+	<!-- "Fixture Plain" (jasper-extension/) has a regular face only: bold and italic text in it
+	     is drawn from that face, the bold stroked and the italic slanted, as JasperReports
+	     (iText) simulates them. -->
+	<style name="Base" isDefault="true" fontName="Fixture Plain" fontSize="14"/>
+	<title>
+		<band height="330">
+			<staticText>
+				<reportElement x="0" y="0" width="515" height="24"/>
+				<text><![CDATA[Regular: the face the family has.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="30" width="515" height="24"/>
+				<textElement><font isBold="true"/></textElement>
+				<text><![CDATA[Bold: the regular face, stroked.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="60" width="515" height="24"/>
+				<textElement><font isItalic="true"/></textElement>
+				<text><![CDATA[Italic: the regular face, slanted.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="90" width="515" height="24"/>
+				<textElement><font size="18" isBold="true" isItalic="true" isUnderline="true"/></textElement>
+				<text><![CDATA[Bold italic underlined, both simulated]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="125" width="250" height="90"/>
+				<box padding="4"><pen lineWidth="0.5"/></box>
+				<textElement textAlignment="Justified"><font size="11" isBold="true"/></textElement>
+				<text><![CDATA[A bold paragraph that wraps over several lines and is justified, so each word is moved by the extra spacing while the outlines are stroked.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="265" y="125" width="250" height="90"/>
+				<box padding="4"><pen lineWidth="0.5"/></box>
+				<textElement textAlignment="Right"><font size="11" isItalic="true"/></textElement>
+				<text><![CDATA[An italic paragraph, right aligned,
+with a second line of its own.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="225" width="515" height="40"/>
+				<textElement markup="styled"><font size="12"/></textElement>
+				<text><![CDATA[Styled text: <style isBold="true">bold</style>, <style isItalic="true">italic</style>, <style isBold="true" isItalic="true" forecolor="#AA0000">both, in red</style> and regular again.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="275" width="515" height="30" forecolor="#FFFFFF" backcolor="#336699"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle"><font size="16" isBold="true"/></textElement>
+				<text><![CDATA[White bold on blue]]></text>
+			</staticText>
+		</band>
+	</title>
+</jasperReport>

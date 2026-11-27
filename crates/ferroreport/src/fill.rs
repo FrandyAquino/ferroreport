@@ -509,6 +509,20 @@ fn freeze(el: &Element, text: Option<String>) -> Element {
     e
 }
 
+/// [`freeze`], keeping the paragraph settings of a text (see [`crate::paragraph`]).
+fn frozen(fonts: &mut FontSet, el: &Element, text: Option<String>) -> Element {
+    let e = freeze(el, text);
+    carry_paragraph(fonts, el, &e);
+    e
+}
+
+/// `to`, the rest of the text `from` on the next page, keeps its paragraph settings.
+fn carry_paragraph(fonts: &mut FontSet, from: &Element, to: &Element) {
+    if let (ElementKind::Text(a), ElementKind::Text(b)) = (&from.kind, &to.kind) {
+        fonts.carry_paragraph(a, b);
+    }
+}
+
 /// Moves elements up so the first one starts at the top; returns the offset removed.
 fn move_to_top(elements: &mut [Element]) -> f32 {
     let first = elements.iter().map(|e| e.y).fold(f32::INFINITY, f32::min);
@@ -813,7 +827,7 @@ fn printed_text(
     let te = match text_form(fonts, te, color, text) {
         TextForm::Plain(te) => te,
         TextForm::Styled(st) => {
-            let (k, total, rest) = crate::rich::lines_that_fit(&st, fonts, cw, te.style.line_spacing, ch);
+            let (k, total, rest) = crate::rich::lines_that_fit_in(&st, fonts, te, w, ch);
             let mut out = st.text;
             if k < total {
                 out.truncate(rest);
@@ -992,6 +1006,13 @@ fn text_form<'a>(fonts: &mut FontSet, te: &'a TextElement, color: Color, text: &
         st.resolve_fonts(fonts);
         return TextForm::Styled(st);
     }
+    if text.contains('\t') || fonts.paragraph(te).is_some() {
+        // Tab stops and indents are laid out by the styled text engine, a run of one style.
+        let text = text.replace("\r\n", "\n").replace('\r', "\n");
+        let mut st = crate::rich::StyledText::plain(&text, &run_style(te, color));
+        st.resolve_fonts(fonts);
+        return TextForm::Styled(st);
+    }
     let normalized = crate::text::normalize(text);
     match fonts.fallback_runs(&te.style.font, &normalized) {
         None => TextForm::Plain(std::borrow::Cow::Borrowed(te)),
@@ -1066,6 +1087,9 @@ fn plain_text_item(
     // Justified lines spread the leftover width over their spaces. The last line of a
     // paragraph keeps the spacing of the line before it (JasperReports 6 behaviour).
     let face_ref = fonts.face(face_id);
+    // JasperReports puts the first baseline the font's line gap (leading) and its ascent below
+    // the top.
+    let leading = face_ref.line_gap * size / face_ref.units_per_em;
     let normalized = crate::text::normalize(&rendered_text);
     let starts: Vec<usize> = lines.iter().map(|l| l.start).collect();
     let print_lines_next_start = |_: &str, k: usize| starts.get(k + 1).copied();
@@ -1117,7 +1141,7 @@ fn plain_text_item(
         };
         print_lines.push(PrintLine {
             x: lx,
-            baseline: cy + voff + vm.ascent + advance * k as f32,
+            baseline: cy + voff + leading + vm.ascent + advance * k as f32,
             width,
             word_spacing,
             text: l.text,
@@ -1589,6 +1613,12 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
     for (i, el) in elements.iter().enumerate() {
         let m = &mut measured[i];
         if !m.visible {
+            // A blank element that removes its line still does where the band continues.
+            if el.remove_line_when_blank && m.blank && limit.is_some_and(|a| new_y[i] >= a - 1e-3) {
+                let mut blank = freeze(el, None);
+                blank.print_when = Some(Expr::Lit(Value::Bool(false)));
+                rest.push(blank);
+            }
             continue;
         }
         let mut h = m.new_h;
@@ -1608,7 +1638,7 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
         if let Some(a) = limit {
             if y >= a - 1e-3 {
                 // Entirely below the cut: continues on the next page.
-                rest.push(freeze(el, m.text.take()));
+                rest.push(frozen(le.fonts, el, m.text.take()));
                 continue;
             }
             // Whether the element continues on the next page (a frame's children that did not
@@ -1616,6 +1646,12 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
             let continued = rest.len();
             if y + h > a + 1e-3 {
                 match &el.kind {
+                    // A text whose own height does not fit moves whole to the next page, as in
+                    // JasperReports; only one that fits and then stretches past the cut splits.
+                    ElementKind::Text(_) if y + el.height > a + 1e-3 => {
+                        rest.push(frozen(le.fonts, el, m.text.take()));
+                        continue;
+                    }
                     ElementKind::Text(te) if te.stretch && m.text.is_some() => {
                         let text = m.text.take().unwrap_or_default();
                         let p = te.boxed.padding;
@@ -1625,8 +1661,7 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
                             TextForm::Styled(st) if te.markup != crate::rich::Markup::None => {
                                 // Styled text continues on the next page as styled markup.
                                 let base = run_style(te, el.forecolor);
-                                let (k, total, rest_at) =
-                                    crate::rich::lines_that_fit(&st, le.fonts, cw, te.style.line_spacing, room);
+                                let (k, total, rest_at) = crate::rich::lines_that_fit_in(&st, le.fonts, te, w, room);
                                 let raw = crate::rich::parse(&text, &base, te.markup);
                                 let styled = |s: String| {
                                     let mut e = freeze(el, Some(s));
@@ -1644,8 +1679,7 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
                             }
                             TextForm::Styled(st) => {
                                 // Plain text in more than one font continues as plain text.
-                                let (k, total, rest_at) =
-                                    crate::rich::lines_that_fit(&st, le.fonts, cw, te.style.line_spacing, room);
+                                let (k, total, rest_at) = crate::rich::lines_that_fit_in(&st, le.fonts, te, w, room);
                                 let cont = match k {
                                     0 => Some(freeze(el, Some(text.clone()))),
                                     k if k < total => Some(freeze(el, Some(st.text[rest_at..].to_string()))),
@@ -1668,6 +1702,9 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
                                 (k, cont)
                             }
                         };
+                        if let Some(c) = &cont {
+                            carry_paragraph(le.fonts, el, c);
+                        }
                         rest.extend(cont);
                         if k == 0 {
                             continue;
@@ -1757,7 +1794,7 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
                     // Elements stretching with their container end at the cut.
                     _ if el.stretch_type != StretchType::NoStretch => h = a - y,
                     _ => {
-                        rest.push(freeze(el, m.text.take()));
+                        rest.push(frozen(le.fonts, el, m.text.take()));
                         continue;
                     }
                 }
@@ -1766,7 +1803,7 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
             // band continues; one that continues there is not printed twice (JasperReports
             // reprints only what is already printed whole: JRFillFrame, JRFillTextField.prepare).
             if el.print_when_detail_overflows && rest.len() == continued {
-                reprint.push(freeze(el, m.text.clone()));
+                reprint.push(frozen(le.fonts, el, m.text.clone()));
             }
         }
         if let Some(link) = &el.link {
@@ -4264,9 +4301,18 @@ impl<'a> Filler<'a> {
             Some(summary) => {
                 let layout = self.layout(summary, Values::Committed)?;
                 let h = layout.as_ref().map(|l| l.height).unwrap_or(0.0);
-                // Like JasperReports, a summary that would start beside a column other than the
-                // first goes to a new page.
-                if r.summary_new_page || self.column > 0 || self.offset_y + h > self.body_limit() + 1e-3 {
+                // A summary with splitType="Immediate" starts on this page when its first
+                // element fits (JasperReports' break height), and goes on over the next pages.
+                let break_height = summary.elements.iter().map(|e| e.y + e.height).fold(summary.height, f32::min);
+                let splits_here = summary.split_type == SplitType::Immediate
+                    && layout.is_some()
+                    && !r.summary_new_page
+                    && self.column == 0
+                    && self.offset_y + h > self.body_limit() + 1e-3
+                    && self.offset_y + break_height <= self.body_limit() + 1e-3;
+                if splits_here {
+                    self.split_summary(summary)?;
+                } else if r.summary_new_page || self.column > 0 || self.offset_y + h > self.body_limit() + 1e-3 {
                     self.page_footers(false, Values::Committed)?;
                     self.new_page()?;
                     if r.summary_with_page_header_and_footer {
@@ -4295,6 +4341,68 @@ impl<'a> Filler<'a> {
         }
         self.resolve_pending(|_| true, Values::Committed)
     }
+
+    /// Prints a summary that does not fit the rest of the page and may split there, as
+    /// JasperReports does (`fillSummaryNoLastFooterSamePage`): what fits on this page, which
+    /// keeps its page footer, then the rest on new pages, which have the page header and
+    /// footer only with `isSummaryWithPageHeaderAndFooter`.
+    fn split_summary(&mut self, summary: &Band) -> Result<()> {
+        let r = self.report;
+        let mode = Values::Committed;
+        let mut elements = summary.elements.clone();
+        let mut design_h = summary.height;
+        let mut first = true;
+        loop {
+            let limit = if first {
+                self.body_limit()
+            } else {
+                let pf =
+                    if r.summary_with_page_header_and_footer { r.page_footer.as_ref().map_or(0.0, |b| b.height) } else { 0.0 };
+                r.page_height - r.margins.bottom - pf
+            };
+            let space = limit - self.offset_y;
+            let full = self.layout_elems(&elements, design_h, mode, None)?;
+            if full.height <= space + 1e-3 {
+                let (y, h) = (self.offset_y, full.height);
+                self.emit(full, y);
+                self.offset_y += h;
+                self.page_has_content = true;
+                break;
+            }
+            let part = self.layout_elems(&elements, design_h, mode, Some(space))?;
+            let rest = part.rest.clone().unwrap_or_default();
+            if part.items.is_empty() && !self.page_has_content {
+                // Nothing fits even on an empty page: print it whole rather than loop forever.
+                let (y, h) = (self.offset_y, full.height);
+                self.emit(full, y);
+                self.offset_y += h;
+                break;
+            }
+            let y = self.offset_y;
+            self.emit(part, y);
+            self.page_has_content = true;
+            if first || r.summary_with_page_header_and_footer {
+                self.page_footers(false, mode)?;
+            }
+            self.new_page()?;
+            if r.summary_with_page_header_and_footer {
+                self.page_headers()?;
+            } else {
+                self.footers_done = true;
+            }
+            first = false;
+            if rest.is_empty() {
+                break;
+            }
+            elements = rest;
+            let moved = move_to_top(&mut elements);
+            design_h = (design_h - moved).max(0.0);
+        }
+        if first || r.summary_with_page_header_and_footer {
+            self.page_footers(true, mode)?;
+        }
+        Ok(())
+    }
 }
 
 /// Fills `report` with `records` and `params` into a print document.
@@ -4307,6 +4415,7 @@ pub fn fill(
     env: &EvalEnv,
 ) -> Result<PrintDocument> {
     images.runs = 0;
+    fonts.clear_paragraphs();
     images.skip_cells = false;
     images.deadline = None;
     let mut filler = new_filler(report, Rows::from_slice(records, report), params, fonts, images, env)?;
@@ -4325,6 +4434,7 @@ pub fn fill_slice(
     limits: Limits,
 ) -> Result<PrintDocument> {
     images.runs = 0;
+    fonts.clear_paragraphs();
     images.skip_cells = false;
     images.deadline = limits.deadline();
     let mut filler = new_filler(report, Rows::from_slice(records, report), params, fonts, images, env)?;
@@ -4344,6 +4454,7 @@ pub fn fill_rows(
     limits: Limits,
 ) -> Result<PrintDocument> {
     images.runs = 0;
+    fonts.clear_paragraphs();
     images.skip_cells = false;
     images.deadline = limits.deadline();
     let mut filler = new_filler(report, Rows::new(rows, report), params, fonts, images, env)?;
@@ -4366,6 +4477,7 @@ pub fn fill_to(
     sink: &mut dyn PageSink,
 ) -> Result<FillStats> {
     images.runs = 0;
+    fonts.clear_paragraphs();
     images.skip_cells = !sink.wants_cells();
     images.deadline = limits.deadline();
     let mut filler = new_filler(report, Rows::new(rows, report), params, fonts, images, env)?;
@@ -4557,6 +4669,7 @@ fn new_filler<'a>(
         params.insert(p.name.clone(), v);
     }
     fonts.set_hyphenation(params.get(crate::text::HYPHENATE));
+    fonts.add_paragraphs(params.get(crate::text::PARAGRAPHS));
 
     let committed = vec![VarState::default(); defs.len()];
     Ok(Filler {
