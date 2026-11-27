@@ -4,7 +4,13 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 [semantic versioning](https://semver.org); what that covers is in the README under
 [Stability](README.md#stability).
 
-## Unreleased
+## 1.3.0
+
+Paragraph indents and tab stops, JasperReports font extensions, simulated bold and italic, a
+migration guide and a comparison page, the website and documentation in Spanish, and more of
+JasperReports' own samples coming out the same: 74 of the 101 that can be compared against
+7.1.1 (73 in 1.2) and 41 of 88 against 6.20.6 (34 in 1.2). No sample came out worse than in
+1.2, and the Rust API keeps 1.2's shape (`cargo semver-checks` against 1.2.0).
 
 - Website: a guide to migrating from JasperReports (`migrate.html`, in English and Spanish):
   checking a folder with `ferroreport migrate --jasper`, what to do with scriptlets, Java
