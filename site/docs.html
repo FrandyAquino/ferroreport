@@ -139,6 +139,20 @@ curl -X POST localhost:8080/render/invoice -H 'Content-Type: application/json' \
         <tr><td><code>List</code>, <code>Collection</code></td><td>A nested array, usually the rows of a subreport</td></tr>
       </table>
       <p>Reports without a data source can omit the data. A template's SQL query runs on the database given with <code>--db</code> (see <a href="#database">Rows from a database</a>); without it, send the rows.</p>
+      <p>Rows from the libraries you read data with go in as they come, or with one call to make them plain values:</p>
+<pre data-lang="python"># pandas: hand over the DataFrame as JSON text. to_json writes NaN as null and dates as
+# ISO-8601; to_dict("records") would keep NaN, which is not valid JSON.
+pdf = ferroreport.render("orders.jrxml", df.to_json(orient="records", date_format="iso"))
+
+# Polars: to_dicts() gives plain Python values (None for nulls, datetime.date for dates)
+pdf = ferroreport.render("orders.jrxml", df.to_dicts())
+
+# SQLAlchemy: rows as dicts; a generator is read one row at a time
+from sqlalchemy import text
+
+with engine.connect() as conn:
+    result = conn.execute(text("select id, customer, placed, total from orders order by id"))
+    pdf = ferroreport.render("orders.jrxml", (dict(row) for row in result.mappings()))</pre>
 
       <h3>Parameters</h3>
       <p>A JSON object with one key per <code>&lt;parameter&gt;</code>, converted with the same rules. Parameters you leave out take
@@ -401,8 +415,12 @@ ferroreport render invoice.jrxml -d rows.json \
         and by ferroreport, from the same rows: <code>&lt;name&gt;.json</code> or <code>data.json</code> next to the template, and
         parameters from <code>&lt;name&gt;.params.json</code> or <code>params.json</code> (locale en_US, time zone UTC in both). For each
         it reports the pages of each, whether every text and number is the same and in the same place (their CSV exports, compared line
-        by line), and how long each took to fill and write the PDF. <code>--keep compared/</code> keeps both PDFs and both CSVs of every
-        template, to look at side by side. Images, styles and subreports are read from the template's folder; nothing is written there.</p>
+        by line), whether every page is the same picture, and how long each took to fill and write the PDF. The pictures are compared
+        when <code>pdftoppm</code> (poppler) is on the PATH, as <code>tools/compare.py</code> compares them: at 100 DPI in gray, a page
+        differs when more than 0.15% of its ink does; the worst page's share is given (and in the report, as <code>worstPage</code> and
+        <code>worstPageDiff</code>). Without <code>pdftoppm</code> they are not compared, and the report says so. <code>--keep compared/</code>
+        keeps both PDFs and both CSVs of every template, and the diff picture of every page that differs (red: only JasperReports, blue:
+        only ferroreport), to look at side by side. Images, styles and subreports are read from the template's folder; nothing is written there.</p>
       <p>Over this project's own test templates, with JasperReports 6.20.6:</p>
 <pre data-lang="console">$ ferroreport migrate fixtures/ --jasper jasperreports-6.20.6/lib --keep compared/
 ✓ fixtures/02-invoice/report.jrxml (JRXML 6)

@@ -61,7 +61,8 @@ mitad del tamaño de un JRXML y accesible por defecto. Frente al propio JasperRe
   de una carpeta (si carga, qué usa, qué no está soportado aún, si se renderiza), escribe el
   resultado en Markdown o JSON y, si lo pides, las plantillas convertidas. Si le das los jars
   de JasperReports (`--jasper lib/`), renderiza cada plantilla con los dos motores y los mismos
-  datos, y compara páginas, cada texto y número, y tiempos. La
+  datos, y compara páginas, cada texto y número, los píxeles de cada página (con `pdftoppm` en
+  el PATH) y tiempos. La
   [guía de migración](https://cristianencarnacion.github.io/ferroreport/es/migrate.html) lleva un
   proyecto de JasperReports paso a paso: scriptlets, archivos `.jasper`, la llamada en Java,
   fuentes de datos y exportaciones.
@@ -193,6 +194,24 @@ PostgreSQL, MySQL y MariaDB, SQL Server y SQLite; la URL puede ser la JDBC que y
 proyecto. La contraseña va en `FERROREPORT_DB_PASSWORD`, no en la URL, y conviene un usuario
 de solo lectura. En `serve --db`, solo las plantillas de `--templates` usan la base; una
 plantilla enviada en la petición nunca la recibe.
+
+En Python, las filas de las librerías con las que lees los datos entran así:
+
+```python
+# pandas: pasa el DataFrame como texto JSON. to_json escribe NaN como null y las fechas en
+# ISO-8601; to_dict("records") dejaría NaN, que no es JSON válido.
+pdf = ferroreport.render("orders.jrxml", df.to_json(orient="records", date_format="iso"))
+
+# Polars: to_dicts() da valores de Python (None para nulos, datetime.date para fechas)
+pdf = ferroreport.render("orders.jrxml", df.to_dicts())
+
+# SQLAlchemy: filas como dicts; un generador se lee fila por fila
+from sqlalchemy import text
+
+with engine.connect() as conn:
+    result = conn.execute(text("select id, customer, placed, total from orders order by id"))
+    pdf = ferroreport.render("orders.jrxml", (dict(row) for row in result.mappings()))
+```
 
 ## Plantillas: JRXML o .ferro
 
