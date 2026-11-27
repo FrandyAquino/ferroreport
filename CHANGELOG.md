@@ -6,6 +6,10 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 
 ## Unreleased
 
+- JasperReports' own samples measured again (`docs/samples*.json`, README): 76 of the 101
+  comparable 7.1.1 templates come out the same (74 before) and 42 of the 88 6.20.6 ones (41
+  before); the subreport MasterReport sample is the same in both, and the 7.1.1 thermometer
+  sample too, so 21 of the 24 7.1.1 chart samples are.
 - Thermometer charts are drawn as JasperReports 7 draws them (JFreeChart's `ThermometerPlot`):
   the bulb and stem at their fixed size with both outlines, the mercury and its rounded top,
   the range marks where each range starts in green, orange and red, the axis with whole-number
