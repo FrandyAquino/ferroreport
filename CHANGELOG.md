@@ -11,6 +11,11 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   the range marks where each range starts in green, orange and red, the axis with whole-number
   ticks, and the value in the bulb or beside the stem. JRXML 7 ranges (`<lowRange>` without a
   `<dataRange>`) are read, and a thermometer without `mercuryColor` takes its range's color.
+- Meter charts are drawn as JasperReports 7 draws them (JFreeChart's `MeterPlot`): the dial
+  sized for a half circle, its background past the intervals, translucent intervals over the
+  ticks, labels only where intervals end, the value with its units under the center, the
+  needle only for a value in range, and JFreeChart's colors and fonts where the template sets
+  none. The `shape` (pie, chord, circle) and a JRXML 7 `<tickLabelFont>` are read.
 
 ## 1.3.0
 
