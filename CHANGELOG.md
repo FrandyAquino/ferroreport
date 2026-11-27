@@ -25,6 +25,9 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   between groups, a no-break space in Canada), currency, month and day names, AM/PM and short
   date and time. A currency pattern in French Switzerland takes a point as its decimal
   separator, as Java does. Before, these locales printed `en_US`'s.
+- Website: the home page is also in Portuguese (Brazil), at `/pt/`, with PT in the EN / ES
+  switch of the home pages and in their `hreflang` alternates and the sitemap; its other links
+  go to the English documentation, migration guide and comparison.
 
 ## 1.3.0
 
