@@ -3,7 +3,7 @@
 **Reportes en milisegundos, desde cualquier lenguaje.** ferroreport es un motor de reportes:
 le das una plantilla y tus datos y escribe el PDF, el Excel, el Word, el PowerPoint, la hoja de cálculo o el
 texto OpenDocument, el CSV o una vista previa web. Una factura tarda
-**2 ms**; **un millón de filas** tardan 12 segundos y usan **16 MB de memoria**, porque las
+**3 ms**; **un millón de filas** tardan 18 segundos y usan **19 MB de memoria**, porque las
 filas se leen a medida que hacen falta y cada página se escribe apenas se termina. Es un solo
 binario pequeño, sin nada que instalar, y las plantillas **no pueden ejecutar código** en tu
 servidor.
@@ -400,11 +400,20 @@ lista), así que el JRXML convertido funciona también en JasperReports:
 ## Rendimiento
 
 Cuánto más rápido es depende de con qué se compare, así que aquí están las comparaciones que
-importan, todas de ferroreport 1.1.0 contra JasperReports 6.20.6 en Java 21 y en la misma
+importan, todas de ferroreport 1.3.0 contra JasperReports 6.20.6 en Java 21 y en la misma
 máquina Linux de 2 CPU. Un solo comando lo reproduce todo: `tools/bench_all.py` (resultados, con
 la máquina y las versiones, en [docs/benchmarks.json](docs/benchmarks.json)). La máquina se
 comparte con otros trabajos, así que cada corrida empezó con la máquina libre y se repitió la
 que otros procesos le quitaron tiempo de CPU (`--wait-idle`).
+
+Los tiempos son más altos que los de 1.1.0 porque en esta corrida la máquina estaba más lenta:
+el mismo JasperReports tardó entre un 10 y un 30% más. Compilados en la misma máquina y
+corriendo uno tras otro, 1.3.0 tarda casi lo mismo que 1.1.0 (un 8% de diferencia como mucho), salvo la
+exportación a Word (DOCX) de 20,000 filas, cerca de un 17% más lenta (0.51 s contra 0.44 s), y
+ODS y ODT de 100,000 filas, más lentos a propósito desde 1.2 a cambio de una fracción de la
+memoria (67 MiB en vez de 248, 40 MiB en vez de 264). La memoria pico del mismo binario también
+varía unos MiB según el estado de la caché de páginas: la factura usó 15 MiB en esa comparación
+y 18 MiB en la tabla de abajo.
 
 **En frío: un proceso que arranca, genera un reporte y termina.** Lo que paga un script, una
 función serverless o un contenedor por reporte. Tiempo desde que arranca el proceso hasta el
@@ -412,10 +421,10 @@ PDF en disco, y memoria pico (mediana de 5 a 7 corridas):
 
 | Reporte | JasperReports | ferroreport | Más rápido |
 |---|---|---|---|
-| Factura, 2 páginas | 2.63 s, 191 MiB | 11 ms, 15 MiB | 234× |
-| Ventas agrupadas, 4 páginas | 2.55 s, 186 MiB | 12 ms, 15 MiB | 210× |
-| Árabe, de derecha a izquierda, 1 página | 2.08 s, 178 MiB | 9 ms, 14 MiB | 240× |
-| 20,000 filas, 477 páginas | 5.68 s, 464 MiB | 0.26 s, 14 MiB | 22× |
+| Factura, 2 páginas | 2.90 s, 195 MiB | 11 ms, 18 MiB | 268× |
+| Ventas agrupadas, 4 páginas | 3.28 s, 184 MiB | 15 ms, 18 MiB | 214× |
+| Árabe, de derecha a izquierda, 1 página | 2.61 s, 171 MiB | 10 ms, 17 MiB | 268× |
+| 20,000 filas, 477 páginas | 7.33 s, 439 MiB | 0.34 s, 16 MiB | 21× |
 
 **En caliente: un servicio que se queda encendido.** JasperReports en su mejor caso: una sola
 JVM, la plantilla compilada una vez, el JIT calentado con cientos de corridas, las filas ya
@@ -424,11 +433,11 @@ cada vez (también interpreta la plantilla). Mediana por reporte:
 
 | Reporte | JasperReports | ferroreport | Más rápido |
 |---|---|---|---|
-| Factura, 2 páginas | 8.0 ms | 2.2 ms | 3.6× |
-| Lista de empleados, 2 páginas | 5.9 ms | 1.3 ms | 4.4× |
-| Ventas agrupadas, 4 páginas | 11.6 ms | 3.7 ms | 3.1× |
-| Árabe, de derecha a izquierda, 1 página | 4.7 ms | 1.4 ms | 3.2× |
-| 20,000 filas, 477 páginas | 1170.3 ms | 222.3 ms | 5.3× |
+| Factura, 2 páginas | 9.0 ms | 2.8 ms | 3.2× |
+| Lista de empleados, 2 páginas | 6.7 ms | 1.7 ms | 3.9× |
+| Ventas agrupadas, 4 páginas | 14.2 ms | 4.6 ms | 3.1× |
+| Árabe, de derecha a izquierda, 1 página | 5.5 ms | 1.6 ms | 3.4× |
+| 20,000 filas, 477 páginas | 1401.6 ms | 299.0 ms | 4.7× |
 
 El reporte en árabe (el fixture `52-arabic`) se compone en cada corrida: las letras se unen con
 harfrust y las líneas se ordenan de derecha a izquierda con el algoritmo bidireccional de
@@ -441,14 +450,14 @@ ahora con varios hilos generando la factura al mismo tiempo durante 8 segundos, 
 
 | Hilos | Reportes/s, JasperReports | Reportes/s, ferroreport | 95% en menos de, JasperReports | 95% en menos de, ferroreport | Memoria, JasperReports | Memoria, ferroreport |
 |---|---|---|---|---|---|---|
-| 1 | 114 | 493 | 15 ms | 3 ms | 320 MiB | 12 MiB |
-| 2 | 140 | 972 | 24 ms | 3 ms | 370 MiB | 13 MiB |
-| 10 | 162 | 923 | 97 ms | 22 ms | 466 MiB | 20 MiB |
-| 50 | 155 | 905 | 767 ms | 133 ms | 669 MiB | 59 MiB |
-| 100 | 156 | 942 | 1783 ms | 318 ms | 777 MiB | 93 MiB |
+| 1 | 104 | 350 | 14 ms | 4 ms | 306 MiB | 13 MiB |
+| 2 | 127 | 745 | 26 ms | 4 ms | 349 MiB | 13 MiB |
+| 10 | 128 | 637 | 121 ms | 23 ms | 418 MiB | 20 MiB |
+| 50 | 152 | 703 | 817 ms | 162 ms | 652 MiB | 61 MiB |
+| 100 | 138 | 701 | 1993 ms | 347 ms | 712 MiB | 92 MiB |
 
-Entre cuatro y siete veces más reportes por segundo con cualquier carga, el 95% listo entre
-cuatro y ocho veces antes, con entre la octava y la vigesimonovena parte de la memoria. Por HTTP, `ferroreport serve`
+Entre tres y seis veces más reportes por segundo con cualquier carga, el 95% listo entre
+tres y media y siete veces antes, con entre la octava y la vigesimosexta parte de la memoria. Por HTTP, `ferroreport serve`
 responde una factura en unos 3 ms sobre una conexión que se mantiene abierta.
 
 **Grandes: filas por cientos de miles.** El mismo reporte con más filas, en frío, y
@@ -457,44 +466,42 @@ y escribe cada página al terminarla, así que su memoria no crece con el report
 
 | Reporte | JasperReports | ferroreport | Más rápido | Menos memoria |
 |---|---|---|---|---|
-| 100,000 filas, 2,382 páginas | 11.53 s, 876 MiB | 1.28 s, 14 MiB | 9.0× | 64× |
-| 1,000,000 filas, 23,810 páginas | 68.34 s, 1,737 MiB | 12.02 s, 15 MiB | 5.7× | 116× |
+| 100,000 filas, 2,382 páginas | 14.25 s, 828 MiB | 1.84 s, 16 MiB | 7.7× | 50× |
+| 1,000,000 filas, 23,810 páginas | 79.77 s, 1,731 MiB | 17.91 s, 18 MiB | 4.5× | 95× |
 
 **Cada formato: lo que cuesta cada salida.** El reporte de 20,000 filas, en frío, a cada formato
 que escriben los dos motores (mediana de 5 corridas, aparte de las de arriba; memoria pico y tamaño del archivo):
 
 | Formato | JasperReports | ferroreport | Más rápido | Menos memoria |
 |---|---|---|---|---|
-| PDF | 5.70 s, 463 MiB, 4.5 MB | 0.25 s, 14 MiB, 1.2 MB | 23× | 34× |
-| XLSX | 3.78 s, 263 MiB, 1.0 MB | 0.46 s, 59 MiB, 1.2 MB | 8.1× | 4.5× |
-| DOCX | 4.24 s, 292 MiB, 1.0 MB | 0.35 s, 14 MiB, 1.2 MB | 12× | 22× |
-| ODS | 4.34 s, 299 MiB, 0.4 MB | 0.52 s, 100 MiB, 0.4 MB | 8.3× | 3.0× |
-| ODT | 4.19 s, 290 MiB, 0.5 MB | 0.47 s, 59 MiB, 0.5 MB | 8.8× | 4.9× |
-| CSV | 3.26 s, 248 MiB, 0.9 MB | 0.28 s, 13 MiB, 0.9 MB | 12× | 19× |
+| PDF | 7.17 s, 450 MiB, 4.5 MB | 0.40 s, 17 MiB, 1.2 MB | 18× | 27× |
+| XLSX | 4.93 s, 261 MiB, 1.0 MB | 0.60 s, 61 MiB, 1.2 MB | 8.2× | 4.3× |
+| DOCX | 5.30 s, 271 MiB, 1.0 MB | 0.51 s, 16 MiB, 1.2 MB | 10× | 17× |
+| ODS | 5.44 s, 283 MiB, 0.4 MB | 0.66 s, 103 MiB, 0.4 MB | 8.3× | 2.7× |
+| ODT | 5.07 s, 287 MiB, 0.5 MB | 0.68 s, 66 MiB, 0.5 MB | 7.4× | 4.4× |
+| CSV | 3.96 s, 251 MiB, 0.9 MB | 0.33 s, 15 MiB, 0.9 MB | 12× | 16× |
 
 Y con 100,000 filas (JasperReports una vez por formato, ferroreport la mediana de 3):
 
 | Formato | JasperReports | ferroreport | Más rápido | Menos memoria |
 |---|---|---|---|---|
-| PDF | 11.53 s, 876 MiB | 1.28 s, 14 MiB | 9.0× | 64× |
-| XLSX | 6.63 s, 748 MiB | 3.12 s, 66 MiB | 2.1× | 11× |
-| ODS | 8.02 s, 715 MiB | 5.32 s, 68 MiB | 1.5× | 11× |
-| ODT | 7.80 s, 692 MiB | 4.41 s, 38 MiB | 1.8× | 18× |
+| PDF | 14.25 s, 828 MiB | 1.84 s, 16 MiB | 7.7× | 50× |
+| XLSX | 9.19 s, 550 MiB | 4.50 s, 69 MiB | 2.0× | 8.0× |
+| ODS | 10.20 s, 628 MiB | 7.62 s, 69 MiB | 1.3× | 9.1× |
+| ODT | 9.83 s, 646 MiB | 6.20 s, 39 MiB | 1.6× | 17× |
 
 PDF, DOCX y CSV se escriben página por página, así que su memoria no crece.
 Las columnas de una hoja salen de todas las páginas, así que XLSX llena dos veces un reporte
 grande; los estilos de un archivo OpenDocument van antes del contenido, así que un ODT grande se
 llena dos veces y un ODS grande tres. Así su memoria tampoco crece, a cambio de tiempo: son las
-salidas en las que ferroreport saca menos ventaja en velocidad. (Las filas de ODS y ODT de
-ferroreport con 100,000 filas se midieron otra vez después de ese cambio, en el mismo tipo de
-máquina; las de JasperReports son de las mismas pruebas que el resto.)
+salidas en las que ferroreport saca menos ventaja en velocidad.
 
 **Contra JasperReports 7.1.1.** Las mismas pruebas, con los fixtures convertidos a JRXML 7 para
-los dos motores ([docs/benchmarks-7.1.1.json](docs/benchmarks-7.1.1.json)): en frío, 205 y 200
-veces más rápido con la factura y las ventas agrupadas, 208 veces con el reporte en árabe, 18
-veces con 20,000 filas; en caliente, de 2.9 a 5.0 veces; las 20,000 filas a cada formato, de 8.1
-veces (XLSX) a 20 veces (PDF); un millón de filas en 11.31 s y 15 MiB contra 52.22 s y 1,734 MiB
-(4.6 veces más rápido, 115 veces menos memoria). JasperReports 7 es más rápido que el 6, sobre
+los dos motores ([docs/benchmarks-7.1.1.json](docs/benchmarks-7.1.1.json)): en frío, 234 y 198
+veces más rápido con la factura y las ventas agrupadas, 207 veces con el reporte en árabe, 17
+veces con 20,000 filas; en caliente, de 2.6 a 3.7 veces; las 20,000 filas a cada formato, de 7.5
+veces (ODS, ODT) a 17 veces (PDF); un millón de filas en 15.95 s y 18 MiB contra 62.95 s y 1,721 MiB
+(3.9 veces más rápido, 95 veces menos memoria). JasperReports 7 es más rápido que el 6, sobre
 todo con reportes grandes, así que la diferencia es menor, y sus PDF pesan menos que los del 6:
 1.0 MB con 20,000 filas, contra 1.2 MB de ferroreport.
 
@@ -503,11 +510,11 @@ JVM y compilar la plantilla, por eso la diferencia es de dos órdenes de magnitu
 un proceso por reporte y de 3 a 5 veces cuando no. Los PDF además suelen pesar menos que los de
 JasperReports 6 (1.2 MB en vez de 4.5 MB con 20,000 filas; más o menos lo mismo con un millón). Los libros de Excel también se escriben a medida que se generan: las columnas de la hoja
 salen de todas las páginas, así que un reporte grande se llena dos veces, una para encontrarlas
-y otra para escribir las filas (100,000 filas: unos 3 s y 66 MiB; 500,000: 15 s y 116 MiB). Un
+y otra para escribir las filas (100,000 filas: unos 4.5 s y 69 MiB; 500,000: 22 s y 103 MiB). Un
 reporte con más filas de las que caben en una hoja (1,048,576) se detiene con un error que lo dice.
 Los archivos OpenDocument también, llenándose una vez más antes para encontrar sus estilos (que
-van antes del contenido en el archivo): 100,000 filas en 68 MiB como ODS y 37 MiB como ODT, un
-millón de filas en 37 MiB como ODT.
+van antes del contenido en el archivo): 100,000 filas en 69 MiB como ODS y 39 MiB como ODT, un
+millón de filas en 41 MiB como ODT.
 
 ## Comparado con otras herramientas
 
@@ -519,7 +526,7 @@ que la respuesta honesta a "¿cuál uso?" depende de lo que hagas.
 |---|---|---|
 | Documentos escritos a mano: artículos, libros, cartas, matemáticas | **Typst** (o LaTeX) | No es su trabajo. Typst compone mejor el texto (párrafos, división de palabras, fórmulas), tiene un lenguaje de programación real, paquetes y una empresa y comunidad detrás |
 | Plantillas de JasperReports que ya tienes, sin JVM | **ferroreport** | Las mismas páginas, píxel por píxel en cada fixture; de 3 a 5 veces más rápido que una JVM caliente, unas 200 veces arrancando en frío, con una décima parte de la memoria o menos en PDF, Word y CSV (entre un tercio y un quinto en hojas de cálculo) |
-| Reportes de datos: grupos, totales, "página X de Y", crosstabs, gráficos, un millón de filas | **ferroreport** o JasperReports | Bandas, grupos, variables y valores tardíos son de lo que está hecho el formato; las filas entran y las páginas salen sin acumularse (un millón de filas en 16 MB). En Typst eso lo programas tú, y el documento se arma en memoria |
+| Reportes de datos: grupos, totales, "página X de Y", crosstabs, gráficos, un millón de filas | **ferroreport** o JasperReports | Bandas, grupos, variables y valores tardíos son de lo que está hecho el formato; las filas entran y las páginas salen sin acumularse (un millón de filas en 19 MB). En Typst eso lo programas tú, y el documento se arma en memoria |
 | Una plantilla a PDF, Excel, Word, PowerPoint, OpenDocument, CSV y HTML | **ferroreport**, JasperReports, Carbone | Typst escribe PDF, PNG y SVG (HTML es experimental), no hojas de cálculo ni Word |
 | Plantillas que diseña gente de negocio en Word o LibreOffice | **Carbone** | Las plantillas salen de Jaspersoft Studio, se escriben como texto o se hacen en su [diseñador](https://cristianencarnacion.github.io/ferroreport/designer/), una primera versión que corre en el navegador |
 | Diseñador visual, visores, servidor de reportes, tableros | **Telerik, DevExpress, Stimulsoft**, Jaspersoft Studio y Server | Un primer [diseñador](https://cristianencarnacion.github.io/ferroreport/designer/), sencillo (campos, textos, formas, imágenes, estilos; aún sin gráficos, tablas ni grupos); nada de lo demás todavía |

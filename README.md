@@ -3,7 +3,7 @@
 **Reports in milliseconds, from any language.** ferroreport is a report engine: give it a
 template and your data and it writes the PDF, the Excel workbook, the Word document, the
 PowerPoint presentation, the OpenDocument spreadsheet or text, the CSV or a web preview. An invoice takes
-**2 ms**; a **million rows** take 12 seconds and **16 MB of memory**, because rows are read as
+**3 ms**; a **million rows** take 18 seconds and **19 MB of memory**, because rows are read as
 they are needed and pages are written as they are finished. It is one small binary with no
 runtime to install, and templates **cannot run code** on your server.
 
@@ -378,7 +378,7 @@ ODS and ODT exporters lay a report out:
   document's styles come before its body in the file, so a large report is filled once more
   first to find them (a spreadsheet three times in all: its columns, its styles, its rows; a
   text twice), and the rows are then compressed and written as they come: 100,000 rows take
-  68 MiB as ODS and 37 MiB as ODT, a million rows 37 MiB as ODT (1.1.0 kept the body in
+  69 MiB as ODS and 39 MiB as ODT, a million rows 41 MiB as ODT (1.1.0 kept the body in
   memory: 253, 265 and 1,672 MiB). Like large workbooks, this needs rows that can be read
   again: a file, or rows the command line, the server and Python put aside for you; in Rust,
   `render_rows_to`. Rows that can only be read once still give the document, kept in memory
@@ -711,11 +711,19 @@ supported.
 ## Performance
 
 How much faster depends on what you compare, so here are the comparisons that matter, each of
-ferroreport 1.1.0 against JasperReports 6.20.6 on Java 21, on the same 2-CPU Linux machine. One
+ferroreport 1.3.0 against JasperReports 6.20.6 on Java 21, on the same 2-CPU Linux machine. One
 command reproduces all of it: `tools/bench_all.py` (raw results, with the machine and the
 versions, in [docs/benchmarks.json](docs/benchmarks.json)). The machine is shared with other
 work, so each run started on an idle machine and a run that other processes took CPU time
 from was done again (`--wait-idle`).
+
+The times are higher than the 1.1.0 figures because the machine was slower in this run:
+JasperReports itself took 10 to 30% longer. Built on the same machine and run alternately,
+1.3.0 is within a few percent of 1.1.0 (8% at most), except Word (DOCX) export of 20,000 rows,
+about 17% slower (0.51 s against 0.44 s), and ODS and ODT of 100,000 rows, slower by design since
+1.2 in exchange for a fraction of the memory (67 MiB instead of 248, 40 MiB instead of 264). The
+peak memory of the same binary also moves by a few MiB with the state of the page cache: the
+invoice took 15 MiB in that comparison and 18 MiB in the table below.
 
 **Cold: a process that starts, renders one report and exits.** What a script, a serverless
 function or a container per report pays. Time from process start to the PDF on disk, and peak
@@ -723,10 +731,10 @@ memory (median of 5 to 7 runs):
 
 | Report | JasperReports | ferroreport | Faster |
 |---|---|---|---|
-| Invoice, 2 pages | 2.63 s, 191 MiB | 11 ms, 15 MiB | 234× |
-| Grouped sales, 4 pages | 2.55 s, 186 MiB | 12 ms, 15 MiB | 210× |
-| Arabic, right to left, 1 page | 2.08 s, 178 MiB | 9 ms, 14 MiB | 240× |
-| 20,000 rows, 477 pages | 5.68 s, 464 MiB | 0.26 s, 14 MiB | 22× |
+| Invoice, 2 pages | 2.90 s, 195 MiB | 11 ms, 18 MiB | 268× |
+| Grouped sales, 4 pages | 3.28 s, 184 MiB | 15 ms, 18 MiB | 214× |
+| Arabic, right to left, 1 page | 2.61 s, 171 MiB | 10 ms, 17 MiB | 268× |
+| 20,000 rows, 477 pages | 7.33 s, 439 MiB | 0.34 s, 16 MiB | 21× |
 
 **Warm: a service that stays up.** JasperReports at its best: one JVM, the template compiled
 once, the JIT warmed up by hundreds of runs, rows already converted to Java objects, the PDF
@@ -735,11 +743,11 @@ time per report:
 
 | Report | JasperReports | ferroreport | Faster |
 |---|---|---|---|
-| Invoice, 2 pages | 8.0 ms | 2.2 ms | 3.6× |
-| Employee list, 2 pages | 5.9 ms | 1.3 ms | 4.4× |
-| Grouped sales, 4 pages | 11.6 ms | 3.7 ms | 3.1× |
-| Arabic, right to left, 1 page | 4.7 ms | 1.4 ms | 3.2× |
-| 20,000 rows, 477 pages | 1170.3 ms | 222.3 ms | 5.3× |
+| Invoice, 2 pages | 9.0 ms | 2.8 ms | 3.2× |
+| Employee list, 2 pages | 6.7 ms | 1.7 ms | 3.9× |
+| Grouped sales, 4 pages | 14.2 ms | 4.6 ms | 3.1× |
+| Arabic, right to left, 1 page | 5.5 ms | 1.6 ms | 3.4× |
+| 20,000 rows, 477 pages | 1401.6 ms | 299.0 ms | 4.7× |
 
 The Arabic report (fixture `52-arabic`) is shaped on every render: letters joined with
 harfrust, lines put in right-to-left order with the Unicode Bidirectional Algorithm.
@@ -752,14 +760,14 @@ report too):
 
 | Threads | Reports/s, JasperReports | Reports/s, ferroreport | 95% under, JasperReports | 95% under, ferroreport | Memory, JasperReports | Memory, ferroreport |
 |---|---|---|---|---|---|---|
-| 1 | 114 | 493 | 15 ms | 3 ms | 320 MiB | 12 MiB |
-| 2 | 140 | 972 | 24 ms | 3 ms | 370 MiB | 13 MiB |
-| 10 | 162 | 923 | 97 ms | 22 ms | 466 MiB | 20 MiB |
-| 50 | 155 | 905 | 767 ms | 133 ms | 669 MiB | 59 MiB |
-| 100 | 156 | 942 | 1783 ms | 318 ms | 777 MiB | 93 MiB |
+| 1 | 104 | 350 | 14 ms | 4 ms | 306 MiB | 13 MiB |
+| 2 | 127 | 745 | 26 ms | 4 ms | 349 MiB | 13 MiB |
+| 10 | 128 | 637 | 121 ms | 23 ms | 418 MiB | 20 MiB |
+| 50 | 152 | 703 | 817 ms | 162 ms | 652 MiB | 61 MiB |
+| 100 | 138 | 701 | 1993 ms | 347 ms | 712 MiB | 92 MiB |
 
-Four to seven times the reports per second at every load, 95% of them finished four to eight
-times sooner, in an eighth to a twenty-ninth of the memory. Over HTTP, `ferroreport serve` answers an
+Three to six times the reports per second at every load, 95% of them finished three and a half
+to seven times sooner, in an eighth to a twenty-sixth of the memory. Over HTTP, `ferroreport serve` answers an
 invoice in about 3 ms on a connection that is kept open.
 
 **Large: rows by the hundred thousand.** The same report with more rows, cold, JasperReports
@@ -768,42 +776,41 @@ finishes it, so its memory does not grow with the report:
 
 | Report | JasperReports | ferroreport | Faster | Less memory |
 |---|---|---|---|---|
-| 100,000 rows, 2,382 pages | 11.53 s, 876 MiB | 1.28 s, 14 MiB | 9.0× | 64× |
-| 1,000,000 rows, 23,810 pages | 68.34 s, 1,737 MiB | 12.02 s, 15 MiB | 5.7× | 116× |
+| 100,000 rows, 2,382 pages | 14.25 s, 828 MiB | 1.84 s, 16 MiB | 7.7× | 50× |
+| 1,000,000 rows, 23,810 pages | 79.77 s, 1,731 MiB | 17.91 s, 18 MiB | 4.5× | 95× |
 
 **Each format: what an output costs.** The 20,000-row report, cold, to each format both engines
 write (median of 5 runs, apart from the cold runs above; peak memory, and the size of the file):
 
 | Format | JasperReports | ferroreport | Faster | Less memory |
 |---|---|---|---|---|
-| PDF | 5.70 s, 463 MiB, 4.5 MB | 0.25 s, 14 MiB, 1.2 MB | 23× | 34× |
-| XLSX | 3.78 s, 263 MiB, 1.0 MB | 0.46 s, 59 MiB, 1.2 MB | 8.1× | 4.5× |
-| DOCX | 4.24 s, 292 MiB, 1.0 MB | 0.35 s, 14 MiB, 1.2 MB | 12× | 22× |
-| ODS | 4.34 s, 299 MiB, 0.4 MB | 0.52 s, 100 MiB, 0.4 MB | 8.3× | 3.0× |
-| ODT | 4.19 s, 290 MiB, 0.5 MB | 0.47 s, 59 MiB, 0.5 MB | 8.8× | 4.9× |
-| CSV | 3.26 s, 248 MiB, 0.9 MB | 0.28 s, 13 MiB, 0.9 MB | 12× | 19× |
+| PDF | 7.17 s, 450 MiB, 4.5 MB | 0.40 s, 17 MiB, 1.2 MB | 18× | 27× |
+| XLSX | 4.93 s, 261 MiB, 1.0 MB | 0.60 s, 61 MiB, 1.2 MB | 8.2× | 4.3× |
+| DOCX | 5.30 s, 271 MiB, 1.0 MB | 0.51 s, 16 MiB, 1.2 MB | 10× | 17× |
+| ODS | 5.44 s, 283 MiB, 0.4 MB | 0.66 s, 103 MiB, 0.4 MB | 8.3× | 2.7× |
+| ODT | 5.07 s, 287 MiB, 0.5 MB | 0.68 s, 66 MiB, 0.5 MB | 7.4× | 4.4× |
+| CSV | 3.96 s, 251 MiB, 0.9 MB | 0.33 s, 15 MiB, 0.9 MB | 12× | 16× |
 
 And with 100,000 rows (JasperReports once per format, ferroreport the median of 3):
 
 | Format | JasperReports | ferroreport | Faster | Less memory |
 |---|---|---|---|---|
-| PDF | 11.53 s, 876 MiB | 1.28 s, 14 MiB | 9.0× | 64× |
-| XLSX | 6.63 s, 748 MiB | 3.12 s, 66 MiB | 2.1× | 11× |
-| ODS | 8.02 s, 715 MiB | 5.32 s, 68 MiB | 1.5× | 11× |
-| ODT | 7.80 s, 692 MiB | 4.41 s, 38 MiB | 1.8× | 18× |
+| PDF | 14.25 s, 828 MiB | 1.84 s, 16 MiB | 7.7× | 50× |
+| XLSX | 9.19 s, 550 MiB | 4.50 s, 69 MiB | 2.0× | 8.0× |
+| ODS | 10.20 s, 628 MiB | 7.62 s, 69 MiB | 1.3× | 9.1× |
+| ODT | 9.83 s, 646 MiB | 6.20 s, 39 MiB | 1.6× | 17× |
 
 PDF, DOCX and CSV are written page by page, so their memory stays flat. A
 sheet's columns come from every page, so XLSX fills a large report twice; an OpenDocument file's
 styles come before its body, so a large ODT is filled twice and a large ODS three times. That
 keeps their memory flat too and costs time: these are the outputs where ferroreport's lead in
-speed is smallest. (The ODS and ODT rows of ferroreport at 100,000 rows were measured again after
-that change, on the same kind of machine; JasperReports' are from the same runs as the rest.)
+speed is smallest.
 
 **Against JasperReports 7.1.1.** The same runs, with the fixtures converted to JRXML 7 for both
-engines ([docs/benchmarks-7.1.1.json](docs/benchmarks-7.1.1.json)): cold, 205× and 200× faster
-for the invoice and the grouped sales, 208× for the Arabic report, 18× for 20,000 rows; warm, 2.9
-to 5.0×; the 20,000 rows to each format, 8.1× (XLSX) to 20× (PDF); a million rows in 11.31 s and
-15 MiB against 52.22 s and 1,734 MiB (4.6× faster, 115× less memory). JasperReports 7 is faster
+engines ([docs/benchmarks-7.1.1.json](docs/benchmarks-7.1.1.json)): cold, 234× and 198× faster
+for the invoice and the grouped sales, 207× for the Arabic report, 17× for 20,000 rows; warm, 2.6
+to 3.7×; the 20,000 rows to each format, 7.5× (ODS, ODT) to 17× (PDF); a million rows in 15.95 s and
+18 MiB against 62.95 s and 1,721 MiB (3.9× faster, 95× less memory). JasperReports 7 is faster
 than 6, on large reports most, so the gap is smaller, and its PDFs are smaller than 6's: 1.0 MB
 for the 20,000 rows, against ferroreport's 1.2 MB.
 
@@ -812,10 +819,10 @@ template, so the gap is two orders of magnitude when a process starts per report
 when it does not. PDFs are usually smaller than JasperReports 6's too (1.2 MB instead of 4.5 MB
 for the 20,000 rows; about the same size at a million). Excel workbooks are written as they are made too: the
 columns of a sheet come from every page, so a large report is filled twice, once to find them
-and once to write the rows (100,000 rows: about 3 s and 66 MiB; 500,000: 15 s and 116 MiB). A
+and once to write the rows (100,000 rows: about 4.5 s and 69 MiB; 500,000: 22 s and 103 MiB). A
 report with more rows than a sheet holds (1,048,576) stops with an error that says so.
-OpenDocument files too, once more filled first to find their styles: 100,000 rows in 68 MiB as
-ODS and 37 MiB as ODT, a million rows in 37 MiB as ODT.
+OpenDocument files too, once more filled first to find their styles: 100,000 rows in 69 MiB as
+ODS and 39 MiB as ODT, a million rows in 41 MiB as ODT.
 
 ## How it compares
 
@@ -827,7 +834,7 @@ depends on what you make.
 |---|---|---|
 | Documents written by hand: papers, books, letters, math | **Typst** (or LaTeX) | Not its job. Typst sets text better (paragraph layout, hyphenation, math), has a real programming language, a package ecosystem and a company and community behind it |
 | JasperReports templates you already have, without a JVM | **ferroreport** | The same pages, pixel for pixel on every fixture; 3 to 5× faster than a warm JVM, about 200× from a cold start, a tenth of the memory or less for PDF, Word and CSV (a third to a fifth for spreadsheets) |
-| Data reports: groups, running totals, "page X of Y", crosstabs, charts, a million rows | **ferroreport** or JasperReports | Bands, groups, variables and late values are what the format is made of; rows stream in and pages stream out (a million rows in 16 MB). In Typst you would program that yourself, and the document is laid out in memory |
+| Data reports: groups, running totals, "page X of Y", crosstabs, charts, a million rows | **ferroreport** or JasperReports | Bands, groups, variables and late values are what the format is made of; rows stream in and pages stream out (a million rows in 19 MB). In Typst you would program that yourself, and the document is laid out in memory |
 | One template to PDF, Excel, Word, PowerPoint, OpenDocument, CSV and HTML | **ferroreport**, JasperReports, Carbone | Typst writes PDF, PNG and SVG (HTML is experimental), not spreadsheets or Word |
 | Templates that business users design in Word or LibreOffice | **Carbone** | Templates come from Jaspersoft Studio, are written as text, or are made in its [designer](https://cristianencarnacion.github.io/ferroreport/designer/), a first version that runs in the browser |
 | A visual designer, viewers, a report server, dashboards | **Telerik, DevExpress, Stimulsoft**, Jaspersoft Studio and Server | A first, simple [designer](https://cristianencarnacion.github.io/ferroreport/designer/) (fields, text, shapes, images, styles; not yet charts, tables or groups); none of the rest yet |

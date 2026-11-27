@@ -2,7 +2,7 @@
 
 **Reports in milliseconds from Python**: a template and your data in, a PDF, an Excel workbook,
 a Word document, a PowerPoint presentation, an OpenDocument file (ODS, ODT), a CSV or an HTML
-preview out. An invoice takes about 2 ms, and a million rows take about 12 seconds and 16 MB
+preview out. An invoice takes about 3 ms, and a million rows take about 18 seconds and 19 MB
 of memory, because rows are read as they are needed and pages are written as they are finished.
 
 It reads **JasperReports `.jrxml` templates** and gives the same output, verified pixel by pixel
@@ -45,7 +45,7 @@ with open("invoice.pdf", "wb") as f:
   (`.pdf`, `.xlsx`, `.docx`, `.pptx`, `.ods`, `.odt`, `.csv`, `.html`). It returns `{"pages": ..., "rows": ...}`.
 - For rows that do not fit in memory, give `data_file="rows.jsonl"` instead of `data`: a JSON
   array or one object per line, read as the report needs it. A million rows render in about
-  16 MB.
+  19 MB.
 - `max_pages=` and `timeout=` (seconds) stop a report that grows past what you expect; set
   them when templates or data come from other people. `csv_safe=True` guards CSV against
   spreadsheet formulas in the data, and `xlsx_numbers=True` writes numbers as numbers (Excel and ODS).
