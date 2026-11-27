@@ -181,7 +181,7 @@ reports.template(Path.of("reports/sales.jrxml"))
         <li><code>.param(name, value)</code> and <code>.params(Map)</code> take the parameters. <code>BigDecimal</code> keeps every digit;
           <code>LocalDate</code>, <code>LocalDateTime</code>, <code>java.util.Date</code> and <code>java.sql</code> dates become dates; and
           <code>byte[]</code> becomes an image. <code>REPORT_LOCALE</code> becomes <code>.locale("es_DO")</code>: number and date formats
-          follow en_US, es_DO, es_MX and es_ES for now.</li>
+          follow en_US, es_DO, es_MX, es_ES and French (fr, fr_FR, fr_BE, fr_CA, fr_CH) for now.</li>
         <li><code>.maxPages(n)</code> and <code>.timeout(Duration)</code> stop a report that grows past what you expect.</li>
         <li><code>Ferroreport.local()</code> runs the native engine as a child process for each report: the one named by
           <code>-Dferroreport.bin</code> or <code>FERROREPORT_BIN</code>, else <code>ferroreport</code> on the <code>PATH</code>, else a copy
