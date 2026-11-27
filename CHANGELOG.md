@@ -40,6 +40,8 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   differs. Without `pdftoppm` the check is skipped, with a note. Whether a template is the
   same (`same` in the JSON, and what `--strict` fails on) still means the same pages, texts and
   numbers, as in 1.3: the pictures are reported beside it.
+- Docs: rows from pandas, Polars and SQLAlchemy in Python (README and the Data section of the
+  documentation, in English and Spanish).
 
 ## 1.3.0
 

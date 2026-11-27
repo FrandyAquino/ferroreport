@@ -139,6 +139,18 @@ curl -X POST localhost:8080/render/invoice -H 'Content-Type: application/json' \
         <tr><td><code>List</code>, <code>Collection</code></td><td>A nested array, usually the rows of a subreport</td></tr>
       </table>
       <p>Reports without a data source can omit the data. A template's SQL query runs on the database given with <code>--db</code> (see <a href="#database">Rows from a database</a>); without it, send the rows.</p>
+      <p>Rows from the libraries you read data with go in as they come, or with one call to make them plain values:</p>
+<pre data-lang="python"># pandas: hand over the DataFrame as JSON text. to_json writes NaN as null and dates as
+# ISO-8601; to_dict("records") would keep NaN, which is not valid JSON.
+pdf = ferroreport.render("orders.jrxml", df.to_json(orient="records", date_format="iso"))
+
+# Polars: to_dicts() gives plain Python values (None for nulls, datetime.date for dates)
+pdf = ferroreport.render("orders.jrxml", df.to_dicts())
+
+# SQLAlchemy: rows as dicts; a generator is read one row at a time
+with engine.connect() as conn:
+    result = conn.execute(text("select id, customer, placed, total from orders order by id"))
+    pdf = ferroreport.render("orders.jrxml", (dict(row) for row in result.mappings()))</pre>
 
       <h3>Parameters</h3>
       <p>A JSON object with one key per <code>&lt;parameter&gt;</code>, converted with the same rules. Parameters you leave out take
