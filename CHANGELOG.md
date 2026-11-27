@@ -88,6 +88,9 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   defaults already are. On a machine in another zone, expressions that use the Java runtime's
   own zone (`new SimpleDateFormat(...)`, `HOUR`, `DATEFORMAT`) came out shifted in
   JasperReports only and were reported as differences.
+- Server: `/metrics` adds `ferroreport_render_duration_seconds`, a histogram of render time
+  with a `format` label (buckets from 5 ms to 60 s), for percentiles and alerts, and
+  `ferroreport_build_info{version="..."}`. Every existing metric keeps its name and meaning.
 
 ## 1.3.0
 
