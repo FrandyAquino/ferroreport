@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ferroreport: reportes PDF, Excel y Word desde cualquier lenguaje, en milisegundos (lee JRXML de JasperReports)</title>
-<meta name="description" content="Un motor de reportes que convierte una plantilla y tus datos en PDF, Excel, Word, PowerPoint o CSV en milisegundos: una factura en 2 ms, un millón de filas en 16 MB de memoria. Lee las plantillas JRXML de JasperReports y da el mismo resultado píxel por píxel, sin JVM. Rust, JavaScript, Python, CLI y HTTP.">
+<meta name="description" content="Un motor de reportes que convierte una plantilla y tus datos en PDF, Excel, Word, PowerPoint, OpenDocument (ODS, ODT), CSV o HTML en milisegundos: una factura en 2 ms, un millón de filas en 16 MB de memoria. Lee las plantillas JRXML de JasperReports y da el mismo resultado píxel por píxel, sin JVM. Rust, JavaScript, Python, Java, CLI y HTTP.">
 <link rel="canonical" href="https://cristianencarnacion.github.io/ferroreport/es/">
 <link rel="alternate" hreflang="en" href="https://cristianencarnacion.github.io/ferroreport/">
 <link rel="alternate" hreflang="es" href="https://cristianencarnacion.github.io/ferroreport/es/">
@@ -34,6 +34,8 @@
       <nav>
         <a class="wide" href="#benchmarks">Rendimiento</a>
         <a class="wide" href="#playground">Pruébalo</a>
+        <a class="wide" href="migrate.html">Migrar</a>
+        <a class="wide" href="compare.html">Comparación</a>
         <a href="../designer/">Diseñador</a>
         <a href="docs.html">Docs</a>
         <a href="https://github.com/cristianEncarnacion/ferroreport">GitHub</a>
@@ -46,7 +48,7 @@
 
     <div class="headline">
       <h1>Reportes en milisegundos,<br><span class="hot">desde cualquier lenguaje.</span></h1>
-      <p class="lead">Entran una plantilla y tus datos; sale un PDF, un libro de Excel, un documento de Word o un CSV. Una factura tarda 2 ms y un
+      <p class="lead">Entran una plantilla y tus datos; sale un PDF, un libro de Excel, un documento de Word, una presentación de PowerPoint, un archivo OpenDocument, un CSV o una página web. Una factura tarda 2 ms y un
         millón de filas usan 16 MB de memoria. Lee las plantillas <code>.jrxml</code> de JasperReports que ya tienes y da las
         mismas páginas, píxel por píxel, sin una JVM.</p>
       <div class="cta">
@@ -246,7 +248,7 @@
       <div class="feature"><h3>Un motor, cualquier lenguaje</h3><p>CLI, librería de Rust, JavaScript y WebAssembly, Python, Java (lee un <code>ResultSet</code> fila por fila), y una API HTTP en una imagen Docker de ~8 MB para C#, PHP, Go y los demás, con caché de plantillas y métricas de Prometheus. Arranca en milisegundos, así que también sirve para funciones serverless.</p></div>
       <div class="feature"><h3>Lo que usas</h3><p>Bandas que se dividen entre páginas, frames, imágenes, subreportes, tablas, listas, crosstabs, todos los tipos de gráfico de JasperReports, códigos QR, DataMatrix, PDF417, EAN, UPC, Code 128, Code 39 y otros códigos de barras (barcode4j y Barbecue), imágenes SVG, campos de formulario PDF, enlaces y marcadores, texto con estilos, HTML y RTF, rotación, varias columnas, estilos condicionales.</p></div>
       <div class="feature"><h3>PDF, Excel, Word, PowerPoint, OpenDocument, CSV y HTML</h3><p>La misma plantilla se exporta a un libro <code>.xlsx</code> con las celdas, celdas combinadas, fuentes, bordes, imágenes y gráficos que da el exportador de Jasper, a un <code>.docx</code> armado como el Word que exporta Jasper, a un <code>.pptx</code> con una diapositiva por página, a <code>.ods</code> y <code>.odt</code> para LibreOffice armados de la misma forma, a CSV, o a una página web que se ve como el PDF, para vistas previas en el navegador. Excel y CSV se comparan celda por celda con Jasper. Los PDF se pueden etiquetar para lectores de pantalla (PDF/UA-1, verificado con veraPDF): los textos como párrafos, las imágenes como figuras con su descripción, las tablas con sus celdas de encabezado, las listas como listas.</p></div>
-      <div class="feature"><h3>JRXML, o un formato propio</h3><p>Las plantillas de Jaspersoft Studio funcionan tal cual, JRXML 6 o 7. Las nuevas se pueden escribir en <code>.ferro</code>: el mismo reporte como un esquema con sangría, de la mitad del tamaño, accesible por defecto, y sin coordenadas si quieres: las partes se apilan y se ponen en filas, y lo que se repite se define una vez. <code>ferroreport convert</code> pasa de uno a otro, y <code>ferroreport migrate</code> revisa una carpeta entera de plantillas antes de que cambies de motor. <a href="docs.html#ferro">Cómo se lee</a>.</p></div>
+      <div class="feature"><h3>JRXML, o un formato propio</h3><p>Las plantillas de Jaspersoft Studio funcionan tal cual, JRXML 6 o 7. Las nuevas se pueden escribir en <code>.ferro</code>: el mismo reporte como un esquema con sangría, de la mitad del tamaño, accesible por defecto, y sin coordenadas si quieres: las partes se apilan y se ponen en filas, y lo que se repite se define una vez. <code>ferroreport convert</code> pasa de uno a otro, y <code>ferroreport migrate</code> revisa una carpeta entera de plantillas antes de que cambies de motor. <a href="docs.html#ferro">Cómo se lee</a>; <a href="migrate.html">la guía de migración</a>.</p></div>
       <div class="feature"><h3>Un diseñador en tu navegador</h3><p>Pega una muestra de tus datos, arrastra sus campos a la página, elige fuentes, colores, bordes y formatos de número, y mira cómo cambia el PDF mientras trabajas. Abre y guarda <code>.ferro</code> y <code>.jrxml</code> de JasperReports, y descarga PDF, Excel, Word y PowerPoint. No se sube nada: el motor corre en tu computadora. <a href="../designer/">Abre el diseñador</a>.</p></div>
       <div class="feature"><h3>PDF para archivar y proteger</h3><p>PDF/A-2 y PDF/A-3, verificados con veraPDF en cada cambio; archivos dentro del PDF, como el XML de una factura electrónica; cifrado AES-256 con contraseña y permisos; enlaces, anclas y marcadores. Todo en el motor de código abierto, con las propiedades de plantilla que ya usa JasperReports. <a href="docs.html#pdf">Cómo</a>.</p></div>
       <div class="feature"><h3>Libre y de código abierto</h3><p>MIT o Apache-2.0, hecho para la comunidad. Las contribuciones y las nuevas plantillas de prueba son bienvenidas.</p></div>
@@ -359,6 +361,7 @@ const pdf = render(jrxml, rows, { CUSTOMER: "Distribuidora Caribe" });</pre>
   <footer>
     ferroreport es independiente y no está afiliado a Jaspersoft ni a Cloud Software Group. JasperReports es una marca comercial de Cloud Software Group, Inc.
     <a href="https://github.com/cristianEncarnacion/ferroreport">Código fuente en GitHub</a>, MIT o Apache-2.0.
+    <a href="migrate.html">Migrar desde JasperReports</a> · <a href="compare.html">Comparación con otras herramientas</a>
   </footer>
 </main>
 
@@ -489,8 +492,7 @@ ferroreport doctor invoice.jrxml   # qué soporta (y qué no) esta plantilla`,
 
 curl -X POST localhost:8080/render/invoice -H 'Authorization: Bearer change-me' -H 'Content-Type: application/json' \\
   -d '{"data": [{"item": "Cemento", "amount": 395}], "params": {"CUSTOMER": "Caribe"}}' -o invoice.pdf`,
-  java: `// pom.xml: repositorio https://jitpack.io y luego
-// com.github.cristianEncarnacion:ferroreport:v1.2.0
+  java: `// Maven Central: io.github.cristianencarnacion:ferroreport:1.2.0 (Java 11+, sin dependencias)
 
 Ferroreport reports = Ferroreport.local();
 byte[] pdf = reports.template(Path.of("invoice.jrxml")).rows(lines).param("CUSTOMER", "Distribuidora Caribe").render();

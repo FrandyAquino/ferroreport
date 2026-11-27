@@ -1,7 +1,8 @@
 # ferroreport for JavaScript
 
 **Reports in milliseconds from JavaScript**: a template and your data in, a PDF, an Excel
-workbook or a CSV out. It reads **JasperReports `.jrxml` templates** and runs in Node.js,
+workbook, a Word document, a PowerPoint presentation, an OpenDocument file (ODS, ODT), a CSV or
+an HTML preview out. It reads **JasperReports `.jrxml` templates** and runs in Node.js,
 Deno, Bun or the browser. No JVM: the engine is Rust compiled to WebAssembly, and a typical invoice renders
 in a few milliseconds ([benchmarks](https://github.com/cristianEncarnacion/ferroreport#performance),
 [live playground](https://cristianencarnacion.github.io/ferroreport/)). Output is verified pixel by pixel against

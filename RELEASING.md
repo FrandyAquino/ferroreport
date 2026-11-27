@@ -2,7 +2,12 @@
 
 1. Update `version` in `Cargo.toml` (workspace), `crates/ferroreport-cli/Cargo.toml` (the
    `ferroreport` dependency), `bindings/wasm/package.json`, and for Java `bindings/java/pom.xml`
-   and `Ferroreport.VERSION` (the engine release the Java library downloads).
+   and `Ferroreport.VERSION` (the engine release the Java library downloads). Then the version
+   people read, which `grep -rn '1\.2\.0' README*.md bindings/*/README.md site/` lists (put
+   the old version in): the status line of both READMEs, the Maven coordinates in the READMEs,
+   `site/docs.html`, `site/migrate.html` and the Java snippet of `site/index.html` (each also
+   under `site/es/`), "the current one" in `site/compare.html` and `site/es/compare.html`,
+   `site/llms.txt`, and the `version` of the JSON-LD in both `index.html`.
 2. Commit, then tag and push: `git tag v1.0.0 && git push origin v1.0.0` (or publish a release
    with a new tag on GitHub).
 

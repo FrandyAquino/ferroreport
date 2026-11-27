@@ -6,6 +6,27 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 
 ## Unreleased
 
+- Website: a guide to migrating from JasperReports (`migrate.html`, in English and Spanish):
+  checking a folder with `ferroreport migrate --jasper`, what to do with scriptlets, Java
+  classes and `.jasper` files, `JasperFillManager` replaced with the Java library, data
+  sources, exports, both engines side by side, and an FAQ. A comparison with JasperReports,
+  OpenPDF, OpenHTMLtoPDF with Thymeleaf, iText 8, Typst, Carbone, Apache POI and FastExcel
+  (`compare.html`, both languages), with its sources and where ferroreport is weaker. Both are
+  in the menu, the sitemap and the documentation's contents. And `llms.txt` at the site's root:
+  what ferroreport reads and writes, where rows come from, what it does not do, install lines
+  and the README's numbers, in plain text for assistants and search tools.
+- Website and READMEs: Java installs from Maven Central
+  (`io.github.cristianencarnacion:ferroreport`), not JitPack, and the Java, JavaScript and
+  Python READMEs list every output format.
+- Package descriptions on crates.io, npm, PyPI and Maven Central name every output format
+  (PDF, XLSX, DOCX, PPTX, ODS, ODT, CSV, HTML) and say that JasperReports JRXML is read without a
+  JVM; npm and PyPI have "JasperReports alternative" among their keywords, and PyPI's
+  classifiers say the package is stable. The VS Code extension's description lists every
+  format too. They change on the registries with the next release.
+- README: the compatibility table no longer lists subdataset queries as missing (tables, lists,
+  crosstabs and charts that pass `$P{REPORT_CONNECTION}` have run their SQL query since 1.0),
+  and the database section says which callers take a database and which take rows. The status
+  line names the latest release instead of "version 1.0".
 - Crosstabs: the built-in variables `ROW_COUNT`, `COLUMN_COUNT`, `IS_EVEN_ROW` and
   `IS_EVEN_COLUMN` work in cells, headers and their styles, with JasperReports' values (detail
   rows and columns counted from 1, totals not counted, null where JasperReports leaves them

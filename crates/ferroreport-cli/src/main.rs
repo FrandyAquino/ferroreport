@@ -13,7 +13,7 @@ mod signing;
 mod spool;
 
 const USAGE: &str = "\
-ferroreport — report engine: PDF, Excel, Word, OpenDocument, CSV and HTML from JasperReports JRXML templates
+ferroreport — report engine: PDF, Excel, Word, PowerPoint, OpenDocument, CSV and HTML from JasperReports JRXML templates
 or .ferro templates, no JVM required
 
 USAGE:
