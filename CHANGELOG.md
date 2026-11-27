@@ -10,6 +10,9 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   comparable 7.1.1 templates come out the same (74 before) and 42 of the 88 6.20.6 ones (41
   before); the subreport MasterReport sample is the same in both, and the 7.1.1 thermometer
   sample too, so 21 of the 24 7.1.1 chart samples are.
+- Speed: Word, Excel, ODS, ODT, PowerPoint, CSV and tagged PDF exports no longer break each plain
+  text into lines twice: the text a cell keeps is cut from the lines laid out for drawing (20,000
+  rows of 09-large to DOCX: about 6% less time). Output is byte for byte the same.
 - Every Spanish locale Java 21.0.13 has prints its own numbers and dates: `es` (`¤`, weeks from
   Sunday), es_AR, es_CO, es_CL, es_PE, es_VE, es_UY, es_EC, es_GT, es_CR, es_BO, es_PY, es_SV,
   es_HN, es_NI, es_PA, es_PR, es_CU, es_US, es_BZ, es_BR, es_PH, es_GQ, es_EA and es_IC, with
@@ -94,6 +97,9 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   defaults already are. On a machine in another zone, expressions that use the Java runtime's
   own zone (`new SimpleDateFormat(...)`, `HOUR`, `DATEFORMAT`) came out shifted in
   JasperReports only and were reported as differences.
+- Examples: a bank account statement (`examples/bank-statement/`), with a running balance,
+  debit and credit columns, monthly groups with totals and a closing summary. It renders the
+  same as in JasperReports 7.1.1.
 
 ## 1.3.0
 
