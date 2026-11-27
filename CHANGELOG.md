@@ -33,6 +33,17 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   ticks, labels only where intervals end, the value with its units under the center, the
   needle only for a value in range, and JFreeChart's colors and fonts where the template sets
   none. The `shape` (pie, chord, circle) and a JRXML 7 `<tickLabelFont>` are read.
+- `migrate --jasper` also compares every page's pixels when `pdftoppm` (poppler) is on the PATH,
+  with the threshold and measure of `tools/compare.py`, and gives the worst page's share of
+  differing ink in its summary and `--report` (JSON: `pixels`, and `worstPage`, `worstPageDiff`,
+  `pagesDiffering` for each template); `--keep` also writes the diff picture of each page that
+  differs. Without `pdftoppm` the check is skipped, with a note. Whether a template is the
+  same (`same` in the JSON, and what `--strict` fails on) still means the same pages, texts and
+  numbers, as in 1.3: the pictures are reported beside it.
+- Docs: rows from pandas, Polars and SQLAlchemy in Python (README and the Data section of the
+  documentation, in English and Spanish).
+- Tests: every template in `examples/` (the `.ferro` files and each folder's report) is
+  rendered on every push, so an example that stops rendering fails CI.
 - Portuguese number and date formats, as Java 21 has them: `pt`, `pt_BR` and `pt_PT` (other `pt_`
   tags take pt_PT's), with their separators (a no-break space between groups in Portugal),
   currency, month and day names, AM/PM ("da manhã" / "da tarde" in Portugal), short date and
