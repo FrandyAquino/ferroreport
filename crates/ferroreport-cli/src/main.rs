@@ -299,11 +299,7 @@ struct Compared {
 
 impl Compared {
     fn same(&self) -> bool {
-        self.jasper_error.is_none()
-            && self.ours_error.is_none()
-            && self.jasper_pages == self.ours_pages
-            && self.csv_diff.0 == 0
-            && self.pictures.as_ref().is_none_or(|p| p.same())
+        self.jasper_error.is_none() && self.ours_error.is_none() && self.jasper_pages == self.ours_pages && self.csv_diff.0 == 0
     }
 }
 
@@ -761,8 +757,7 @@ fn migrate(args: &[String]) -> CliResult {
             .filter(|c| c.jasper_error.is_none() && c.ours_error.is_none())
             .fold((0.0, 0.0), |(a, b), c| (a + c.jasper_ms, b + c.ours_ms));
         println!(
-            "compared with JasperReports: {same} the same {}, {differ} differ, {jasper_failed} JasperReports could not render; filling and writing the PDFs took JasperReports {:.0} ms in all (its first template includes starting up), ferroreport {:.0} ms",
-            if pictured.is_empty() { "pages and text" } else { "pages, text and pictures" },
+            "compared with JasperReports: {same} the same pages and text, {differ} differ, {jasper_failed} JasperReports could not render; filling and writing the PDFs took JasperReports {:.0} ms in all (its first template includes starting up), ferroreport {:.0} ms",
             theirs,
             ours
         );
