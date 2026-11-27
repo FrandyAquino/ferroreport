@@ -97,7 +97,7 @@ public final class Report {
         return this;
     }
 
-    /** Number and date formatting: {@code en_US} (the default), {@code es_DO}, {@code es_MX}, {@code es_ES}... */
+    /** Number and date formatting: {@code en_US} (the default), {@code es_DO}, {@code es_MX}, {@code es_ES}, {@code fr_FR}, {@code fr_CA}... */
     public Report locale(String tag) {
         this.locale = Objects.requireNonNull(tag, "tag");
         return this;
