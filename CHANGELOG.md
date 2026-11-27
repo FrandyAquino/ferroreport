@@ -94,6 +94,9 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 - Examples: a bank account statement (`examples/bank-statement/`), with a running balance,
   debit and credit columns, monthly groups with totals and a closing summary. It renders the
   same as in JasperReports 7.1.1.
+- Tests: the bank statement example is also a fixture (`fixtures/65-bank-statement`, in JRXML 6),
+  so CI keeps its page count and `tools/compare.py` compares it with JasperReports 6.20.6, which
+  renders it the same, pixel for pixel.
 
 ## 1.3.0
 
