@@ -97,6 +97,39 @@ pub const FR_CA: Locale = Locale {
 /// separator (see [`Locale::monetary_decimal_separator`]).
 pub const FR_CH: Locale = Locale { tag: "fr_CH", currency_symbol: "CHF", ..FR };
 
+/// Italian without a country, as Java 21 has it: Italy's symbols with the generic currency sign
+/// `¤`.
+pub const IT: Locale = Locale {
+    tag: "it",
+    decimal_separator: ',',
+    grouping_separator: '.',
+    currency_symbol: "\u{A4}",
+    months: [
+        "gennaio",
+        "febbraio",
+        "marzo",
+        "aprile",
+        "maggio",
+        "giugno",
+        "luglio",
+        "agosto",
+        "settembre",
+        "ottobre",
+        "novembre",
+        "dicembre",
+    ],
+    short_months: ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"],
+    weekdays: ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"],
+    short_weekdays: ["dom", "lun", "mar", "mer", "gio", "ven", "sab"],
+    am_pm: ["AM", "PM"],
+};
+
+pub const IT_IT: Locale = Locale { tag: "it_IT", currency_symbol: "€", ..IT };
+
+/// Italian (Switzerland): a point for decimals and a right single quote (U+2019) between groups.
+pub const IT_CH: Locale =
+    Locale { tag: "it_CH", decimal_separator: '.', grouping_separator: '\u{2019}', currency_symbol: "SFr.", ..IT };
+
 impl Locale {
     /// The decimal separator of a pattern with a currency sign (`¤`), Java's
     /// `DecimalFormatSymbols.getMonetaryDecimalSeparator`: a point in French Switzerland, the
@@ -121,6 +154,9 @@ impl Locale {
             "fr_CA" => &FR_CA,
             "fr_CH" => &FR_CH,
             _ if norm == "fr_FR" || norm.starts_with("fr_") => &FR_FR,
+            "it" => &IT,
+            "it_CH" => &IT_CH,
+            _ if norm == "it_IT" || norm.starts_with("it_") => &IT_IT,
             _ => &EN_US,
         }
     }
@@ -274,6 +310,68 @@ mod tests {
         assert_eq!(Locale::from_tag("fr_LU").tag, "fr_FR");
         // A currency pattern keeps the decimal separator where it is the monetary one too.
         assert_eq!(format_value(&Value::Double(1234.5), Some("\u{A4} #,##0.00"), Locale::from_tag("es_ES")), "€ 1.234,50");
+    }
+
+    /// What Java 21.0.13 prints for Italian, for -1234567.5 and 5 July 2026 14:07:09 (the
+    /// patterns of `french_is_javas`) and a date without a pattern.
+    #[test]
+    fn italian_is_javas() {
+        use crate::format::format_value;
+        use crate::value::Value;
+        let when = chrono::NaiveDate::from_ymd_opt(2026, 7, 5).unwrap().and_hms_opt(14, 7, 9).unwrap();
+        let cases = [
+            (
+                "it",
+                [
+                    "-1.234.567,50",
+                    "-\u{A4} 1.234.567,50",
+                    "-1.234.567,50 \u{A4}",
+                    "domenica 5 luglio 2026",
+                    "dom 5 lug 26",
+                    "2:07 PM",
+                    "05/07/26, 14:07",
+                ],
+            ),
+            (
+                "it_IT",
+                [
+                    "-1.234.567,50",
+                    "-\u{20AC} 1.234.567,50",
+                    "-1.234.567,50 \u{20AC}",
+                    "domenica 5 luglio 2026",
+                    "dom 5 lug 26",
+                    "2:07 PM",
+                    "05/07/26, 14:07",
+                ],
+            ),
+            (
+                "it_CH",
+                [
+                    "-1\u{2019}234\u{2019}567.50",
+                    "-SFr. 1\u{2019}234\u{2019}567.50",
+                    "-1\u{2019}234\u{2019}567.50 SFr.",
+                    "domenica 5 luglio 2026",
+                    "dom 5 lug 26",
+                    "2:07 PM",
+                    "05.07.26, 14:07",
+                ],
+            ),
+        ];
+        let patterns =
+            ["#,##0.00", "\u{A4} #,##0.00", "#,##0.00 \u{A4};-#,##0.00 \u{A4}", "EEEE d MMMM yyyy", "EEE d MMM yy", "h:mm a"];
+        for (tag, expected) in cases {
+            for alias in [tag.to_string(), tag.replace('_', "-")] {
+                let locale = Locale::from_tag(&alias);
+                assert_eq!(locale.tag, tag);
+                for (i, pattern) in patterns.iter().enumerate() {
+                    let value = if i < 3 { Value::Double(-1234567.5) } else { Value::Date(when) };
+                    assert_eq!(format_value(&value, Some(pattern), locale), expected[i], "{tag} {pattern}");
+                }
+                assert_eq!(format_value(&Value::Date(when), None, locale), expected[6], "{tag} short");
+            }
+        }
+        // San Marino and the Vatican take Italy's.
+        assert_eq!(Locale::from_tag("it_SM").tag, "it_IT");
     }
 
     #[test]

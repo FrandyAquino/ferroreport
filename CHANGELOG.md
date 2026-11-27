@@ -33,6 +33,11 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   ticks, labels only where intervals end, the value with its units under the center, the
   needle only for a value in range, and JFreeChart's colors and fonts where the template sets
   none. The `shape` (pie, chord, circle) and a JRXML 7 `<tickLabelFont>` are read.
+- Italian number and date formats, as Java 21 has them: `it`, `it_IT` and `it_CH` (other `it_`
+  tags take it_IT's), with their separators (in Switzerland a point for decimals and `’` between
+  groups), currency, month and day names, short date and time, `TIME()` without a pattern, and
+  weeks starting on Monday in `DATERANGE("WEEK")` for Italy and Switzerland. Before, these
+  locales printed `en_US`'s.
 
 ## 1.3.0
 
