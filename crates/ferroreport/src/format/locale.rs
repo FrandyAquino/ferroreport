@@ -98,6 +98,40 @@ pub const FR_CA: Locale = Locale {
 /// separator (see [`Locale::monetary_decimal_separator`]).
 pub const FR_CH: Locale = Locale { tag: "fr_CH", currency_symbol: "CHF", ..FR };
 
+const PT_MONTHS: [&str; 12] =
+    ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const PT_SHORT_MONTHS: [&str; 12] =
+    ["jan.", "fev.", "mar.", "abr.", "mai.", "jun.", "jul.", "ago.", "set.", "out.", "nov.", "dez."];
+const PT_WEEKDAYS: [&str; 7] =
+    ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
+
+/// Portuguese without a country, as Java 21 has it: Brazil's symbols with the generic currency
+/// sign `¤`.
+pub const PT: Locale = Locale {
+    tag: "pt",
+    decimal_separator: ',',
+    grouping_separator: '.',
+    currency_symbol: "\u{A4}",
+    months: PT_MONTHS,
+    short_months: PT_SHORT_MONTHS,
+    weekdays: PT_WEEKDAYS,
+    short_weekdays: ["dom.", "seg.", "ter.", "qua.", "qui.", "sex.", "sáb."],
+    am_pm: ["AM", "PM"],
+};
+
+pub const PT_BR: Locale = Locale { tag: "pt_BR", currency_symbol: "R$", ..PT };
+
+/// Portuguese (Portugal): a no-break space between groups, short day names without the
+/// "-feira", and "da manhã" / "da tarde" for AM/PM.
+pub const PT_PT: Locale = Locale {
+    tag: "pt_PT",
+    grouping_separator: '\u{A0}',
+    currency_symbol: "€",
+    short_weekdays: ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"],
+    am_pm: ["da manhã", "da tarde"],
+    ..PT
+};
+
 impl Locale {
     /// The decimal separator of a pattern with a currency sign (`¤`), Java's
     /// `DecimalFormatSymbols.getMonetaryDecimalSeparator`: a point in French Switzerland, the
@@ -122,6 +156,10 @@ impl Locale {
             "fr_CA" => &FR_CA,
             "fr_CH" => &FR_CH,
             _ if norm == "fr_FR" || norm.starts_with("fr_") => &FR_FR,
+            "pt" => &PT,
+            "pt_BR" => &PT_BR,
+            // Portugal's conventions are those of the other Portuguese-speaking countries.
+            _ if norm == "pt_PT" || norm.starts_with("pt_") => &PT_PT,
             _ => &EN_US,
         }
     }
@@ -332,6 +370,68 @@ mod tests {
             }
             assert_eq!(format_value(&Value::Date(when), None, locale), expected[6], "{tag} short");
         }
+    }
+
+    /// What Java 21.0.13 prints for Portuguese, for -1234567.5 and 5 July 2026 14:07:09 (the
+    /// patterns of `french_is_javas`) and a date without a pattern.
+    #[test]
+    fn portuguese_is_javas() {
+        use crate::format::format_value;
+        use crate::value::Value;
+        let when = chrono::NaiveDate::from_ymd_opt(2026, 7, 5).unwrap().and_hms_opt(14, 7, 9).unwrap();
+        let cases = [
+            (
+                "pt",
+                [
+                    "-1.234.567,50",
+                    "-\u{A4} 1.234.567,50",
+                    "-1.234.567,50 \u{A4}",
+                    "domingo 5 julho 2026",
+                    "dom. 5 jul. 26",
+                    "2:07 PM",
+                    "05/07/2026 14:07",
+                ],
+            ),
+            (
+                "pt_BR",
+                [
+                    "-1.234.567,50",
+                    "-R$ 1.234.567,50",
+                    "-1.234.567,50 R$",
+                    "domingo 5 julho 2026",
+                    "dom. 5 jul. 26",
+                    "2:07 PM",
+                    "05/07/2026 14:07",
+                ],
+            ),
+            (
+                "pt_PT",
+                [
+                    "-1\u{A0}234\u{A0}567,50",
+                    "-\u{20AC} 1\u{A0}234\u{A0}567,50",
+                    "-1\u{A0}234\u{A0}567,50 \u{20AC}",
+                    "domingo 5 julho 2026",
+                    "domingo 5 jul. 26",
+                    "2:07 da tarde",
+                    "05/07/26, 14:07",
+                ],
+            ),
+        ];
+        let patterns =
+            ["#,##0.00", "\u{A4} #,##0.00", "#,##0.00 \u{A4};-#,##0.00 \u{A4}", "EEEE d MMMM yyyy", "EEE d MMM yy", "h:mm a"];
+        for (tag, expected) in cases {
+            for alias in [tag.to_string(), tag.replace('_', "-")] {
+                let locale = Locale::from_tag(&alias);
+                assert_eq!(locale.tag, tag);
+                for (i, pattern) in patterns.iter().enumerate() {
+                    let value = if i < 3 { Value::Double(-1234567.5) } else { Value::Date(when) };
+                    assert_eq!(format_value(&value, Some(pattern), locale), expected[i], "{tag} {pattern}");
+                }
+                assert_eq!(format_value(&Value::Date(when), None, locale), expected[6], "{tag} short");
+            }
+        }
+        // Angola, Mozambique and the others write numbers and dates as Portugal does.
+        assert_eq!(Locale::from_tag("pt_AO").tag, "pt_PT");
     }
 
     #[test]

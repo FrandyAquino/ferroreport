@@ -62,6 +62,10 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   short date and time of a date without a pattern for es_DO (`5/7/26, 2:07 p. m.`) and es_MX
   (`05/07/26, 14:07`), and `TIME()` without a pattern for es_DO (`10:30:15 a. m. UTC`) and
   es_MX (`10:30:15 UTC`).
+- Portuguese number and date formats, as Java 21 has them: `pt`, `pt_BR` and `pt_PT` (other `pt_`
+  tags take pt_PT's), with their separators (a no-break space between groups in Portugal),
+  currency, month and day names, AM/PM ("da manhã" / "da tarde" in Portugal), short date and
+  time and `TIME()` without a pattern. Before, these locales printed `en_US`'s.
 
 ## 1.3.0
 

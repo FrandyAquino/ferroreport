@@ -19,6 +19,8 @@ pub fn short_date_time(locale: &Locale) -> &'static str {
         "fr_BE" => "d/MM/yy HH:mm",
         "fr_CA" => "y-MM-dd HH 'h' mm",
         "fr_CH" => "dd.MM.yy HH:mm",
+        "pt" | "pt_BR" => "dd/MM/y HH:mm",
+        "pt_PT" => "dd/MM/yy, HH:mm",
         "es_DO" => "d/M/yy, h:mm\u{202F}a",
         "es_MX" => "dd/MM/yy, HH:mm",
         t if t.starts_with("es") => "d/M/yy, H:mm",

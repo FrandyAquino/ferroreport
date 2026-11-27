@@ -359,3 +359,17 @@ fn spanish_time_without_a_pattern() {
         assert_eq!(run("TIME(23, 5, 9)"), evening, "{tag}");
     }
 }
+
+/// `TIME()` without a pattern in Portuguese (Java 21.0.13,
+/// `DateTimeFormatter.ofLocalizedTime(FormatStyle.LONG)`).
+#[test]
+fn portuguese_time_without_a_pattern() {
+    let now = chrono::NaiveDate::from_ymd_opt(2026, 11, 23).unwrap().and_hms_opt(4, 54, 18).unwrap();
+    for tag in ["pt", "pt_BR", "pt_PT"] {
+        let locale = ferroreport::format::Locale::from_tag(tag);
+        let env = EvalEnv { locale, groovy: false, now };
+        let run = |src: &str| format_value(&eval(&parse_expr(src, false).unwrap(), &Empty, &env).unwrap(), None, locale);
+        assert_eq!(run("TIME(10, 30, 15)"), "10:30:15 UTC", "{tag}");
+        assert_eq!(run("TIME(23, 5, 9)"), "23:05:09 UTC", "{tag}");
+    }
+}
