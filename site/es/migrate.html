@@ -102,8 +102,10 @@
       <p>Con <code>--jasper lib/</code>, cada plantilla que carga también se genera con JasperReports (los jars de esa carpeta, con el
         <code>java</code> de la máquina) y con ferroreport, a partir de las mismas filas (<code>&lt;nombre&gt;.json</code> o
         <code>data.json</code>) y parámetros (<code>&lt;nombre&gt;.params.json</code> o <code>params.json</code>), y se comparan: el número de
-        páginas, cada texto y número en su lugar (sus exportaciones a CSV, línea por línea) y el tiempo de cada uno.
-        <code>--keep comparacion/</code> guarda los dos PDF y los dos CSV de cada plantilla para que los mires lado a lado. No se escribe nada
+        páginas, cada texto y número en su lugar (sus exportaciones a CSV, línea por línea), los píxeles de cada página (con
+        <code>pdftoppm</code> en el PATH, como lo hace <code>tools/compare.py</code>; se da la proporción de tinta que difiere en la peor
+        página) y el tiempo de cada uno. <code>--keep comparacion/</code> guarda los dos PDF y los dos CSV de cada plantilla, y la imagen de
+        diferencias de cada página que difiere, para que los mires lado a lado. No se escribe nada
         junto a tus plantillas.</p>
       <p>Esto imprimió para una carpeta con tres plantillas: una factura con sus filas, la misma factura con un scriptlet y una lista cuya
         consulta es HQL (sin los tiempos; JasperReports no pudo generar la segunda porque la clase del scriptlet no estaba entre sus jars):</p>
