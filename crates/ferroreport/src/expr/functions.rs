@@ -8,7 +8,7 @@ use crate::error::{Error, Result};
 use crate::format::date::format_date;
 use crate::format::locale::Locale;
 use crate::value::{java_double_to_string, java_float_to_string, DateRange, Value};
-use chrono::{Datelike, Duration, Months, NaiveDate, NaiveDateTime, NaiveTime, Timelike};
+use chrono::{Datelike, Duration, Months, NaiveDate, NaiveDateTime, NaiveTime, Timelike, Weekday};
 use rust_decimal::{Decimal, RoundingStrategy};
 use std::sync::Arc;
 
@@ -434,9 +434,15 @@ pub fn call(name: &str, args: Vec<Value>, env: &EvalEnv) -> Result<Value> {
             let time = NaiveTime::from_hms_opt(h as u32, m as u32, s as u32)
                 .ok_or_else(|| fail(name, format!("DateTimeException: {h}:{m}:{s} is not a time")))?;
             let at = NaiveDate::from_ymd_opt(1970, 1, 1).unwrap_or_default().and_time(time);
-            // DateFormat.getTimeInstance(LONG) when no pattern is given.
+            // DateTimeFormatter.ofLocalizedTime(FormatStyle.LONG) when no pattern is given.
             let pattern = match text(&a(3)) {
                 Some(p) => p,
+                None if env.locale.tag == "es_DO" => "h:mm:ss\u{202F}a z".to_string(),
+                None if env.locale.tag == "es_MX" => "HH:mm:ss z".to_string(),
+                None if matches!(env.locale.tag, "fr" | "fr_FR" | "fr_BE" | "fr_CH") => "HH:mm:ss z".to_string(),
+                None if env.locale.tag == "fr_CA" => "HH 'h' mm 'min' ss 's' z".to_string(),
+                None if env.locale.tag == "es_419" => "HH:mm:ss z".to_string(),
+                None if ["pt", "it", "de"].iter().any(|p| env.locale.tag.starts_with(p)) => "HH:mm:ss z".to_string(),
                 None if env.locale.tag.starts_with("es") => "H:mm:ss z".to_string(),
                 None => "h:mm:ss\u{202F}a z".to_string(),
             };
@@ -472,8 +478,19 @@ pub fn call(name: &str, args: Vec<Value>, env: &EvalEnv) -> Result<Value> {
                         365
                     }
                 }
-                "WEEKNUM" => week_of_year(d.date(), env.locale),
-                _ => week_of_year(NaiveDate::from_ymd_opt(d.year(), 12, 31).unwrap_or_default(), env.locale),
+                // ChronoField.ALIGNED_WEEK_OF_YEAR: days 1-7 of the year are week 1, whatever the
+                // locale, as JasperReports' WEEKNUM reads it.
+                "WEEKNUM" => d.ordinal0() as i32 / 7 + 1,
+                // JasperReports' WEEKSINYEAR: 53 when the year starts on a Thursday, or on a
+                // Wednesday in a leap year (as ISO weeks have it), 52 otherwise.
+                _ => {
+                    let jan1 = NaiveDate::from_ymd_opt(d.year(), 1, 1).unwrap_or_default().weekday();
+                    if jan1 == Weekday::Thu || (jan1 == Weekday::Wed && is_leap(d.year())) {
+                        53
+                    } else {
+                        52
+                    }
+                }
             }))
         }
         "ISLEAPYEAR" => {
@@ -652,29 +669,13 @@ fn parse_prefix(text: &str) -> Option<NaiveDateTime> {
     Some(date.and_time(time.unwrap_or(NaiveTime::MIN)))
 }
 
-/// The day weeks start on (0 = Sunday), as `java.time.temporal.WeekFields.of(locale)` says.
+/// The day weeks start on (0 = Sunday) for `DATERANGE("WEEK")`, as
+/// `Calendar.getInstance(locale).getFirstDayOfWeek()` says (JasperReports' RelativeDateRange).
 fn first_day_of_week(locale: &Locale) -> u32 {
     match locale.tag {
-        "es_ES" => 1,
+        "es_ES" | "fr_FR" | "fr_BE" | "fr_CH" | "it_IT" | "it_CH" | "de_DE" | "de_AT" | "de_CH" => 1,
         _ => 0,
     }
-}
-
-/// The days a first week must have in the new year to be week 1.
-fn minimal_days(locale: &Locale) -> i64 {
-    match locale.tag {
-        "es_ES" => 4,
-        _ => 1,
-    }
-}
-
-/// `WeekFields.of(locale).weekOfYear()`: week 0 holds the days before the first full week.
-fn week_of_year(d: NaiveDate, locale: &Locale) -> i32 {
-    let jan1 = NaiveDate::from_ymd_opt(d.year(), 1, 1).unwrap_or(d);
-    let offset = (jan1.weekday().num_days_from_sunday() as i64 - first_day_of_week(locale) as i64).rem_euclid(7);
-    let week = (d.ordinal0() as i64 + offset) / 7;
-    let first_is_week_one = 7 - offset >= minimal_days(locale);
-    (week + first_is_week_one as i64) as i32
 }
 
 /// `ChronoUnit.MONTHS.between`: whole months, toward zero.

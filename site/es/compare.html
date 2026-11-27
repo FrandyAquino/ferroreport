@@ -93,9 +93,9 @@
         compiladas y llenadas desde una fuente de datos, con exportadores a PDF, HTML, Excel, Word, PowerPoint, OpenDocument, RTF, CSV, XML y
         texto. Tiene un largo historial en producción, una comunidad grande, y Jaspersoft Studio y Server a su alrededor.</p>
       <p><b>Frente a él, ferroreport</b> genera las mismas plantillas sin JVM y da las mismas páginas, píxel por píxel, en cada plantilla de
-        prueba comparable de su repositorio. El README lo mide unas 200 veces más rápido arrancando en frío (una factura de 2 páginas: 2.63 s y
-        191 MiB con JasperReports 6.20.6, 11 ms y 15 MiB con ferroreport) y de 3 a 5 veces más rápido que una JVM ya caliente (esa factura:
-        8.0 ms frente a 2.2 ms), y un millón de filas en 12.02 s y 15 MiB frente a 68.34 s y 1,737 MiB. Las plantillas no pueden ejecutar
+        prueba comparable de su repositorio. El README lo mide unas 200 veces más rápido arrancando en frío (una factura de 2 páginas: 2.90 s y
+        195 MiB con JasperReports 6.20.6, 11 ms y 18 MiB con ferroreport) y de 3 a 5 veces más rápido que una JVM ya caliente (esa factura:
+        9.0 ms frente a 2.8 ms), y un millón de filas en 17.91 s y 18 MiB frente a 79.77 s y 1,731 MiB. Las plantillas no pueden ejecutar
         código: las expresiones salen de una lista cerrada y nada se deserializa. <b>No</b> ejecuta scriptlets ni clases Java tuyas, no carga
         archivos <code>.jasper</code>, no escribe XLS, RTF, XML ni texto, y no tiene servidor de reportes. La
         <a href="migrate.html">guía de migración</a> explica cómo pasar un proyecto.</p>
@@ -169,7 +169,7 @@
         <li><b>Herramientas.</b> No tiene servidor de reportes, visores ni tableros, y su diseñador en el navegador es una primera versión
           (campos, textos, formas, imágenes, estilos; aún sin gráficos, tablas ni grupos). Jaspersoft Studio sigue sirviendo para sus
           plantillas.</li>
-        <li><b>Cobertura.</b> No escribe XLS, RTF, XML ni texto; formatos de números y fechas solo para en_US, es_DO, es_MX, es_ES y francés; solo
+        <li><b>Cobertura.</b> No escribe XLS, RTF, XML ni texto; formatos de números y fechas solo para en_US, es_DO, es_MX, es_ES, francés, portugués, italiano y alemán; solo
           consultas SQL (no HQL, XPath ni MDX), en PostgreSQL, MySQL y MariaDB, SQL Server y SQLite; no lee ni edita PDF ni libros de Excel
           existentes.</li>
       </ul>

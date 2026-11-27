@@ -11,6 +11,14 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   the range marks where each range starts in green, orange and red, the axis with whole-number
   ticks, and the value in the bulb or beside the stem. JRXML 7 ranges (`<lowRange>` without a
   `<dataRange>`) are read, and a thermometer without `mercuryColor` takes its range's color.
+- Benchmarks measured again with 1.3, against JasperReports 6.20.6 and 7.1.1 (README, website,
+  `docs/benchmarks*.json`). The machine was slower in this run (JasperReports itself took 10 to
+  30% longer), so the times are higher than 1.1.0's. Built on the same machine and run
+  alternately, 1.3.0 is within a few percent of 1.1.0 (8% at most), except Word (DOCX) export of
+  20,000 rows, about 17% slower, and ODS and ODT of 100,000 rows, slower by design since 1.2 in
+  exchange for a fraction of the memory (67 and 40 MiB instead of 248 and 264). The peak memory
+  of the same binary moves by a few MiB with the state of the page cache (the invoice: 15 MiB in
+  that comparison, 18 MiB in the published run).
 - Build: simplify two boolean expressions, in DataMatrix encoding and JRXML element parsing, that
   Clippy on Rust 1.96 reports. Rendering is unchanged.
 - A subreport or table whose report prints nothing (no rows, `whenNoDataType="NoPages"`)
@@ -44,6 +52,34 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   documentation, in English and Spanish).
 - Tests: every template in `examples/` (the `.ferro` files and each folder's report) is
   rendered on every push, so an example that stops rendering fails CI.
+- Functions: `WEEKNUM` counts aligned weeks (days 1-7 of the year are week 1) and
+  `WEEKSINYEAR` gives 53 only when the year starts on a Thursday, or a Wednesday in a leap year,
+  as JasperReports' functions do, whatever the locale. Before, both followed the locale's weeks
+  (`WEEKNUM(DATE(2026,1,4))` was 2, `WEEKSINYEAR` of 2025 was 53). In French, `TIME()` without a
+  pattern prints `10:30:15 UTC` (`10 h 30 min 15 s UTC` in Canada), and `DATERANGE("WEEK")`
+  starts on Monday in France, Belgium and Switzerland.
+- Spanish locales print what Java 21.0.13 prints: AM/PM with a no-break space (`p. m.`), the
+  short date and time of a date without a pattern for es_DO (`5/7/26, 2:07 p. m.`) and es_MX
+  (`05/07/26, 14:07`), and `TIME()` without a pattern for es_DO (`10:30:15 a. m. UTC`) and
+  es_MX (`10:30:15 UTC`). The other Spanish tags (`es_419`, `es_AR`, `es_UY`...) keep es_DO's
+  numbers with Java's 24-hour clock (`5/7/26, 14:07`, `TIME()` `10:30:15 UTC`) and are
+  `es_419` in `REPORT_LOCALE` and the PDF's language (before `es_DO`, and `es_MX` for
+  `es_419`, whose currency sign is now `RD$` instead of `$`).
+- Portuguese number and date formats, as Java 21 has them: `pt`, `pt_BR` and `pt_PT` (other `pt_`
+  tags take pt_PT's), with their separators (a no-break space between groups in Portugal),
+  currency, month and day names, AM/PM ("da manhã" / "da tarde" in Portugal), short date and
+  time and `TIME()` without a pattern. Before, these locales printed `en_US`'s.
+- Italian number and date formats, as Java 21 has them: `it`, `it_IT` and `it_CH` (other `it_`
+  tags take it_IT's), with their separators (in Switzerland a point for decimals and `’` between
+  groups), currency, month and day names, short date and time, `TIME()` without a pattern, and
+  weeks starting on Monday in `DATERANGE("WEEK")` for Italy and Switzerland. Before, these
+  locales printed `en_US`'s.
+- German number and date formats, as Java 21 has them: `de`, `de_DE`, `de_AT` and `de_CH`
+  (`de_LI` takes de_CH's, other `de_` tags de_DE's), with their separators (in Austria a
+  no-break space between groups and a point in amounts with a currency, in Switzerland a point
+  for decimals and `’` between groups), currency, month and day names (Austria's "Jänner"),
+  short date and time, `TIME()` without a pattern, and weeks starting on Monday in
+  `DATERANGE("WEEK")`. Before, these locales printed `en_US`'s.
 - Examples: a bank account statement (`examples/bank-statement/`), with a running balance,
   debit and credit columns, monthly groups with totals and a closing summary. It renders the
   same as in JasperReports 7.1.1.

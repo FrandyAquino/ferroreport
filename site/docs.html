@@ -374,7 +374,7 @@ ferroreport serve [options]</pre>
         <tr><td><code>--max-row &lt;MB&gt;</code></td><td>Stops at a row of data larger than this. Default 256</td></tr>
         <tr><td><code>--db &lt;url&gt;</code></td><td>Fills the report from its own SQL query, and its subreports from theirs (<code>FERROREPORT_DB</code>; password in <code>FERROREPORT_DB_PASSWORD</code>). See <a href="#database">Rows from a database</a></td></tr>
         <tr><td><code>--timeout &lt;seconds&gt;</code></td><td>Stops if the render takes longer than this</td></tr>
-        <tr><td><code>-l, --locale &lt;tag&gt;</code></td><td>Number and date formatting: <code>en_US</code> (default), <code>es_DO</code>, <code>es_MX</code>, <code>es_ES</code>, <code>fr</code>, <code>fr_FR</code>, <code>fr_BE</code>, <code>fr_CA</code>, <code>fr_CH</code></td></tr>
+        <tr><td><code>-l, --locale &lt;tag&gt;</code></td><td>Number and date formatting: <code>en_US</code> (default), <code>es_DO</code>, <code>es_MX</code>, <code>es_ES</code>, <code>fr</code>, <code>fr_FR</code>, <code>fr_BE</code>, <code>fr_CA</code>, <code>fr_CH</code>, <code>pt</code>, <code>pt_BR</code>, <code>pt_PT</code>, <code>it</code>, <code>it_IT</code>, <code>it_CH</code>, <code>de</code>, <code>de_DE</code>, <code>de_AT</code>, <code>de_CH</code></td></tr>
         <tr><td><code>--font Family=file.ttf[:bold][:italic]</code></td><td>Registers an extra font. Repeat it for each style</td></tr>
         <tr><td><code>--font-set "Name=Family,Family"</code></td><td>Defines a font set, as a JasperReports font extension does. See <a href="#fonts">Fonts</a></td></tr>
         <tr><td><code>--font-fallback</code></td><td>Draws characters a text's font lacks in another font that has them. See <a href="#fonts">Fonts</a></td></tr>
@@ -478,7 +478,7 @@ compared with JasperReports: 46 the same pages and text, 0 differ, 2 JasperRepor
         <tr><th>Key</th><th>Meaning</th></tr>
         <tr><td><code>data</code></td><td>Array of rows. For more rows than you want in memory, send them <a href="#http-large">one per line</a> instead</td></tr>
         <tr><td><code>params</code></td><td>Object of parameter values</td></tr>
-        <tr><td><code>locale</code></td><td><code>en_US</code> (default), <code>es_DO</code>, <code>es_MX</code>, <code>es_ES</code>, <code>fr</code>, <code>fr_FR</code>, <code>fr_BE</code>, <code>fr_CA</code>, <code>fr_CH</code></td></tr>
+        <tr><td><code>locale</code></td><td><code>en_US</code> (default), <code>es_DO</code>, <code>es_MX</code>, <code>es_ES</code>, <code>fr</code>, <code>fr_FR</code>, <code>fr_BE</code>, <code>fr_CA</code>, <code>fr_CH</code>, <code>pt</code>, <code>pt_BR</code>, <code>pt_PT</code>, <code>it</code>, <code>it_IT</code>, <code>it_CH</code>, <code>de</code>, <code>de_DE</code>, <code>de_AT</code>, <code>de_CH</code></td></tr>
         <tr><td><code>now</code></td><td>Fixed value of <code>new Date()</code>, ISO-8601</td></tr>
         <tr><td><code>format</code></td><td><code>html</code> returns a <a href="#html">web preview</a>; <code>pdf</code> (default), <code>xlsx</code> (returns <code>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</code>), <code>docx</code>, <code>pptx</code> (<code>application/vnd.openxmlformats-officedocument.presentationml.presentation</code>), <code>ods</code> (<code>application/vnd.oasis.opendocument.spreadsheet</code>), <code>odt</code> (<code>application/vnd.oasis.opendocument.text</code>) or <code>csv</code> (<code>text/csv</code>). Also accepted in the URL: <code>/render/invoice?format=xlsx</code></td></tr>
         <tr><td><code>tagged</code></td><td><code>true</code> for a tagged PDF. See <a href="#tagged">Accessible PDFs</a></td></tr>
@@ -870,8 +870,8 @@ std::fs::write("invoice.pdf", pdf)?;</pre>
         day names, AM/PM, two-digit years or milliseconds (they stay text), the per-mille sign in number styles, and upside-down text in ODT.</p>
       <p>Large reports are written as they are made, in about the memory of a small one. A document's styles come before its body
         in the file, so a large report is filled once more first to find them (a spreadsheet three times in all: its columns, its
-        styles, its rows; a text twice), and its rows are then compressed and written as they come: 100,000 rows in 68 MiB as ODS
-        and 37 MiB as ODT, a million rows in 37 MiB as ODT. That needs rows that can be read again, as for
+        styles, its rows; a text twice), and its rows are then compressed and written as they come: 100,000 rows in 69 MiB as ODS
+        and 39 MiB as ODT, a million rows in 41 MiB as ODT. That needs rows that can be read again, as for
         <a href="#large">large workbooks</a>; rows that can only be read once still give the document, kept in memory until
         it is written.</p>
 
@@ -964,7 +964,7 @@ ferroreport render invoice.jrxml -d rows.json -o invoice.pdf --sign-key key.pem 
 
       <h2 id="large">Large reports and limits</h2>
       <p>A report does not have to fit in memory. Rows are read as the report asks for them and each page is written as soon as it
-        is finished, so a million rows and 23,810 pages render in about 16 MB, at about 80,000 rows a second on one core.</p>
+        is finished, so a million rows and 23,810 pages render in about 19 MB, at about 55,000 rows a second on one core.</p>
       <table>
         <tr><th>From</th><th>How</th></tr>
         <tr><td>Command line</td><td>Nothing to do: <code>ferroreport render sales.jrxml -d sales.json -o sales.pdf</code> already reads and writes as it goes. The rows can be a JSON array or one object per line, from a file or from standard input</td></tr>
@@ -978,11 +978,11 @@ ferroreport render invoice.jrxml -d rows.json -o invoice.pdf --sign-key key.pem 
       <ul>
         <li><b>PDF and CSV</b> are written page by page. So are <b>Excel</b> workbooks, in two passes: the columns of a sheet come from
           every page, so a large report is filled once to find them and once more to write its rows, which are compressed and sent on
-          as they are made (100,000 rows: about 3 s and 66 MiB; 500,000: 15 s and 116 MiB). That needs rows that can be read twice: a
+          as they are made (100,000 rows: about 4.5 s and 69 MiB; 500,000: 22 s and 103 MiB). That needs rows that can be read twice: a
           file, or rows the command line, the server, Python and Java put aside for you; in Rust, <code>render_rows_to</code>. Small
           workbooks are still filled once. A report with more rows than a sheet holds (1,048,576) stops with an error that says so.
-          <b>OpenDocument</b> files are written as they are made too, filled once more first to find their styles (100,000 rows: 68 MiB
-          as ODS, 37 MiB as ODT; a million rows as ODT: 37 MiB).</li>
+          <b>OpenDocument</b> files are written as they are made too, filled once more first to find their styles (100,000 rows: 69 MiB
+          as ODS, 39 MiB as ODT; a million rows as ODT: 41 MiB).</li>
         <li><b>Values known only later</b>, such as "page 3 of 240", a grand total in the title or a group total in the group header, are
           added to their page when they are known, without holding the page back. If something is drawn over such a value, its page waits
           for it instead, so the result is always the same document.</li>
@@ -1092,7 +1092,7 @@ ferroreport.render_to_file("sales.jrxml", "sales.pdf", rows)</pre>
 
       <h2 id="locale">Locale and dates</h2>
       <p>The locale decides how patterns such as <code>#,##0.00</code> and <code>dd MMMM yyyy</code> are written: decimal and grouping
-        separators, month and day names. Supported: <code>en_US</code>, <code>es_DO</code>, <code>es_MX</code>, <code>es_ES</code>, <code>fr</code>, <code>fr_FR</code>, <code>fr_BE</code>, <code>fr_CA</code>, <code>fr_CH</code>.</p>
+        separators, month and day names. Supported: <code>en_US</code>, <code>es_DO</code>, <code>es_MX</code>, <code>es_ES</code>, <code>fr</code>, <code>fr_FR</code>, <code>fr_BE</code>, <code>fr_CA</code>, <code>fr_CH</code>, <code>pt</code>, <code>pt_BR</code>, <code>pt_PT</code>, <code>it</code>, <code>it_IT</code>, <code>it_CH</code>, <code>de</code>, <code>de_DE</code>, <code>de_AT</code>, <code>de_CH</code>.</p>
       <p>Dates are kept as written, without time zone conversion. <code>new Date()</code> in an expression is the current time, unless you
         fix it with <code>now</code>, which makes the output byte-for-byte reproducible.</p>
 
