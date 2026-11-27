@@ -14,6 +14,8 @@ if [ ! -f "$OUT/Oracle.class" ] || [ "$DIR/Oracle.java" -nt "$OUT/Oracle.class" 
   mkdir -p "$OUT"
   javac --release 17 -proc:none -nowarn -cp "$LIB/*" -d "$OUT" "$DIR/Oracle.java" 2>&1 | grep -v "Picked up" || true
 fi
-# The Java runtime's logical fonts (SansSerif...) as on a stock Linux server: DejaVu.
+# The Java runtime's logical fonts (SansSerif...) as on a stock Linux server: DejaVu. The time
+# zone is UTC, as tools/samples.py runs it: Oracle.java reads dates and sets REPORT_TIME_ZONE in
+# UTC, and expressions such as new SimpleDateFormat(...).format($F{date}) use the runtime's zone.
 export FONTCONFIG_FILE="$DIR/fonts.conf"
-exec "${ORACLE_JAVA:-java}" -Djava.awt.headless=true -Duser.home="$OUT/home" -cp "${ORACLE_CLASSPATH:+$ORACLE_CLASSPATH:}$OUT:$LIB/*" Oracle "$@" 2>&1 | grep -v "Picked up\|^WARNING\|log4j\|SLF4J" >&2
+exec "${ORACLE_JAVA:-java}" -Djava.awt.headless=true -Duser.timezone=UTC -Duser.home="$OUT/home" -cp "${ORACLE_CLASSPATH:+$ORACLE_CLASSPATH:}$OUT:$LIB/*" Oracle "$@" 2>&1 | grep -v "Picked up\|^WARNING\|log4j\|SLF4J" >&2
