@@ -140,6 +140,20 @@ curl -X POST localhost:8080/render/invoice -H 'Content-Type: application/json' \
         <tr><td><code>List</code>, <code>Collection</code></td><td>Un arreglo anidado, por lo general las filas de un subreporte</td></tr>
       </table>
       <p>Los reportes sin fuente de datos pueden omitir los datos. La consulta SQL de una plantilla se ejecuta en la base de datos que indicas con <code>--db</code> (ver <a href="#database">Filas desde una base de datos</a>); sin ella, envía las filas.</p>
+      <p>Las filas de las librerías con las que lees los datos entran como vienen, o con una llamada que las vuelve valores simples:</p>
+<pre data-lang="python"># pandas: pasa el DataFrame como texto JSON. to_json escribe NaN como null y las fechas en
+# ISO-8601; to_dict("records") dejaría NaN, que no es JSON válido.
+pdf = ferroreport.render("orders.jrxml", df.to_json(orient="records", date_format="iso"))
+
+# Polars: to_dicts() da valores de Python (None para nulos, datetime.date para fechas)
+pdf = ferroreport.render("orders.jrxml", df.to_dicts())
+
+# SQLAlchemy: filas como dicts; un generador se lee fila por fila
+from sqlalchemy import text
+
+with engine.connect() as conn:
+    result = conn.execute(text("select id, customer, placed, total from orders order by id"))
+    pdf = ferroreport.render("orders.jrxml", (dict(row) for row in result.mappings()))</pre>
 
       <h3>Parámetros</h3>
       <p>Un objeto JSON con una clave por cada <code>&lt;parameter&gt;</code>, convertidos con las mismas reglas. Los parámetros que no envías toman
@@ -402,8 +416,12 @@ ferroreport render invoice.jrxml -d rows.json \
         y ferroreport, con las mismas filas: <code>&lt;name&gt;.json</code> o <code>data.json</code> junto a la plantilla, y los
         parámetros de <code>&lt;name&gt;.params.json</code> o <code>params.json</code> (locale en_US y zona horaria UTC en los dos). Para cada una
         informa las páginas de cada motor, si cada texto y número es el mismo y está en el mismo lugar (sus exportaciones a CSV, comparadas línea
-        por línea), y cuánto tardó cada uno en llenar y escribir el PDF. <code>--keep compared/</code> guarda los dos PDF y los dos CSV de cada
-        plantilla, para verlos lado a lado. Las imágenes, estilos y subreportes se leen de la carpeta de la plantilla; ahí no se escribe nada.</p>
+        por línea), si cada página es la misma imagen, y cuánto tardó cada uno en llenar y escribir el PDF. Las imágenes se comparan cuando
+        <code>pdftoppm</code> (poppler) está en el PATH, como las compara <code>tools/compare.py</code>: a 100 DPI en gris, una página difiere
+        cuando difiere más del 0,15% de su tinta; se da la proporción de la peor página (y en el informe, como <code>worstPage</code> y
+        <code>worstPageDiff</code>). Sin <code>pdftoppm</code> no se comparan, y el informe lo dice. <code>--keep compared/</code> guarda los
+        dos PDF y los dos CSV de cada plantilla, y la imagen de diferencias de cada página que difiere (rojo: solo JasperReports, azul: solo
+        ferroreport), para verlos lado a lado. Las imágenes, estilos y subreportes se leen de la carpeta de la plantilla; ahí no se escribe nada.</p>
       <p>Sobre las plantillas de prueba de este proyecto, con JasperReports 6.20.6:</p>
 <pre data-lang="console">$ ferroreport migrate fixtures/ --jasper jasperreports-6.20.6/lib --keep compared/
 ✓ fixtures/02-invoice/report.jrxml (JRXML 6)
