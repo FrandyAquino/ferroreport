@@ -1,10 +1,11 @@
 //! Charts (`<pieChart>`, `<barChart>`, `<lineChart>`, ...): datasets collected while filling
 //! and drawing that follows JFreeChart 1.5's rules as JasperReports 7 uses them (plots, axes,
 //! tick units, legends, renderers), checked pixel by pixel against JasperReports' own chart
-//! samples (`category`, `pie`, `xy`, `thermometer` and the shared pieces in `jfree`).
+//! samples (`category`, `pie`, `xy`, `meter`, `thermometer` and the shared pieces in
+//! `jfree`).
 //!
-//! Chart text is written as glyph outlines, as JasperReports writes it. Meter charts, and
-//! multiple axis charts of XY charts, still follow JFreeChart's look without being
+//! Chart text is written as glyph outlines, as JasperReports writes it. Multiple axis charts
+//! of XY charts still follow JFreeChart's look without being
 //! pixel-identical.
 
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
@@ -22,6 +23,7 @@ use std::sync::Arc;
 mod bitmap;
 mod category;
 mod jfree;
+mod meter;
 mod pie;
 mod thermometer;
 mod xy;
@@ -378,6 +380,8 @@ pub(crate) struct Settings {
     pub svg: bool,
     /// How opaque what the plot draws is (`foregroundAlpha`, 1 by default).
     pub foreground_alpha: f32,
+    /// Meters: how the dial is closed (`shape`).
+    pub meter_shape: MeterShape,
     /// High-low charts: draw the open and close ticks (`showOpenTicks`, `showCloseTicks`).
     pub show_open_ticks: bool,
     pub show_close_ticks: bool,
@@ -388,8 +392,27 @@ pub(crate) struct Settings {
 
 impl Default for Settings {
     fn default() -> Settings {
-        Settings { svg: false, foreground_alpha: 1.0, show_open_ticks: false, show_close_ticks: false, mercury_by_range: false }
+        Settings {
+            svg: false,
+            foreground_alpha: 1.0,
+            meter_shape: MeterShape::Pie,
+            show_open_ticks: false,
+            show_close_ticks: false,
+            mercury_by_range: false,
+        }
     }
+}
+
+/// How a meter's dial is closed (JFreeChart's `DialShape`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum MeterShape {
+    /// Pie wedges from the center: JasperReports' default. Its default chart theme draws a
+    /// `dial` meter this way too (only other chart themes use JFreeChart's `DialPlot`).
+    Pie,
+    /// The background of a meter of more than 180 degrees closed by a straight line.
+    Chord,
+    /// The background a whole circle.
+    Circle,
 }
 
 /// Charts with other settings than the defaults, by [`settings_key`].
@@ -849,6 +872,12 @@ pub fn render(
     }
     let color_of = |i: usize| series_color(&ch.series_colors, i);
 
+    if ch.kind == ChartKind::Meter {
+        let mut area = jfree::Rect::new(x as f64, y as f64, w as f64, h as f64);
+        titles_and_legend(&mut cv, ch, texts, &mut area, meter::legend_items(ch));
+        meter::draw(&mut cv, ch, data, texts, locale, area);
+        return clip_to(cv.items, x, y, w, h);
+    }
     if matches!(
         ch.kind,
         ChartKind::Bar
@@ -1079,7 +1108,6 @@ pub fn render(
     let (px, py, pw, ph) = (x + 8.0, top + 4.0, (w - 16.0).max(1.0), (bottom - top - 8.0).max(1.0));
     match ch.kind {
         _ if ch.kind.is_pie() => pie(&mut cv, ch, data, locale, px, py, pw, ph, &color_of),
-        ChartKind::Meter => meter(&mut cv, ch, data, texts, locale, px, py, pw, ph),
         ChartKind::Gantt => {}
         ChartKind::MultiAxis => multi_axis(&mut cv, ch, all, texts, locale, px, py, pw, ph),
         ChartKind::XyLine | ChartKind::XyArea | ChartKind::Scatter if ch.dataset.kind == DataKind::Xy => {
@@ -2176,108 +2204,6 @@ fn xy_plot(
 
 // ---------------------------------------------------------------------------------------------
 // Gantt charts: tasks down the left, dates across the top.
-
-// ---------------------------------------------------------------------------------------------
-// Meters and thermometers.
-
-#[allow(clippy::too_many_arguments)]
-fn meter(
-    cv: &mut Canvas,
-    ch: &ChartElement,
-    data: &DataState,
-    texts: &ChartTexts,
-    locale: &Locale,
-    px: f32,
-    py: f32,
-    pw: f32,
-    ph: f32,
-) {
-    let Some(dial) = ch.dial.as_deref() else { return };
-    let (lo, hi) = texts.dial.unwrap_or((0.0, 100.0));
-    if hi <= lo {
-        return;
-    }
-    let value_font = dial.value_font.clone();
-    let value_h = cv.line_height(&value_font);
-    let extent = dial.angle.clamp(1.0, 360.0).to_radians();
-    // The dial is a circle: as large as fits above the value text.
-    let r = ((pw / 2.0).min(ph - value_h - 8.0) - 4.0).max(4.0) as f64;
-    let (cx, cy) = ((px + pw / 2.0) as f64, (py + 4.0) as f64 + r);
-    // Angles run clockwise in y-down coordinates: the low end on the left.
-    let start = 1.5 * PI - extent / 2.0;
-    let angle = |v: f64| start + (v.clamp(lo, hi) - lo) / (hi - lo) * extent;
-    let wedge = |a0: f64, a1: f64| {
-        let mut ops = vec![PathOp::Move(cx, cy)];
-        arc(&mut ops, cx, cy, r, r, a0, a1, false);
-        ops.insert(1, PathOp::Line(cx + r * a0.cos(), cy + r * a0.sin()));
-        ops.push(PathOp::Close);
-        ops
-    };
-    let back = dial.background.unwrap_or(Color { r: 0x80, g: 0x80, b: 0x80 });
-    cv.path(wedge(angle(lo), angle(hi)), Some(back), None, None);
-    for (i, interval) in dial.intervals.iter().enumerate() {
-        let Some(Some((a, b))) = texts.intervals.get(i) else { continue };
-        let color = blend(interval.color.unwrap_or(back), interval.alpha, back);
-        cv.path(wedge(angle(*a), angle(*b)), Some(color), None, None);
-    }
-    // Rim and ticks.
-    let mut rim = Vec::new();
-    arc(&mut rim, cx, cy, r, r, angle(lo), angle(hi), true);
-    cv.path(rim, None, Some((dial.tick_color, 1.0)), None);
-    if dial.tick_interval > 0.0 && (hi - lo) / dial.tick_interval <= 500.0 {
-        let mut v = lo;
-        while v <= hi + 1e-9 {
-            let a = angle(v);
-            let (c, s) = (a.cos(), a.sin());
-            cv.line(
-                (cx + (r - 6.0) * c) as f32,
-                (cy + (r - 6.0) * s) as f32,
-                (cx + r * c) as f32,
-                (cy + r * s) as f32,
-                dial.tick_color,
-                1.0,
-                None,
-            );
-            v += dial.tick_interval;
-        }
-    }
-    // Labels at the ends of the range and of each interval.
-    let tick_font = dial.tick_font.clone();
-    let th = cv.line_height(&tick_font);
-    let mut marks = vec![lo, hi];
-    for v in texts.intervals.iter().flatten().flat_map(|(a, b)| [*a, *b]) {
-        if !marks.iter().any(|m| (m - v).abs() < 1e-9) {
-            marks.push(v);
-        }
-    }
-    for v in marks {
-        let a = angle(v);
-        let (x, y) = (cx + (r - 18.0) * a.cos(), cy + (r - 18.0) * a.sin());
-        let label = fmt_number(v, None, locale);
-        let w = cv.width(&tick_font, &label);
-        cv.text(&tick_font, Color::BLACK, &label, (x as f32 - w / 2.0).max(px), y as f32 - th / 2.0, Anchor::Left);
-    }
-    // The needle and the value under the dial.
-    if let Some(v) = data.value {
-        let a = angle(v);
-        let (c, s) = (a.cos(), a.sin());
-        let tip = (cx + (r - 2.0) * c, cy + (r - 2.0) * s);
-        let side = (-s * 3.0, c * 3.0);
-        let ops = vec![
-            PathOp::Move(cx + side.0, cy + side.1),
-            PathOp::Line(tip.0, tip.1),
-            PathOp::Line(cx - side.0, cy - side.1),
-            PathOp::Close,
-        ];
-        cv.path(ops, Some(dial.needle), None, None);
-        let mut hub = Vec::new();
-        arc(&mut hub, cx, cy, 4.0, 4.0, 0.0, 2.0 * PI, true);
-        hub.push(PathOp::Close);
-        cv.path(hub, Some(dial.needle), None, None);
-        let text = format!("{} {}", fmt_number(v, dial.value_mask.as_deref(), locale), dial.units).trim().to_string();
-        cv.text(&value_font, dial.value_color, &text, px + pw / 2.0, (cy + 8.0) as f32, Anchor::Center);
-    }
-}
 
 // ---------------------------------------------------------------------------------------------
 // Multiple axis charts: category charts drawn together, each with its own value axis.
