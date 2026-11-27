@@ -24,7 +24,7 @@ JRXML and accessible by default. Against JasperReports itself it is about **200Ã
 > Status: **stable since 1.0; the latest release is 1.3.0** ([what each release brought](CHANGELOG.md)).
 > All 48 comparable test templates render pixel for pixel like JasperReports 6.20, including band splitting, images (SVG too), subreports, tables, lists,
 > crosstabs, QR, PDF417, Barbecue and other barcodes, links, styled text and multi-column
-> layouts; charts are drawn as JasperReports 7 draws them (20 of its 24 chart samples come out
+> layouts; charts are drawn as JasperReports 7 draws them (21 of its 24 chart samples come out
 > the same). All 49 that can be exported by both engines
 > give the same Excel and CSV files, all 51 pass veraPDF's PDF/UA-1, PDF/A-2a, PDF/A-3b and
 > (signed) PDF/A-2b checks, and JasperReports' own samples are checked against 6.20.6 and
@@ -528,7 +528,7 @@ another order). Every fixture renders to the same pixels from its JRXML, its JRX
 | Layout | `positionType` Float / FixRelativeToBottom, `stretchType`, `printWhenExpression`, `isRemoveLineWhenBlank`, `isPrintRepeatedValues` (with `isPrintInFirstWholeBand`, `printWhenGroupChanges`), `isPrintWhenDetailOverflows` | |
 | Styles | default style (also what styles without a parent inherit from), parent styles, element overrides, conditional styles (up to 4 per style), styles from style templates (a style defined again replaces the earlier one for what comes after, as in JasperReports) | |
 | Images | PNG, JPEG and GIF (its first frame, with its transparent color); SVG (drawn as vectors in PDF, as pictures in Excel, Word, PowerPoint and OpenDocument); scale modes RetainShape, FillFrame, Clip, RealHeight and RealSize (the element takes the picture's size, as in JasperReports); alignment; `onErrorType` | remote URLs (by design), other formats |
-| Charts | pie, 3D pie, bar, 3D bar, stacked bar (vertical and horizontal), line, area, stacked area, XY line, XY area, XY bar, scatter, bubble, time series, candlestick, high-low, Gantt, meter, thermometer, multi-axis; titles, legends, axis labels, series colors, range limits, tick formats, pie label formats; datasets by record, group, page or report, with `evaluationTime`, and from a subdataset | chart customizers and themes. Charts are drawn as JasperReports 7.1 draws them with JFreeChart 1.5, pixel for pixel in its own samples, except meter and thermometer charts and multiple axis charts of XY charts, which follow JFreeChart's look without being the same. JasperReports 6 (JFreeChart 1.0.19) frames the legend and draws 3D charts in 3D, which ferroreport does not; chart text is written as outlines, as JasperReports writes it, so it cannot be selected |
+| Charts | pie, 3D pie, bar, 3D bar, stacked bar (vertical and horizontal), line, area, stacked area, XY line, XY area, XY bar, scatter, bubble, time series, candlestick, high-low, Gantt, meter, thermometer, multi-axis; titles, legends, axis labels, series colors, range limits, tick formats, pie label formats; datasets by record, group, page or report, with `evaluationTime`, and from a subdataset | chart customizers and themes. Charts are drawn as JasperReports 7.1 draws them with JFreeChart 1.5, pixel for pixel in its own samples, except meter charts, whose value label lands a fraction of a point off, and multiple axis charts of XY charts, which follow JFreeChart's look without being the same. JasperReports 6 (JFreeChart 1.0.19) frames the legend and draws 3D charts in 3D, which ferroreport does not; chart text is written as outlines, as JasperReports writes it, so it cannot be selected |
 | Subreports | data from nested JSON (`JRMapCollectionDataSource`, `JRBeanCollectionDataSource`, `subDataSource`, `JREmptyDataSource`), subreports that run their own SQL query on `$P{REPORT_CONNECTION}` (with `--db`), parameters, return values, splitting across pages with reprinted column headers | connections built in Java (`DriverManager.getConnection(...)` in an expression) |
 | Data | groups (start new page, reprint header, min height), variables: Sum, Count, DistinctCount, Average, Lowest, Highest, First, Nothing, System, StandardDeviation, Variance; reset by report/page/column/group or never (`resetType="None"`); `incrementType` (a count that moves once per group counts groups); group expressions that read variables; evaluation time Now/Report/Page/Column/Group and `Auto` for text (each variable read at its own moment: a group's share of the grand total in one expression), and `Master` with `MASTER_CURRENT_PAGE` and `MASTER_TOTAL_PAGES` (the report's own pages: a subreport's stay null) | queries in languages other than SQL (HQL, XPath, MDX...: pass the rows) |
 | Expressions | Java and Groovy subset: literals, `$F/$P/$V`, arithmetic with Java promotion rules (and Groovy's: `5 / 2` is a BigDecimal 2.5), string concat, comparisons, ternary, Elvis, casts, common String/Number/BigDecimal/Date/List methods, `Math` (rounding, powers, logarithms, trigonometry), `String.format`, `new SimpleDateFormat(..).format(..)`, `new DecimalFormat(..).format(..)`, `Base64` decoding, `msg(pattern, args...)` (`java.text.MessageFormat`), `$R{key}` and `str("key")` from the report's `resourceBundle` (`.properties` files next to the template or in a resource folder, picked by locale); `new ArrayList()`; the `Locale` getters on `$P{REPORT_LOCALE}` (`getDisplayName`, `getDisplayLanguage`, `getCountry`...); a static field of a class the template declares a parameter or field with is an enum constant (`Greeting.bye` reads as the text `"bye"`); what Java throws as a `NullPointerException` makes the expression null, as in JasperReports; JasperReports' function library as Jaspersoft Studio lists it (`IF`, `AND`, `SUM`, `MAX`, `ROUND_HALF_UP`, `LEFT`, `MID`, `FIND`, `SUBSTITUTE`, `PROPER`, `DATE`, `DATEFORMAT`, `EDATE`, `WORKDAY`, `NETWORKDAYS`, `WEEKNUM`, `TIME` and the rest: 78 functions, 272 cases checked against JasperReports); `DATERANGE("MONTH-1")` and fixed ranges, with `getStart()`/`getEnd()` and in `$X{}` clauses; Groovy lists, maps and ranges (`[1, 2]`, `[a: 1]`, `1..5`), closures given to `findAll`, `collect`, `sum`, `inject`, `sort`, `groupBy` and the rest, `"${...}"` strings, `?.`, `**`, `<=>`, `in`, `as`, indexing, and string helpers (`padLeft`, `tokenize`, `capitalize`...) | arbitrary Java classes (scriptlets, static methods of your own), Groovy statements (`def`, loops, `if` blocks), regular expressions beyond a literal or `\s+` |
@@ -689,16 +689,16 @@ checked.
 
 | Result | 6.20.6 | 7.1.1 |
 |---|---|---|
-| The same pages | 41 | 74 |
-| Both render it, the pages differ | 41 | 19 |
+| The same pages | 42 | 76 |
+| Both render it, the pages differ | 40 | 17 |
 | ferroreport refuses it or fails on it | 6 | 8 |
 | JasperReports cannot render it from rows and parameters alone (it needs the sample's Java objects, a database connection or other files), so there is nothing to compare | 52 | 70 |
 
-So 41 of the 88 6.20.6 samples that can be compared come out the same, and 74 of the 101 7.1.1
+So 42 of the 88 6.20.6 samples that can be compared come out the same, and 76 of the 101 7.1.1
 ones (JasperReports 6.20.6 runs on Java 17 there, where its Groovy works). [Every 6.20.6 template with its result and the reason](docs/samples.md), and [every
-7.1.1 one](docs/samples-7.1.1.md). Charts are drawn as JasperReports 7.1 draws them: 20 of the
-24 7.1.1 chart samples are the same (not the one with a chart customizer, the meter, the
-thermometer, and one page of the time period bar chart), while against 6.20.6, whose JFreeChart
+7.1.1 one](docs/samples-7.1.1.md). Charts are drawn as JasperReports 7.1 draws them: 21 of the
+24 7.1.1 chart samples are the same (not the one with a chart customizer, the meter, whose value
+label lands a fraction of a point off, and one page of the time period bar chart), while against 6.20.6, whose JFreeChart
 frames legends and draws 3D charts, all 24 still differ. The rest are elements that are
 not supported (maps, custom components), PDF form
 fields, whose look is close but not the same, and expressions that call the sample's own Java
@@ -898,7 +898,7 @@ of its own. What comes next, in 1.x releases:
   (also from a JasperReports font extension in a resource folder) and `--font-fallback`, and plain text can be hyphenated, with `ferroreport.text.hyphenate`).
   Text is shaped with harfrust, the HarfBuzz project's maintained Rust port (it replaced
   rustybuzz, no longer maintained).
-- **The last charts pixel for pixel:** meter and thermometer charts, and JasperReports 6's
+- **The last charts pixel for pixel:** the meter's value label, and JasperReports 6's
   JFreeChart look (legend frame, 3D charts) next to the 7 one.
 - **Maps** and the remaining custom components; PAdES signatures with timestamps (B-T, B-LT)
   and a visible signature box.
