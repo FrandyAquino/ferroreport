@@ -8,6 +8,7 @@ use std::time::Instant;
 
 #[cfg(feature = "db")]
 mod db;
+mod pixels;
 mod serve;
 mod signing;
 mod spool;
@@ -98,8 +99,11 @@ MIGRATE:
     With --jasper <folder of JasperReports jars> (and a JDK 11 or newer on the PATH), every
     template that loads is also rendered by JasperReports and by ferroreport from the same rows
     (<name>.json or data.json next to it, parameters from <name>.params.json or params.json):
-    pages, every text and number (their CSV exports) and times are compared. --keep <folder>
-    keeps both PDFs and CSVs of each. Nothing is written next to your templates.
+    pages, every text and number (their CSV exports) and times are compared. With pdftoppm
+    (poppler) on the PATH, every page's pixels too, as tools/compare.py does (100 DPI, a page
+    differs when over 0.15% of its ink does); the worst page is given. --keep <folder>
+    keeps both PDFs and CSVs of each, and the diff picture of each page that differs (red: only
+    JasperReports, blue: only ferroreport). Nothing is written next to your templates.
     Exits with 1 when a template cannot be loaded; with --strict, also when one uses something
     not supported yet, stops when rendered with no rows, or differs from JasperReports.
 
@@ -195,6 +199,12 @@ fn read_json(path: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>
     Ok(serde_json::from_str(&text).map_err(|e| format!("{path}: {e}"))?)
 }
 
+/// The text with its first letter in capitals.
+fn capitalize(text: &str) -> String {
+    let mut chars = text.chars();
+    chars.next().map_or(String::new(), |c| c.to_uppercase().chain(chars).collect())
+}
+
 /// A temporary file that goes away with the value.
 struct RemoveOnDrop(PathBuf);
 
@@ -226,7 +236,22 @@ fn describe(c: &Compared) -> String {
     } else {
         format!("JasperReports {}, ferroreport {}", plural(c.jasper_pages), plural(c.ours_pages))
     };
-    format!("{rows}: {pages}, {text}; JasperReports {:.0} ms, ferroreport {:.1} ms", c.jasper_ms, c.ours_ms)
+    let pictures = match (&c.pictures, &c.pictures_note) {
+        // Blank pages (a report with no pages still has one in its PDF) say nothing.
+        (Some(p), _) if p.worst_page.is_none() || (c.jasper_pages == 0 && c.ours_pages == 0) => String::new(),
+        (Some(p), _) => {
+            let worst =
+                format!("the worst, page {}, differs in {:.2}% of its ink", p.worst_page.unwrap_or(0), p.worst_share * 100.0);
+            if p.same() {
+                format!(", every page the same picture ({worst})")
+            } else {
+                format!(", {} a different picture ({worst})", plural(p.pages_differing))
+            }
+        }
+        (None, Some(note)) => format!(", pictures not compared ({note})"),
+        (None, None) => String::new(),
+    };
+    format!("{rows}: {pages}, {text}{pictures}; JasperReports {:.0} ms, ferroreport {:.1} ms", c.jasper_ms, c.ours_ms)
 }
 
 /// A note that only says rows come from the caller, not from the template's query (one in a
@@ -266,11 +291,19 @@ struct Compared {
     /// Lines of the CSV exports that differ, of the longer one.
     csv_diff: (usize, usize),
     rows: Option<String>,
+    /// The pages compared pixel by pixel, as tools/compare.py does.
+    pictures: Option<pixels::Pictures>,
+    /// Why the pages were not compared pixel by pixel.
+    pictures_note: Option<String>,
 }
 
 impl Compared {
     fn same(&self) -> bool {
-        self.jasper_error.is_none() && self.ours_error.is_none() && self.jasper_pages == self.ours_pages && self.csv_diff.0 == 0
+        self.jasper_error.is_none()
+            && self.ours_error.is_none()
+            && self.jasper_pages == self.ours_pages
+            && self.csv_diff.0 == 0
+            && self.pictures.as_ref().is_none_or(|p| p.same())
     }
 }
 
@@ -285,7 +318,8 @@ fn data_beside(file: &Path) -> (Option<PathBuf>, Option<PathBuf>) {
 
 /// Renders every template that loads with JasperReports (the jars in `lib`, run with the
 /// `java` of the machine) and with ferroreport, from the same rows, and compares pages, the
-/// CSV export (every text and number, in place) and times.
+/// CSV export (every text and number, in place), the pictures of the pages (with `pdftoppm`,
+/// when it is on the PATH) and times.
 fn compare_with_jasper(
     results: &mut [Checked],
     lib: &Path,
@@ -330,6 +364,11 @@ fn compare_with_jasper(
             dir.join("jasper").display(),
             source_dir.display()
         ));
+    }
+    // Rasterizing a PDF needs poppler's pdftoppm; without it the pictures are not compared.
+    let rasterize = pixels::pdftoppm_available();
+    if !rasterize {
+        eprintln!("pdftoppm (poppler) is not on the PATH: the pages are not compared pixel by pixel");
     }
     let separator = if cfg!(windows) { ";" } else { ":" };
     let classpath = format!("{}{separator}{}", lib.join("*").display(), work.display());
@@ -380,6 +419,8 @@ fn compare_with_jasper(
             ours_ms: 0.0,
             csv_diff: (0, 0),
             rows: rows_file.as_ref().map(|p| p.to_string_lossy().into_owned()),
+            pictures: None,
+            pictures_note: None,
         };
         // ferroreport, from the same rows and with the same defaults.
         let source_dir = r.file.parent().filter(|d| !d.as_os_str().is_empty()).unwrap_or(Path::new(".")).to_path_buf();
@@ -430,15 +471,28 @@ fn compare_with_jasper(
             let differ = (0..n).filter(|&k| a.get(k) != b.get(k)).count();
             compared.csv_diff = (differ, n);
         }
-        if let Some(keep) = keep {
+        // Where the template is under the folder given to migrate, in --keep.
+        let target = keep.map(|keep| {
             let stem = r.file.with_extension("");
-            // Where the template is under the folder given to migrate.
             let rel = stem.strip_prefix(base).unwrap_or(&stem).to_path_buf();
             let rel = rel.strip_prefix("/").unwrap_or(&rel).to_path_buf();
             let target = keep.join(rel);
             if let Some(parent) = target.parent() {
                 let _ = std::fs::create_dir_all(parent);
             }
+            target
+        });
+        if compared.jasper_error.is_none() && compared.ours_error.is_none() {
+            if !rasterize {
+                compared.pictures_note = Some("pdftoppm is not on the PATH".into());
+            } else {
+                match pixels::compare_pdfs(&dir.join("jasper.pdf"), &dir.join("ferroreport.pdf"), &dir, target.as_deref()) {
+                    Ok(p) => compared.pictures = Some(p),
+                    Err(e) => compared.pictures_note = Some(e),
+                }
+            }
+        }
+        if let Some(target) = target {
             for (from, suffix) in [
                 ("jasper.pdf", "jasper.pdf"),
                 ("ferroreport.pdf", "ferroreport.pdf"),
@@ -677,6 +731,27 @@ fn migrate(args: &[String]) -> CliResult {
         results.len()
     );
     let compared: Vec<&Compared> = results.iter().filter_map(|r| r.jasper.as_ref()).collect();
+    // The page that differs most of all, in the share of its ink tools/compare.py gives.
+    let pictured: Vec<(&Checked, &pixels::Pictures)> =
+        results.iter().filter_map(|r| Some((r, r.jasper.as_ref()?.pictures.as_ref()?))).collect();
+    let worst =
+        pictured.iter().filter(|(_, p)| p.worst_page.is_some()).max_by(|a, b| a.1.worst_share.total_cmp(&b.1.worst_share));
+    let pictures_differ = pictured.iter().filter(|(_, p)| !p.same()).count();
+    let pictures_summary = if let Some((r, p)) = worst {
+        Some(format!(
+            "pictures, pixel by pixel at {} DPI: {pictures_differ} of {} templates differ in more than {:.2}% of a page's ink; the worst page is page {} of {}, {:.2}% of its ink",
+            pixels::DPI,
+            pictured.len(),
+            pixels::MATCH_THRESHOLD * 100.0,
+            p.worst_page.unwrap_or(0),
+            r.path,
+            p.worst_share * 100.0
+        ))
+    } else if pictured.is_empty() {
+        compared.iter().find_map(|c| c.pictures_note.as_ref()).map(|note| format!("pictures not compared: {note}"))
+    } else {
+        None
+    };
     if jasper.is_some() {
         let same = compared.iter().filter(|c| c.same()).count();
         let jasper_failed = compared.iter().filter(|c| c.jasper_error.is_some()).count();
@@ -686,9 +761,14 @@ fn migrate(args: &[String]) -> CliResult {
             .filter(|c| c.jasper_error.is_none() && c.ours_error.is_none())
             .fold((0.0, 0.0), |(a, b), c| (a + c.jasper_ms, b + c.ours_ms));
         println!(
-            "compared with JasperReports: {same} the same pages and text, {differ} differ, {jasper_failed} JasperReports could not render; filling and writing the PDFs took JasperReports {:.0} ms in all (its first template includes starting up), ferroreport {:.0} ms",
-            theirs, ours
+            "compared with JasperReports: {same} the same {}, {differ} differ, {jasper_failed} JasperReports could not render; filling and writing the PDFs took JasperReports {:.0} ms in all (its first template includes starting up), ferroreport {:.0} ms",
+            if pictured.is_empty() { "pages and text" } else { "pages, text and pictures" },
+            theirs,
+            ours
         );
+        if let Some(line) = &pictures_summary {
+            println!("{line}");
+        }
     }
     if let Some(file) = report_file {
         let text = if file.ends_with(".json") {
@@ -707,18 +787,38 @@ fn migrate(args: &[String]) -> CliResult {
                             "jasperPages": c.jasper_pages, "ferroreportPages": c.ours_pages,
                             "jasperMs": (c.jasper_ms * 10.0).round() / 10.0, "ferroreportMs": (c.ours_ms * 10.0).round() / 10.0,
                             "csvLinesDiffering": c.csv_diff.0, "csvLines": c.csv_diff.1,
+                            "pixelsCompared": c.pictures.is_some(), "pixelsNote": c.pictures_note,
+                            "worstPage": c.pictures.as_ref().and_then(|p| p.worst_page),
+                            "worstPageDiff": c.pictures.as_ref().map(|p| (p.worst_share * 1e5).round() / 1e5),
+                            "pagesDiffering": c.pictures.as_ref().map(|p| p.pages_differing),
+                            "diffImages": c.pictures.as_ref().map_or(Vec::new(), |p| p.diff_files.clone()),
                         })),
                     })
                 })
                 .collect();
+            let pictures = (!pictured.is_empty()).then(|| {
+                serde_json::json!({
+                    "dpi": pixels::DPI, "threshold": pixels::MATCH_THRESHOLD,
+                    "compared": pictured.len(), "differ": pictures_differ,
+                    "worstTemplate": worst.map(|(r, _)| &r.path),
+                    "worstPage": worst.and_then(|(_, p)| p.worst_page),
+                    "worstPageDiff": worst.map(|(_, p)| (p.worst_share * 1e5).round() / 1e5),
+                })
+            });
             serde_json::to_string_pretty(&serde_json::json!({
-                "templates": results.len(), "supported": ready, "supportedWithRows": data_only, "partial": partial, "failed": failed, "results": list
+                "templates": results.len(), "supported": ready, "supportedWithRows": data_only, "partial": partial, "failed": failed,
+                "pixels": pictures, "results": list
             }))?
         } else {
             let mut md = format!(
                 "# Migration report\n\n{} templates: **{ready}** supported, **{data_only}** supported once you pass the rows their non-SQL query gave, **{partial}** use features not supported yet, **{failed}** cannot be loaded.\n\n| Template | Format | Result | Notes |\n|---|---|---|---|\n",
                 results.len()
             );
+            if let Some(line) = &pictures_summary {
+                // After the first paragraph, before the table.
+                let at = md.find("\n\n| Template").unwrap_or(md.len());
+                md.insert_str(at, &format!("\n\n{}.", capitalize(line)));
+            }
             for r in &results {
                 let (_, result) = status(r);
                 let mut notes: Vec<String> = r.error.iter().cloned().collect();

@@ -666,6 +666,7 @@ dependencies = [
  "mysql",
  "p12",
  "pbkdf2",
+ "png",
  "postgres",
  "ring",
  "rusqlite",

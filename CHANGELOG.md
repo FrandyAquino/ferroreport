@@ -13,6 +13,12 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   `<dataRange>`) are read, and a thermometer without `mercuryColor` takes its range's color.
 - Build: simplify two boolean expressions, in DataMatrix encoding and JRXML element parsing, that
   Clippy on Rust 1.96 reports. Rendering is unchanged.
+- `migrate --jasper` also compares every page's pixels when `pdftoppm` (poppler) is on the PATH,
+  with the threshold and measure of `tools/compare.py`, and gives the worst page's share of
+  differing ink in its summary and `--report` (JSON: `pixels`, and `worstPage`, `worstPageDiff`,
+  `pagesDiffering` for each template); `--keep` also writes the diff picture of each page that
+  differs, and `--strict` fails on pages that differ. Without `pdftoppm` the check is skipped,
+  with a note.
 
 ## 1.3.0
 
