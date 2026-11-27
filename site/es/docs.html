@@ -375,7 +375,7 @@ ferroreport serve [options]</pre>
         <tr><td><code>--max-row &lt;MB&gt;</code></td><td>Se detiene en una fila de datos más grande que esto. Por defecto 256</td></tr>
         <tr><td><code>--db &lt;url&gt;</code></td><td>Llena el reporte con su propia consulta SQL, y sus subreportes con las suyas (<code>FERROREPORT_DB</code>; la contraseña en <code>FERROREPORT_DB_PASSWORD</code>). Ver <a href="#database">Filas desde una base de datos</a></td></tr>
         <tr><td><code>--timeout &lt;seconds&gt;</code></td><td>Se detiene si la generación tarda más que esto</td></tr>
-        <tr><td><code>-l, --locale &lt;tag&gt;</code></td><td>El formato de números y fechas: <code>en_US</code> (por defecto), <code>es_DO</code>, <code>es_MX</code>, <code>es_ES</code>, <code>fr</code>, <code>fr_FR</code>, <code>fr_BE</code>, <code>fr_CA</code>, <code>fr_CH</code></td></tr>
+        <tr><td><code>-l, --locale &lt;tag&gt;</code></td><td>El formato de números y fechas: <code>en_US</code> (por defecto), <code>es_DO</code>, <code>es_MX</code>, <code>es_ES</code>, <code>fr</code>, <code>fr_FR</code>, <code>fr_BE</code>, <code>fr_CA</code>, <code>fr_CH</code>, <code>pt</code>, <code>pt_BR</code>, <code>pt_PT</code>, <code>it</code>, <code>it_IT</code>, <code>it_CH</code>, <code>de</code>, <code>de_DE</code>, <code>de_AT</code>, <code>de_CH</code></td></tr>
         <tr><td><code>--font Family=file.ttf[:bold][:italic]</code></td><td>Registra una fuente más. Repítelo para cada estilo</td></tr>
         <tr><td><code>--font-set "Name=Family,Family"</code></td><td>Define un conjunto de fuentes, como lo hace una extensión de fuentes de JasperReports. Ver <a href="#fonts">Fuentes</a></td></tr>
         <tr><td><code>--font-fallback</code></td><td>Dibuja los caracteres que le faltan a la fuente de un texto con otra fuente que sí los tiene. Ver <a href="#fonts">Fuentes</a></td></tr>
@@ -479,7 +479,7 @@ compared with JasperReports: 46 the same pages and text, 0 differ, 2 JasperRepor
         <tr><th>Clave</th><th>Qué es</th></tr>
         <tr><td><code>data</code></td><td>El arreglo de filas. Para más filas de las que quieres en memoria, envíalas <a href="#http-large">una por línea</a></td></tr>
         <tr><td><code>params</code></td><td>Un objeto con los valores de los parámetros</td></tr>
-        <tr><td><code>locale</code></td><td><code>en_US</code> (por defecto), <code>es_DO</code>, <code>es_MX</code>, <code>es_ES</code>, <code>fr</code>, <code>fr_FR</code>, <code>fr_BE</code>, <code>fr_CA</code>, <code>fr_CH</code></td></tr>
+        <tr><td><code>locale</code></td><td><code>en_US</code> (por defecto), <code>es_DO</code>, <code>es_MX</code>, <code>es_ES</code>, <code>fr</code>, <code>fr_FR</code>, <code>fr_BE</code>, <code>fr_CA</code>, <code>fr_CH</code>, <code>pt</code>, <code>pt_BR</code>, <code>pt_PT</code>, <code>it</code>, <code>it_IT</code>, <code>it_CH</code>, <code>de</code>, <code>de_DE</code>, <code>de_AT</code>, <code>de_CH</code></td></tr>
         <tr><td><code>now</code></td><td>Un valor fijo para <code>new Date()</code>, en ISO-8601</td></tr>
         <tr><td><code>format</code></td><td><code>html</code> devuelve una <a href="#html">vista previa web</a>; <code>pdf</code> (por defecto), <code>xlsx</code> (devuelve <code>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</code>), <code>docx</code>, <code>pptx</code> (<code>application/vnd.openxmlformats-officedocument.presentationml.presentation</code>), <code>ods</code> (<code>application/vnd.oasis.opendocument.spreadsheet</code>), <code>odt</code> (<code>application/vnd.oasis.opendocument.text</code>) o <code>csv</code> (<code>text/csv</code>). También se acepta en la URL: <code>/render/invoice?format=xlsx</code></td></tr>
         <tr><td><code>tagged</code></td><td><code>true</code> para un PDF etiquetado. Ver <a href="#tagged">PDF accesibles</a></td></tr>
@@ -871,8 +871,8 @@ std::fs::write("invoice.pdf", pdf)?;</pre>
         de día, AM/PM, año de dos dígitos o milisegundos (quedan como texto), el signo por mil en los estilos de número, y el texto de cabeza en ODT.</p>
       <p>Los reportes grandes se escriben a medida que se hacen, en más o menos la memoria de uno pequeño. Los estilos de un documento van antes de su contenido
         en el archivo, así que un reporte grande se llena una vez más antes para encontrarlos (una hoja de cálculo tres veces en total: sus columnas, sus
-        estilos, sus filas; un texto dos), y sus filas después se comprimen y se escriben a medida que llegan: 100,000 filas en 68 MiB como ODS
-        y 37 MiB como ODT, un millón de filas en 37 MiB como ODT. Eso necesita filas que se puedan leer otra vez, como en los
+        estilos, sus filas; un texto dos), y sus filas después se comprimen y se escriben a medida que llegan: 100,000 filas en 69 MiB como ODS
+        y 39 MiB como ODT, un millón de filas en 41 MiB como ODT. Eso necesita filas que se puedan leer otra vez, como en los
         <a href="#large">libros de Excel grandes</a>; con filas que solo se pueden leer una vez igual se obtiene el documento, que se guarda en memoria hasta
         que se escribe.</p>
 
@@ -965,7 +965,7 @@ ferroreport render invoice.jrxml -d rows.json -o invoice.pdf --sign-key key.pem 
 
       <h2 id="large">Reportes grandes y límites</h2>
       <p>Un reporte no tiene que caber en memoria. Las filas se leen a medida que el reporte las pide y cada página se escribe apenas
-        se termina, así que un millón de filas y 23,810 páginas se generan en unos 16 MB, a unas 80,000 filas por segundo en un núcleo.</p>
+        se termina, así que un millón de filas y 23,810 páginas se generan en unos 19 MB, a unas 55,000 filas por segundo en un núcleo.</p>
       <table>
         <tr><th>Desde</th><th>Cómo</th></tr>
         <tr><td>Línea de comandos</td><td>No hay nada que hacer: <code>ferroreport render sales.jrxml -d sales.json -o sales.pdf</code> ya lee y escribe sobre la marcha. Las filas pueden ser un arreglo JSON o un objeto por línea, de un archivo o de la entrada estándar</td></tr>
@@ -979,11 +979,11 @@ ferroreport render invoice.jrxml -d rows.json -o invoice.pdf --sign-key key.pem 
       <ul>
         <li><b>PDF y CSV</b> se escriben página por página. También los libros de <b>Excel</b>, en dos pasadas: las columnas de una hoja salen de
           todas las páginas, así que un reporte grande se llena una vez para encontrarlas y otra para escribir sus filas, que se comprimen y se envían
-          a medida que se hacen (100,000 filas: unos 3 s y 66 MiB; 500,000: 15 s y 116 MiB). Eso necesita filas que se puedan leer dos veces: un
+          a medida que se hacen (100,000 filas: unos 4.5 s y 69 MiB; 500,000: 22 s y 103 MiB). Eso necesita filas que se puedan leer dos veces: un
           archivo, o las filas que la línea de comandos, el servidor, Python y Java guardan aparte por ti; en Rust, <code>render_rows_to</code>. Los libros
           pequeños se siguen llenando una sola vez. Un reporte con más filas de las que caben en una hoja (1,048,576) se detiene con un error que lo dice.
-          Los archivos <b>OpenDocument</b> también se escriben a medida que se hacen, llenándose una vez más antes para encontrar sus estilos (100,000 filas: 68 MiB
-          como ODS, 37 MiB como ODT; un millón de filas como ODT: 37 MiB).</li>
+          Los archivos <b>OpenDocument</b> también se escriben a medida que se hacen, llenándose una vez más antes para encontrar sus estilos (100,000 filas: 69 MiB
+          como ODS, 39 MiB como ODT; un millón de filas como ODT: 41 MiB).</li>
         <li><b>Los valores que se conocen después</b>, como "página 3 de 240", un total general en el título o el total de un grupo en su encabezado,
           se agregan a su página cuando se conocen, sin retener la página. Si algo se dibuja encima de uno de esos valores, su página lo espera
           en su lugar, así que el resultado siempre es el mismo documento.</li>
@@ -1093,7 +1093,7 @@ ferroreport.render_to_file("sales.jrxml", "sales.pdf", rows)</pre>
 
       <h2 id="locale">Locale y fechas</h2>
       <p>El locale decide cómo se escriben patrones como <code>#,##0.00</code> y <code>dd MMMM yyyy</code>: los separadores decimales y de
-        miles, los nombres de los meses y de los días. Soportados: <code>en_US</code>, <code>es_DO</code>, <code>es_MX</code>, <code>es_ES</code>, <code>fr</code>, <code>fr_FR</code>, <code>fr_BE</code>, <code>fr_CA</code>, <code>fr_CH</code>.</p>
+        miles, los nombres de los meses y de los días. Soportados: <code>en_US</code>, <code>es_DO</code>, <code>es_MX</code>, <code>es_ES</code>, <code>fr</code>, <code>fr_FR</code>, <code>fr_BE</code>, <code>fr_CA</code>, <code>fr_CH</code>, <code>pt</code>, <code>pt_BR</code>, <code>pt_PT</code>, <code>it</code>, <code>it_IT</code>, <code>it_CH</code>, <code>de</code>, <code>de_DE</code>, <code>de_AT</code>, <code>de_CH</code>.</p>
       <p>Las fechas se conservan tal como están escritas, sin conversión de zona horaria. <code>new Date()</code> en una expresión es la hora actual, salvo que
         la fijes con <code>now</code>, lo que hace que la salida sea igual byte por byte cada vez.</p>
 

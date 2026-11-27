@@ -91,9 +91,9 @@
         a data source, with exporters for PDF, HTML, Excel, Word, PowerPoint, OpenDocument, RTF, CSV, XML and text. It has a long record in
         production, a large community, and Jaspersoft Studio and Server around it.</p>
       <p><b>Against it, ferroreport</b> renders the same templates without a JVM and gives the same pages, pixel for pixel, on every comparable
-        test template of its repository. The README measures it about 200 times faster from a cold start (a 2-page invoice: 2.63 s and 191 MiB
-        for JasperReports 6.20.6, 11 ms and 15 MiB for ferroreport) and 3 to 5 times faster than a warm JVM (that invoice: 8.0 ms against
-        2.2 ms), and a million rows in 12.02 s and 15 MiB against 68.34 s and 1,737 MiB. Templates cannot run code: expressions come from a
+        test template of its repository. The README measures it about 200 times faster from a cold start (a 2-page invoice: 2.90 s and 195 MiB
+        for JasperReports 6.20.6, 11 ms and 18 MiB for ferroreport) and 3 to 5 times faster than a warm JVM (that invoice: 9.0 ms against
+        2.8 ms), and a million rows in 17.91 s and 18 MiB against 79.77 s and 1,731 MiB. Templates cannot run code: expressions come from a
         fixed list and nothing is deserialized. <b>It does not</b> run scriptlets or Java classes of your own, load <code>.jasper</code> files,
         or write XLS, RTF, XML or text, and it has no report server. The <a href="migrate.html">migration guide</a> covers moving a project.</p>
 
@@ -164,7 +164,7 @@
           (<a href="migrate.html#java-code">how</a>).</li>
         <li><b>Tooling.</b> No report server, viewers or dashboards, and its browser designer is a first version (fields, text, shapes, images,
           styles; not yet charts, tables or groups). Jaspersoft Studio still works for its templates.</li>
-        <li><b>Coverage.</b> No XLS, RTF, XML or text output; number and date formats for en_US, es_DO, es_MX, es_ES and French only; SQL queries
+        <li><b>Coverage.</b> No XLS, RTF, XML or text output; number and date formats for en_US, es_DO, es_MX, es_ES, French, Portuguese, Italian and German only; SQL queries
           only (no HQL, XPath, MDX), on PostgreSQL, MySQL and MariaDB, SQL Server and SQLite; it does not read or edit existing PDFs or
           workbooks.</li>
       </ul>
