@@ -49,7 +49,8 @@ pub const ES_DO: Locale = Locale {
     short_months: ES_SHORT_MONTHS,
     weekdays: ES_WEEKDAYS,
     short_weekdays: ES_SHORT_WEEKDAYS,
-    am_pm: ["a.\u{202F}m.", "p.\u{202F}m."], // Java 21 (CLDR) uses a narrow no-break space
+    // A no-break space (U+00A0), as Java 21.0.13's CLDR data has it for es, es_DO, es_MX and es_ES.
+    am_pm: ["a.\u{A0}m.", "p.\u{A0}m."],
 };
 
 pub const ES_MX: Locale = Locale { tag: "es_MX", currency_symbol: "$", ..ES_DO };
@@ -274,6 +275,63 @@ mod tests {
         assert_eq!(Locale::from_tag("fr_LU").tag, "fr_FR");
         // A currency pattern keeps the decimal separator where it is the monetary one too.
         assert_eq!(format_value(&Value::Double(1234.5), Some("\u{A4} #,##0.00"), Locale::from_tag("es_ES")), "€ 1.234,50");
+    }
+
+    /// What Java 21.0.13 prints for Spanish, for -1234567.5 and 5 July 2026 14:07:09 (the
+    /// patterns of `french_is_javas`) and a date without a pattern.
+    #[test]
+    fn spanish_is_javas() {
+        use crate::format::format_value;
+        use crate::value::Value;
+        let when = chrono::NaiveDate::from_ymd_opt(2026, 7, 5).unwrap().and_hms_opt(14, 7, 9).unwrap();
+        let cases = [
+            (
+                "es_DO",
+                [
+                    "-1,234,567.50",
+                    "-RD$ 1,234,567.50",
+                    "-1,234,567.50 RD$",
+                    "domingo 5 julio 2026",
+                    "dom 5 jul 26",
+                    "2:07 p.\u{A0}m.",
+                    "5/7/26, 2:07\u{202F}p.\u{A0}m.",
+                ],
+            ),
+            (
+                "es_MX",
+                [
+                    "-1,234,567.50",
+                    "-$ 1,234,567.50",
+                    "-1,234,567.50 $",
+                    "domingo 5 julio 2026",
+                    "dom 5 jul 26",
+                    "2:07 p.\u{A0}m.",
+                    "05/07/26, 14:07",
+                ],
+            ),
+            (
+                "es_ES",
+                [
+                    "-1.234.567,50",
+                    "-\u{20AC} 1.234.567,50",
+                    "-1.234.567,50 \u{20AC}",
+                    "domingo 5 julio 2026",
+                    "dom 5 jul 26",
+                    "2:07 p.\u{A0}m.",
+                    "5/7/26, 14:07",
+                ],
+            ),
+        ];
+        let patterns =
+            ["#,##0.00", "\u{A4} #,##0.00", "#,##0.00 \u{A4};-#,##0.00 \u{A4}", "EEEE d MMMM yyyy", "EEE d MMM yy", "h:mm a"];
+        for (tag, expected) in cases {
+            let locale = Locale::from_tag(tag);
+            for (i, pattern) in patterns.iter().enumerate() {
+                let value = if i < 3 { Value::Double(-1234567.5) } else { Value::Date(when) };
+                assert_eq!(format_value(&value, Some(pattern), locale), expected[i], "{tag} {pattern}");
+            }
+            assert_eq!(format_value(&Value::Date(when), None, locale), expected[6], "{tag} short");
+        }
     }
 
     #[test]

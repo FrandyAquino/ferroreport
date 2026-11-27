@@ -437,6 +437,8 @@ pub fn call(name: &str, args: Vec<Value>, env: &EvalEnv) -> Result<Value> {
             // DateFormat.getTimeInstance(LONG) when no pattern is given.
             let pattern = match text(&a(3)) {
                 Some(p) => p,
+                None if env.locale.tag == "es_DO" => "h:mm:ss\u{202F}a z".to_string(),
+                None if env.locale.tag == "es_MX" => "HH:mm:ss z".to_string(),
                 None if env.locale.tag.starts_with("es") => "H:mm:ss z".to_string(),
                 None => "h:mm:ss\u{202F}a z".to_string(),
             };

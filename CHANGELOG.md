@@ -33,6 +33,10 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   ticks, labels only where intervals end, the value with its units under the center, the
   needle only for a value in range, and JFreeChart's colors and fonts where the template sets
   none. The `shape` (pie, chord, circle) and a JRXML 7 `<tickLabelFont>` are read.
+- Spanish locales print what Java 21.0.13 prints: AM/PM with a no-break space (`p. m.`), the
+  short date and time of a date without a pattern for es_DO (`5/7/26, 2:07 p. m.`) and es_MX
+  (`05/07/26, 14:07`), and `TIME()` without a pattern for es_DO (`10:30:15 a. m. UTC`) and
+  es_MX (`10:30:15 UTC`).
 
 ## 1.3.0
 
