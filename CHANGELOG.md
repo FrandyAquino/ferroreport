@@ -6,6 +6,10 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 
 ## Unreleased
 
+- JasperReports' own samples measured again (`docs/samples*.json`, README): 76 of the 101
+  comparable 7.1.1 templates come out the same (74 before) and 42 of the 88 6.20.6 ones (41
+  before); the subreport MasterReport sample is the same in both, and the 7.1.1 thermometer
+  sample too, so 21 of the 24 7.1.1 chart samples are.
 - Every Spanish locale Java 21.0.13 has prints its own numbers and dates: `es` (`¤`, weeks from
   Sunday), es_AR, es_CO, es_CL, es_PE, es_VE, es_UY, es_EC, es_GT, es_CR, es_BO, es_PY, es_SV,
   es_HN, es_NI, es_PA, es_PR, es_CU, es_US, es_BZ, es_BR, es_PH, es_GQ, es_EA and es_IC, with
@@ -86,6 +90,10 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   for decimals and `’` between groups), currency, month and day names (Austria's "Jänner"),
   short date and time, `TIME()` without a pattern, and weeks starting on Monday in
   `DATERANGE("WEEK")`. Before, these locales printed `en_US`'s.
+- `migrate --jasper` starts JasperReports in UTC, as its time zone parameter and ferroreport's
+  defaults already are. On a machine in another zone, expressions that use the Java runtime's
+  own zone (`new SimpleDateFormat(...)`, `HOUR`, `DATEFORMAT`) came out shifted in
+  JasperReports only and were reported as differences.
 
 ## 1.3.0
 
