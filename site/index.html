@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ferroreport: PDF, Excel and Word reports from any language, in milliseconds (reads JasperReports JRXML)</title>
-<meta name="description" content="A report engine that turns a template and your data into PDF, Excel, Word, PowerPoint, OpenDocument (ODS, ODT), CSV or HTML in milliseconds: an invoice in 2 ms, a million rows in 16 MB of memory. Reads JasperReports JRXML templates with pixel-identical output, no JVM. Rust, JavaScript, Python, Java, CLI and HTTP.">
+<meta name="description" content="A report engine that turns a template and your data into PDF, Excel, Word, PowerPoint, OpenDocument (ODS, ODT), CSV or HTML in milliseconds: an invoice in 3 ms, a million rows in 19 MB of memory. Reads JasperReports JRXML templates with pixel-identical output, no JVM. Rust, JavaScript, Python, Java, CLI and HTTP.">
 <link rel="canonical" href="https://cristianencarnacion.github.io/ferroreport/">
 <link rel="alternate" hreflang="en" href="https://cristianencarnacion.github.io/ferroreport/">
 <link rel="alternate" hreflang="es" href="https://cristianencarnacion.github.io/ferroreport/es/">
@@ -19,7 +19,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta property="og:title" content="ferroreport: PDF, Excel and Word reports from any language, in milliseconds">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareSourceCode", "name": "ferroreport", "description": "Open-source report engine in Rust that renders JasperReports JRXML templates to PDF, Excel, Word, PowerPoint, OpenDocument, CSV and HTML without a JVM, pixel-identical to JasperReports.", "codeRepository": "https://github.com/cristianEncarnacion/ferroreport", "url": "https://cristianencarnacion.github.io/ferroreport/", "programmingLanguage": ["Rust", "JavaScript", "Python", "Java"], "license": "https://opensource.org/licenses/MIT", "version": "1.3.0", "author": {"@type": "Person", "name": "Cristian Encarnación"}, "keywords": "JasperReports alternative, JRXML, report engine, PDF generator, Rust, PDF/A, PDF/UA, invoice, Excel, Word"}</script>
-<meta property="og:description" content="An invoice in 2 ms, a million rows in 16 MB. Reads your JasperReports templates, no JVM. Watch it race JasperReports.">
+<meta property="og:description" content="An invoice in 3 ms, a million rows in 19 MB. Reads your JasperReports templates, no JVM. Watch it race JasperReports.">
 <link rel="preload" href="fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="site.css">
 <script src="highlight.js" defer></script>
@@ -47,8 +47,8 @@
 
     <div class="headline">
       <h1>Reports in milliseconds,<br><span class="hot">from any language.</span></h1>
-      <p class="lead">A template and your data in; a PDF, an Excel workbook, a Word document, a PowerPoint deck, an OpenDocument file, a CSV or a web page out. An invoice takes 2 ms and a million
-        rows take 16 MB of memory. It reads the JasperReports <code>.jrxml</code> templates you already have and gives the
+      <p class="lead">A template and your data in; a PDF, an Excel workbook, a Word document, a PowerPoint deck, an OpenDocument file, a CSV or a web page out. An invoice takes 3 ms and a million
+        rows take 19 MB of memory. It reads the JasperReports <code>.jrxml</code> templates you already have and gives the
         same pages, pixel for pixel, without a JVM.</p>
       <div class="cta">
         <a class="btn solid" href="#playground">Render a report in your browser</a>
@@ -58,7 +58,7 @@
     </div>
 
     <div class="race" id="race" role="img"
-      aria-label="Race: JasperReports takes 2.63 seconds to render one invoice from process start; ferroreport renders it in 11 milliseconds, so it renders 234 invoices in the same time.">
+      aria-label="Race: JasperReports takes 2.90 seconds to render one invoice from process start; ferroreport renders it in 11 milliseconds, so it renders 268 invoices in the same time.">
       <div class="lanes" aria-hidden="true">
         <div class="lane jasper">
           <div class="lane-head">
@@ -67,11 +67,11 @@
           </div>
           <div class="screen">
             <ol class="log" id="jlog">
-              <li data-a="0" data-b="0.23"><span>Starting the JVM</span><span class="t"></span></li>
-              <li data-a="0.23" data-b="0.40"><span>Loading JasperReports</span><span class="t"></span></li>
-              <li data-a="0.40" data-b="1.91"><span>Compiling invoice.jrxml</span><span class="t"></span></li>
-              <li data-a="1.91" data-b="2.33"><span>Filling 46 rows</span><span class="t"></span></li>
-              <li data-a="2.33" data-b="2.63"><span>Exporting PDF</span><span class="t"></span></li>
+              <li data-a="0" data-b="0.25"><span>Starting the JVM</span><span class="t"></span></li>
+              <li data-a="0.25" data-b="0.44"><span>Loading JasperReports</span><span class="t"></span></li>
+              <li data-a="0.44" data-b="2.11"><span>Compiling invoice.jrxml</span><span class="t"></span></li>
+              <li data-a="2.11" data-b="2.57"><span>Filling 46 rows</span><span class="t"></span></li>
+              <li data-a="2.57" data-b="2.90"><span>Exporting PDF</span><span class="t"></span></li>
             </ol>
             <div class="sheet" id="jsheet"></div>
           </div>
@@ -84,9 +84,9 @@
           </div>
           <div class="screen">
             <ol class="log" id="flog">
-              <li data-a="0" data-b="0.0040"><span>Starting, parsing invoice.jrxml</span><span class="t"></span></li>
-              <li data-a="0.0040" data-b="0.0087"><span>Filling 46 rows</span><span class="t"></span></li>
-              <li data-a="0.0087" data-b="0.0112"><span>Exporting PDF</span><span class="t"></span></li>
+              <li data-a="0" data-b="0.0039"><span>Starting, parsing invoice.jrxml</span><span class="t"></span></li>
+              <li data-a="0.0039" data-b="0.0084"><span>Filling 46 rows</span><span class="t"></span></li>
+              <li data-a="0.0084" data-b="0.0108"><span>Exporting PDF</span><span class="t"></span></li>
             </ol>
             <div class="glow" id="glow"></div>
             <div class="pile" id="pile"></div>
@@ -95,7 +95,7 @@
           <div class="meter"><i id="fbar"></i></div>
         </div>
       </div>
-      <p class="verdict" id="verdict">JasperReports delivered 1 invoice.<br>In the same 2.6 seconds, ferroreport delivered <b>234</b>.</p>
+      <p class="verdict" id="verdict">JasperReports delivered 1 invoice.<br>In the same 2.9 seconds, ferroreport delivered <b>268</b>.</p>
       <div class="race-foot">
         <span>Real timings: the 2-page invoice benchmark below, measured from process start. The split into steps is approximate.</span>
         <button class="replay" id="replay" type="button">Run the race again</button>
@@ -114,8 +114,8 @@
 <main class="wrap">
   <section id="numbers" style="padding-top:56px">
     <div class="numbers">
-      <div class="num"><b>2 ms</b><span>for a two-page invoice, in a service that is already running</span></div>
-      <div class="num"><b>16 MB</b><span>of memory for a million rows and 23,810 pages</span></div>
+      <div class="num"><b>3 ms</b><span>for a two-page invoice, in a service that is already running</span></div>
+      <div class="num"><b>19 MB</b><span>of memory for a million rows and 23,810 pages</span></div>
       <div class="num"><b>~200×</b><span>faster than JasperReports from a cold start; 3 to 5× faster than a warm JVM</span></div>
       <div class="num"><b>48 of 48</b><span>test reports pixel-identical to JasperReports</span></div>
     </div>
@@ -124,31 +124,31 @@
   <section id="benchmarks">
     <h2>Benchmarks</h2>
     <p class="sub">How much faster depends on what you compare, so here are the comparisons that matter. Same template,
-      same data, the same 2-CPU Linux machine, ferroreport 1.1.0 against JasperReports 6.20.6 on Java 21. One script in the
+      same data, the same 2-CPU Linux machine, ferroreport 1.3.0 against JasperReports 6.20.6 on Java 21. One script in the
       repository reproduces all of it (<code>tools/bench_all.py</code>).</p>
 
     <h3 class="bench-title">Cold: a process starts, renders one report and exits</h3>
     <p class="fine">What a script, a serverless function or a container per report pays. From process start to the PDF on disk.</p>
     <div class="bench">
       <div class="bench-row">
-        <h3>Invoice, 2 pages <span>234× faster · 191 → 15 MiB</span></h3>
-        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">2.63 s</span></div>
-        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:0.43%"></i></div><span class="v">11 ms</span></div>
+        <h3>Invoice, 2 pages <span>268× faster · 195 → 18 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">2.90 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:0.37%"></i></div><span class="v">11 ms</span></div>
       </div>
       <div class="bench-row">
-        <h3>Grouped sales, 4 pages <span>210× faster · 186 → 15 MiB</span></h3>
-        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">2.55 s</span></div>
-        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:0.48%"></i></div><span class="v">12 ms</span></div>
+        <h3>Grouped sales, 4 pages <span>214× faster · 184 → 18 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">3.28 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:0.47%"></i></div><span class="v">15 ms</span></div>
       </div>
       <div class="bench-row">
-        <h3>Arabic, right to left, 1 page <span>240× faster · 178 → 14 MiB</span></h3>
-        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">2.08 s</span></div>
-        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:0.42%"></i></div><span class="v">9 ms</span></div>
+        <h3>Arabic, right to left, 1 page <span>268× faster · 171 → 17 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">2.61 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:0.37%"></i></div><span class="v">10 ms</span></div>
       </div>
       <div class="bench-row">
-        <h3>20,000 rows, 477 pages <span>22× faster · 464 → 14 MiB</span></h3>
-        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">5.68 s</span></div>
-        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:4.60%"></i></div><span class="v">0.26 s</span></div>
+        <h3>20,000 rows, 477 pages <span>21× faster · 439 → 16 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">7.33 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:4.68%"></i></div><span class="v">0.34 s</span></div>
       </div>
     </div>
 
@@ -157,24 +157,24 @@
       the PDF exported to memory. ferroreport parses the template again every time.</p>
     <div class="bench">
       <div class="bench-row">
-        <h3>Invoice, 2 pages <span>3.6× faster</span></h3>
-        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">8.0 ms</span></div>
-        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:27.78%"></i></div><span class="v">2.2 ms</span></div>
+        <h3>Invoice, 2 pages <span>3.2× faster</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">9.0 ms</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:31.44%"></i></div><span class="v">2.8 ms</span></div>
       </div>
       <div class="bench-row">
-        <h3>Employee list, 2 pages <span>4.4× faster</span></h3>
-        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">5.9 ms</span></div>
-        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:22.62%"></i></div><span class="v">1.3 ms</span></div>
+        <h3>Employee list, 2 pages <span>3.9× faster</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">6.7 ms</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:25.38%"></i></div><span class="v">1.7 ms</span></div>
       </div>
       <div class="bench-row">
-        <h3>Arabic, right to left, 1 page <span>3.2× faster</span></h3>
-        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">4.7 ms</span></div>
-        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:30.81%"></i></div><span class="v">1.4 ms</span></div>
+        <h3>Arabic, right to left, 1 page <span>3.4× faster</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">5.5 ms</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:29.11%"></i></div><span class="v">1.6 ms</span></div>
       </div>
       <div class="bench-row">
-        <h3>20,000 rows, 477 pages <span>5.3× faster</span></h3>
-        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">1.17 s</span></div>
-        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:18.99%"></i></div><span class="v">0.22 s</span></div>
+        <h3>20,000 rows, 477 pages <span>4.7× faster</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">1.40 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:21.34%"></i></div><span class="v">0.30 s</span></div>
       </div>
     </div>
 
@@ -183,14 +183,14 @@
       with the report. JasperReports runs with its default heap.</p>
     <div class="bench">
       <div class="bench-row">
-        <h3>100,000 rows, 2,382 pages <span>9.0× faster · 876 → 14 MiB</span></h3>
-        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">11.53 s</span></div>
-        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:11.11%"></i></div><span class="v">1.28 s</span></div>
+        <h3>100,000 rows, 2,382 pages <span>7.7× faster · 828 → 16 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">14.25 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:12.94%"></i></div><span class="v">1.84 s</span></div>
       </div>
       <div class="bench-row">
-        <h3>1,000,000 rows, 23,810 pages <span>5.7× faster · 1,737 → 15 MiB</span></h3>
-        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">68.34 s</span></div>
-        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:17.59%"></i></div><span class="v">12.02 s</span></div>
+        <h3>1,000,000 rows, 23,810 pages <span>4.5× faster · 1,731 → 18 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">79.77 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:22.46%"></i></div><span class="v">17.91 s</span></div>
       </div>
     </div>
 
@@ -199,39 +199,39 @@
       a sheet's columns come from every page and an OpenDocument file's styles come before its body, so large ones are filled more than once.</p>
     <div class="bench">
       <div class="bench-row">
-        <h3>PDF <span>23× faster · 463 → 14 MiB</span></h3>
-        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">5.70 s</span></div>
-        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:4.31%"></i></div><span class="v">0.25 s</span></div>
+        <h3>PDF <span>18× faster · 450 → 17 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">7.17 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:5.60%"></i></div><span class="v">0.40 s</span></div>
       </div>
       <div class="bench-row">
-        <h3>Excel (XLSX) <span>8.1× faster · 263 → 59 MiB</span></h3>
-        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">3.78 s</span></div>
-        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:12.28%"></i></div><span class="v">0.46 s</span></div>
+        <h3>Excel (XLSX) <span>8.2× faster · 261 → 61 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">4.93 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:12.13%"></i></div><span class="v">0.60 s</span></div>
       </div>
       <div class="bench-row">
-        <h3>Word (DOCX) <span>12× faster · 292 → 14 MiB</span></h3>
-        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">4.24 s</span></div>
-        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:8.29%"></i></div><span class="v">0.35 s</span></div>
+        <h3>Word (DOCX) <span>10× faster · 271 → 16 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">5.30 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:9.62%"></i></div><span class="v">0.51 s</span></div>
       </div>
       <div class="bench-row">
-        <h3>OpenDocument sheet (ODS) <span>8.3× faster · 299 → 100 MiB</span></h3>
-        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">4.34 s</span></div>
-        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:11.98%"></i></div><span class="v">0.52 s</span></div>
+        <h3>OpenDocument sheet (ODS) <span>8.3× faster · 283 → 103 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">5.44 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:12.04%"></i></div><span class="v">0.66 s</span></div>
       </div>
       <div class="bench-row">
-        <h3>OpenDocument text (ODT) <span>8.8× faster · 290 → 59 MiB</span></h3>
-        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">4.19 s</span></div>
-        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:11.32%"></i></div><span class="v">0.47 s</span></div>
+        <h3>OpenDocument text (ODT) <span>7.4× faster · 287 → 66 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">5.07 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:13.45%"></i></div><span class="v">0.68 s</span></div>
       </div>
       <div class="bench-row">
-        <h3>CSV <span>12× faster · 248 → 13 MiB</span></h3>
-        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">3.26 s</span></div>
-        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:8.47%"></i></div><span class="v">0.28 s</span></div>
+        <h3>CSV <span>12× faster · 251 → 15 MiB</span></h3>
+        <div class="track j"><span>JasperReports</span><div class="bar"><i style="width:100%"></i></div><span class="v">3.96 s</span></div>
+        <div class="track f"><span>ferroreport</span><div class="bar"><i style="width:8.21%"></i></div><span class="v">0.33 s</span></div>
       </div>
     </div>
-    <p class="fine">Against JasperReports 7.1.1, with the templates converted to JRXML 7 for both engines: cold, 200× to 208× faster
-      for the small reports; warm, 2.9 to 5.0×; a million rows in 11.31 s and 15 MiB against
-      52.22 s and 1,734 MiB.</p>
+    <p class="fine">Against JasperReports 7.1.1, with the templates converted to JRXML 7 for both engines: cold, 198× to 234× faster
+      for the small reports; warm, 2.6 to 3.7×; a million rows in 15.95 s and 18 MiB against
+      62.95 s and 1,721 MiB.</p>
     <p class="fine">In short: most of JasperReports' time on a small report is starting the JVM and compiling the template.
       That is why the gap is two orders of magnitude when a process starts per report, and 3 to 5× when it does not.
       PDFs are usually smaller too: 1.2 MB instead of 4.5 MB for the 20,000 rows, and about the same size at a million.</p>
@@ -243,7 +243,7 @@
     <div class="features">
       <div class="feature"><h3>Pixel-identical</h3><p>Every test report is rendered by both engines and compared pixel by pixel: text metrics, line breaks, page splits, groups and variables follow Jasper exactly.</p></div>
       <div class="feature"><h3>Safe with any template</h3><p>No <code>.jasper</code> deserialization, no Java code in expressions, no network. Images and subreports only load from directories you allow, and page and time limits stop a report that runs away. Every change is tested against thousands of damaged templates.</p></div>
-      <div class="feature"><h3>Flat memory at any size</h3><p>Rows are read as the report needs them and each page is written as it is finished. A million rows and 23,810 pages render in 16 MB, values like "page 3 of 240" included; over HTTP the rows travel one per line and the server stays at about 50 MB. Excel workbooks are written as they are made too.</p></div>
+      <div class="feature"><h3>Flat memory at any size</h3><p>Rows are read as the report needs them and each page is written as it is finished. A million rows and 23,810 pages render in 19 MB, values like "page 3 of 240" included; over HTTP the rows travel one per line and the server stays at about 50 MB. Excel workbooks are written as they are made too.</p></div>
       <div class="feature"><h3>One engine, any language</h3><p>CLI, Rust library, JavaScript and WebAssembly, Python, Java (it reads a <code>ResultSet</code> row by row), and an HTTP API in an ~8 MB Docker image for C#, PHP, Go and the rest, with a template cache and Prometheus metrics. It starts in milliseconds, so it suits serverless functions too.</p></div>
       <div class="feature"><h3>The features you use</h3><p>Bands that split across pages, frames, images, subreports, tables, lists, crosstabs, every JasperReports chart type, QR codes, DataMatrix, PDF417, EAN, UPC, Code 128, Code 39 and other barcodes (barcode4j and Barbecue), SVG images, PDF form fields, links and bookmarks, styled, HTML and RTF text, rotation, multi-column layouts, conditional styles.</p></div>
       <div class="feature"><h3>PDF, Excel, Word, PowerPoint, OpenDocument, CSV and HTML</h3><p>The same template exports to an <code>.xlsx</code> workbook with the cells, merges, fonts, borders, images and charts Jasper's exporter gives, to a <code>.docx</code> laid out like Jasper's Word export, to a <code>.pptx</code> with a slide per page, to <code>.ods</code> and <code>.odt</code> for LibreOffice laid out the same way, to CSV, or to a web page that looks like the PDF for previews in a browser. Excel and CSV are checked cell by cell against Jasper. PDFs can be tagged for screen readers (PDF/UA-1, checked with veraPDF): texts as paragraphs, pictures as figures with their description, tables with their header cells, lists as lists.</p></div>
@@ -397,7 +397,7 @@ const pdf = render(jrxml, rows, { CUSTOMER: "Distribuidora Caribe" });</pre>
   window.heatFrame = heatFrame;
   heatFrame(0);
 
-  const J_END = 2.63, F_END = 0.0112, START = 0.6, HOLD = 4.2;
+  const J_END = 2.90, F_END = 0.0108, START = 0.6, HOLD = 4.2;
   const CYCLE = START + J_END + HOLD;
   const $ = (id) => document.getElementById(id);
   const jlog = [...$("jlog").children], flog = [...$("flog").children];
@@ -434,7 +434,7 @@ const pdf = render(jrxml, rows, { CUSTOMER: "Distribuidora Caribe" });</pre>
     log(jlog, el); log(flog, el);
 
     // ferroreport keeps rendering invoices, one every 11 ms, until Jasper delivers its first.
-    const n = el < F_END ? 0 : Math.min(234, Math.floor((Math.min(el, J_END) - F_END) / F_END) + 1);
+    const n = el < F_END ? 0 : Math.min(268, Math.floor((Math.min(el, J_END) - F_END) / F_END) + 1);
     // The flurry is drawn at a watchable pace; the counter keeps the real count.
     const VIS = 0.075, since = el - F_END;
     const dropped = since < 0 ? -1 : Math.floor(Math.min(since, J_END - F_END) / VIS);
@@ -455,7 +455,7 @@ const pdf = render(jrxml, rows, { CUSTOMER: "Distribuidora Caribe" });</pre>
       ? `inset 0 0 0 2px rgba(255,90,10,.75), 0 30px ${80 + 20 * Math.sin(el * 9)}px rgba(200,50,0,.38)`
       : "";
 
-    // Jasper's single invoice lands at 2.63 s.
+    // Jasper's single invoice lands at 2.90 s.
     const jp = ease(clamp((el - J_END) / 0.35));
     const js = $("jsheet");
     js.style.opacity = jp;
@@ -525,7 +525,7 @@ langs.querySelectorAll("button").forEach((b) => b.addEventListener("click", () =
 const $ = (id) => document.getElementById(id);
 const status = $("status");
 const set = (text, cls = "") => { status.textContent = text; status.className = cls; };
-const JASPER_SECONDS = { "02-invoice": 2.63, "dashboard": 2.50, "18-barcodes": 2.96, "21-markup": 2.32, "26-barcodes-1d": 2.82 };
+const JASPER_SECONDS = { "02-invoice": 2.90, "dashboard": 2.50, "18-barcodes": 2.96, "21-markup": 2.32, "26-barcodes-1d": 2.82 };
 const VIEW = "#toolbar=0&navpanes=0&view=FitH";
 const kb = (n) => (n / 1024).toFixed(1) + " KB";
 // Pixels that differ between the two engines' first pages (tools/compare.py, at 100 dpi).

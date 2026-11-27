@@ -11,6 +11,8 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   the range marks where each range starts in green, orange and red, the axis with whole-number
   ticks, and the value in the bulb or beside the stem. JRXML 7 ranges (`<lowRange>` without a
   `<dataRange>`) are read, and a thermometer without `mercuryColor` takes its range's color.
+- Benchmarks measured again with 1.3, against JasperReports 6.20.6 and 7.1.1 (README, website,
+  `docs/benchmarks*.json`).
 
 ## 1.3.0
 
