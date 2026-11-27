@@ -100,8 +100,10 @@
       <p>With <code>--jasper lib/</code>, every template that loads is also rendered by JasperReports (the jars of that folder, run with the
         machine's <code>java</code>) and by ferroreport, from the same rows (<code>&lt;name&gt;.json</code> or <code>data.json</code>) and
         parameters (<code>&lt;name&gt;.params.json</code> or <code>params.json</code>), and the two are compared: the number of pages, every text
-        and number in its place (their CSV exports, line by line), and the time each took. <code>--keep compared/</code> keeps both PDFs and
-        both CSVs of every template, to look at side by side. Nothing is written next to your templates.</p>
+        and number in its place (their CSV exports, line by line), every page's pixels (with <code>pdftoppm</code> on the PATH, as
+        <code>tools/compare.py</code> does; the worst page's share of differing ink is given), and the time each took.
+        <code>--keep compared/</code> keeps both PDFs and both CSVs of every template, and the diff picture of each page that differs, to
+        look at side by side. Nothing is written next to your templates.</p>
       <p>This is what it printed for a folder of three templates: an invoice with its rows, the same invoice with a scriptlet, and a list
         whose query is HQL (times left out; JasperReports could not render the second because the scriptlet's class was not among its jars):</p>
 <pre data-lang="console" class="out">$ ferroreport migrate reports/ --jasper jasperreports-6.20.6/lib --report migration.md

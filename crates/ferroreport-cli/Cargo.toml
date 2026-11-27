@@ -37,6 +37,8 @@ sha2 = "0.10"
 aes = "0.8"
 des = "0.8"
 cbc = { version = "0.1", features = ["alloc"] }
+# The page pictures of `migrate --jasper` (the png the library already reads images with).
+png = "0.17"
 # Databases (feature `db`, on by default): the template's query, run as JasperReports runs it.
 rusqlite = { version = "0.43", features = ["bundled"], optional = true }
 postgres = { version = "0.19", features = ["with-chrono-0_4"], optional = true }
