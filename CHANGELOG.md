@@ -44,6 +44,10 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   documentation, in English and Spanish).
 - Tests: every template in `examples/` (the `.ferro` files and each folder's report) is
   rendered on every push, so an example that stops rendering fails CI.
+- `migrate --jasper` starts JasperReports in UTC, as its time zone parameter and ferroreport's
+  defaults already are. On a machine in another zone, expressions that use the Java runtime's
+  own zone (`new SimpleDateFormat(...)`, `HOUR`, `DATEFORMAT`) came out shifted in
+  JasperReports only and were reported as differences.
 
 ## 1.3.0
 
