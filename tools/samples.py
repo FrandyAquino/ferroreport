@@ -56,12 +56,17 @@ STAMP = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d+)?$")
 def fetch(tag, cache):
     """The demo folder of JasperReports at `tag`, cloned once."""
     src = cache / tag
-    demo = src / "jasperreports" / "demo"
-    if not demo.exists():
+    # Up to 6.x the repository keeps everything under jasperreports/; from 7.0 demo/ is at its top.
+    for demo in (src / "jasperreports" / "demo", src / "demo"):
+        if (demo / "samples").exists():
+            return demo
+    if not src.exists():
         cache.mkdir(parents=True, exist_ok=True)
         subprocess.run(["git", "clone", "-q", "--depth", "1", "--branch", tag, "--filter=blob:none", "--sparse", REPO, str(src)], check=True)
-        subprocess.run(["git", "-C", str(src), "sparse-checkout", "set", "jasperreports/demo/samples", "jasperreports/demo/hsqldb"], check=True)
-    return demo
+    nested = subprocess.run(["git", "-C", str(src), "ls-tree", "-d", "--name-only", "HEAD", "jasperreports/demo"], capture_output=True, text=True, check=True).stdout.strip()
+    prefix = "jasperreports/demo" if nested else "demo"
+    subprocess.run(["git", "-C", str(src), "sparse-checkout", "set", f"{prefix}/samples", f"{prefix}/hsqldb"], check=True)
+    return src / prefix
 
 
 def database(script):
@@ -232,7 +237,7 @@ def main():
     os.environ["FONTCONFIG_FILE"] = str(ROOT / "tools" / "oracle" / "fonts.conf")
     if not args.lib:
         raise SystemExit("set JASPER_LIB to a folder with the JasperReports jars")
-    demo = Path(args.samples) if args.samples else fetch(args.tag, ROOT / "target" / "jasper-samples")
+    demo = (Path(args.samples) if args.samples else fetch(args.tag, ROOT / "target" / "jasper-samples")).resolve()
     db = database(demo / "hsqldb" / "test.script")
     oracle = ROOT / "target" / "oracle"
     if not (oracle / "Oracle.class").exists():
@@ -272,6 +277,7 @@ def main():
         classes = sample_classes(sample, args.lib, out_root)
         classpath = os.pathsep.join([str(oracle), f"{args.lib}/*", *([str(classes)] if classes else []), str(sample / "src"), str(template.parent), str(sample)])
         # ORACLE_JAVA: a Java 17 runtime lets JasperReports 6.20.6 compile Groovy expressions.
+        # JasperReports 7 needs Java 21 (its JFreeChart is built for it): leave it unset there.
         # The rows' dates are UTC, and so is the Java runtime's own time zone, which methods such
         # as Date.getMonth() use, whatever the machine's is.
         jcode, jtext, jsec = run([os.environ.get("ORACLE_JAVA", "java"), "-Djava.awt.headless=true", "-Duser.timezone=UTC", f"-Duser.home={out_root / '.java-home'}", "-cp", classpath, "Oracle", str(template),
