@@ -1,0 +1,314 @@
+[
+ {
+  "date": "2026-01-01",
+  "description": "Salary · Lumen Analytics LLC",
+  "reference": "PAYROLL",
+  "amount": 3850.0
+ },
+ {
+  "date": "2026-01-02",
+  "description": "Bakery · Golden Crust",
+  "reference": "CARD *4050",
+  "amount": -107.06
+ },
+ {
+  "date": "2026-01-03",
+  "description": "Rent · Harbor View Apartments",
+  "reference": "SO-2201",
+  "amount": -1450.0
+ },
+ {
+  "date": "2026-01-05",
+  "description": "Electricity · Northgrid Energy",
+  "reference": "DD-7781",
+  "amount": -89.43
+ },
+ {
+  "date": "2026-01-08",
+  "description": "Grocery · FreshMart",
+  "reference": "CARD *4136",
+  "amount": -101.97
+ },
+ {
+  "date": "2026-01-08",
+  "description": "Taxi · CityRide",
+  "reference": "CARD *4970",
+  "amount": -114.43
+ },
+ {
+  "date": "2026-01-10",
+  "description": "Hardware · Bolt & Beam",
+  "reference": "CARD *4120",
+  "amount": -29.39
+ },
+ {
+  "date": "2026-01-12",
+  "description": "Mobile phone · Orbit Telecom",
+  "reference": "DD-1094",
+  "amount": -42.9
+ },
+ {
+  "date": "2026-01-13",
+  "description": "Taxi · CityRide",
+  "reference": "CARD *4840",
+  "amount": -12.5
+ },
+ {
+  "date": "2026-01-14",
+  "description": "Coffee · Bean & Leaf",
+  "reference": "CARD *4564",
+  "amount": -46.36
+ },
+ {
+  "date": "2026-01-14",
+  "description": "Grocery · FreshMart",
+  "reference": "CARD *4126",
+  "amount": -149.53
+ },
+ {
+  "date": "2026-01-15",
+  "description": "Transfer to savings",
+  "reference": "TRF-0007",
+  "amount": -400.0
+ },
+ {
+  "date": "2026-01-17",
+  "description": "Pharmacy · WellCare",
+  "reference": "CARD *4444",
+  "amount": -10.6
+ },
+ {
+  "date": "2026-01-18",
+  "description": "Coffee · Bean & Leaf",
+  "reference": "CARD *4059",
+  "amount": -68.36
+ },
+ {
+  "date": "2026-01-20",
+  "description": "Car insurance · Safeway Mutual",
+  "reference": "DD-3316",
+  "amount": -96.15
+ },
+ {
+  "date": "2026-01-28",
+  "description": "Gym membership · Peak Fitness",
+  "reference": "DD-5520",
+  "amount": -35.0
+ },
+ {
+  "date": "2026-02-01",
+  "description": "Salary · Lumen Analytics LLC",
+  "reference": "PAYROLL",
+  "amount": 3850.0
+ },
+ {
+  "date": "2026-02-03",
+  "description": "Rent · Harbor View Apartments",
+  "reference": "SO-2201",
+  "amount": -1450.0
+ },
+ {
+  "date": "2026-02-04",
+  "description": "Bakery · Golden Crust",
+  "reference": "CARD *4192",
+  "amount": -104.53
+ },
+ {
+  "date": "2026-02-05",
+  "description": "Electricity · Northgrid Energy",
+  "reference": "DD-7781",
+  "amount": -104.25
+ },
+ {
+  "date": "2026-02-09",
+  "description": "Refund · Parcelio",
+  "reference": "RFD-3390",
+  "amount": 64.99
+ },
+ {
+  "date": "2026-02-10",
+  "description": "Pharmacy · WellCare",
+  "reference": "CARD *4715",
+  "amount": -143.81
+ },
+ {
+  "date": "2026-02-12",
+  "description": "Mobile phone · Orbit Telecom",
+  "reference": "DD-1094",
+  "amount": -42.9
+ },
+ {
+  "date": "2026-02-12",
+  "description": "Coffee · Bean & Leaf",
+  "reference": "CARD *4064",
+  "amount": -100.4
+ },
+ {
+  "date": "2026-02-15",
+  "description": "Restaurant · La Piazza",
+  "reference": "CARD *4074",
+  "amount": -111.18
+ },
+ {
+  "date": "2026-02-15",
+  "description": "Bakery · Golden Crust",
+  "reference": "CARD *4370",
+  "amount": -166.53
+ },
+ {
+  "date": "2026-02-15",
+  "description": "Transfer to savings",
+  "reference": "TRF-0007",
+  "amount": -400.0
+ },
+ {
+  "date": "2026-02-17",
+  "description": "Online order · Parcelio",
+  "reference": "CARD *4746",
+  "amount": -158.02
+ },
+ {
+  "date": "2026-02-19",
+  "description": "Grocery · FreshMart",
+  "reference": "CARD *4508",
+  "amount": -112.95
+ },
+ {
+  "date": "2026-02-20",
+  "description": "Car insurance · Safeway Mutual",
+  "reference": "DD-3316",
+  "amount": -96.15
+ },
+ {
+  "date": "2026-02-22",
+  "description": "Cinema · Starlight",
+  "reference": "CARD *4321",
+  "amount": -79.26
+ },
+ {
+  "date": "2026-02-25",
+  "description": "Pharmacy · WellCare",
+  "reference": "CARD *4307",
+  "amount": -18.41
+ },
+ {
+  "date": "2026-02-28",
+  "description": "Gym membership · Peak Fitness",
+  "reference": "DD-5520",
+  "amount": -35.0
+ },
+ {
+  "date": "2026-03-01",
+  "description": "Salary · Lumen Analytics LLC",
+  "reference": "PAYROLL",
+  "amount": 3850.0
+ },
+ {
+  "date": "2026-03-03",
+  "description": "Coffee · Bean & Leaf",
+  "reference": "CARD *4485",
+  "amount": -170.26
+ },
+ {
+  "date": "2026-03-03",
+  "description": "Rent · Harbor View Apartments",
+  "reference": "SO-2201",
+  "amount": -1450.0
+ },
+ {
+  "date": "2026-03-05",
+  "description": "Electricity · Northgrid Energy",
+  "reference": "DD-7781",
+  "amount": -77.08
+ },
+ {
+  "date": "2026-03-06",
+  "description": "Books · Paper Lantern",
+  "reference": "CARD *4500",
+  "amount": -30.75
+ },
+ {
+  "date": "2026-03-12",
+  "description": "Mobile phone · Orbit Telecom",
+  "reference": "DD-1094",
+  "amount": -42.9
+ },
+ {
+  "date": "2026-03-12",
+  "description": "Fuel · Coastline Gas",
+  "reference": "CARD *4505",
+  "amount": -111.52
+ },
+ {
+  "date": "2026-03-14",
+  "description": "Grocery · FreshMart",
+  "reference": "CARD *4079",
+  "amount": -173.32
+ },
+ {
+  "date": "2026-03-15",
+  "description": "Transfer to savings",
+  "reference": "TRF-0007",
+  "amount": -400.0
+ },
+ {
+  "date": "2026-03-20",
+  "description": "Car insurance · Safeway Mutual",
+  "reference": "DD-3316",
+  "amount": -96.15
+ },
+ {
+  "date": "2026-03-20",
+  "description": "Online order · Parcelio",
+  "reference": "CARD *4467",
+  "amount": -106.06
+ },
+ {
+  "date": "2026-03-22",
+  "description": "Books · Paper Lantern",
+  "reference": "CARD *4472",
+  "amount": -7.97
+ },
+ {
+  "date": "2026-03-23",
+  "description": "Taxi · CityRide",
+  "reference": "CARD *4748",
+  "amount": -15.44
+ },
+ {
+  "date": "2026-03-23",
+  "description": "Restaurant · La Piazza",
+  "reference": "CARD *4697",
+  "amount": -117.89
+ },
+ {
+  "date": "2026-03-24",
+  "description": "Interest",
+  "reference": null,
+  "amount": 1.87
+ },
+ {
+  "date": "2026-03-25",
+  "description": "Cinema · Starlight",
+  "reference": "CARD *4896",
+  "amount": -104.85
+ },
+ {
+  "date": "2026-03-27",
+  "description": "Online order · Parcelio",
+  "reference": "CARD *4395",
+  "amount": -54.09
+ },
+ {
+  "date": "2026-03-27",
+  "description": "Books · Paper Lantern",
+  "reference": "CARD *4358",
+  "amount": -63.86
+ },
+ {
+  "date": "2026-03-28",
+  "description": "Gym membership · Peak Fitness",
+  "reference": "DD-5520",
+  "amount": -35.0
+ }
+]

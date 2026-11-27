@@ -1,0 +1,172 @@
+<!-- A bank account statement: the account and its period, an opening balance, the movements
+     month by month with debits, credits and the balance after each one, monthly totals, and a
+     closing summary. Made-up data; fonts are the bundled DejaVu families. -->
+<jasperReport name="BankStatement" language="java" pageWidth="595" pageHeight="842" columnWidth="535" leftMargin="30" rightMargin="30" topMargin="30" bottomMargin="30">
+	<style name="Base" default="true" fontName="DejaVu Sans" fontSize="8.0"/>
+	<style name="Bold" style="Base" bold="true"/>
+	<style name="Amount" style="Base" hTextAlign="Right" pattern="#,##0.00"/>
+	<style name="Head" style="Bold" forecolor="#FFFFFF" backcolor="#1F3A5F" mode="Opaque" vTextAlign="Middle">
+		<box leftPadding="4" rightPadding="4"/>
+	</style>
+	<parameter name="Bank" class="java.lang.String"/>
+	<parameter name="BankAddress" class="java.lang.String"/>
+	<parameter name="Holder" class="java.lang.String"/>
+	<parameter name="HolderAddress" class="java.lang.String"/>
+	<parameter name="Account" class="java.lang.String"/>
+	<parameter name="Currency" class="java.lang.String"/>
+	<parameter name="From" class="java.util.Date"/>
+	<parameter name="To" class="java.util.Date"/>
+	<parameter name="OpeningBalance" class="java.lang.Double"/>
+	<field name="date" class="java.util.Date"/>
+	<field name="description" class="java.lang.String"/>
+	<field name="reference" class="java.lang.String"/>
+	<field name="amount" class="java.lang.Double"/>
+	<variable name="Movement" class="java.lang.Double" calculation="Sum">
+		<expression><![CDATA[$F{amount}]]></expression>
+	</variable>
+	<variable name="Debits" class="java.lang.Double" calculation="Sum">
+		<expression><![CDATA[$F{amount} < 0 ? -$F{amount} : 0.0]]></expression>
+	</variable>
+	<variable name="Credits" class="java.lang.Double" calculation="Sum">
+		<expression><![CDATA[$F{amount} > 0 ? $F{amount} : 0.0]]></expression>
+	</variable>
+	<variable name="MonthDebits" class="java.lang.Double" resetType="Group" resetGroup="Month" calculation="Sum">
+		<expression><![CDATA[$F{amount} < 0 ? -$F{amount} : 0.0]]></expression>
+	</variable>
+	<variable name="MonthCredits" class="java.lang.Double" resetType="Group" resetGroup="Month" calculation="Sum">
+		<expression><![CDATA[$F{amount} > 0 ? $F{amount} : 0.0]]></expression>
+	</variable>
+	<variable name="MonthCount" class="java.lang.Integer" resetType="Group" resetGroup="Month" calculation="Count">
+		<expression><![CDATA[$F{date}]]></expression>
+	</variable>
+	<group name="Month">
+		<expression><![CDATA[new java.text.SimpleDateFormat("yyyy-MM").format($F{date})]]></expression>
+		<groupHeader>
+			<band height="22">
+				<element kind="textField" x="0" y="6" width="535" height="14" style="Bold" fontSize="9.0" forecolor="#1F3A5F">
+					<expression><![CDATA[new java.text.SimpleDateFormat("MMMM yyyy", java.util.Locale.US).format($F{date})]]></expression>
+				</element>
+				<element kind="line" x="0" y="21" width="535" height="1" forecolor="#1F3A5F"/>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="22">
+				<element kind="line" x="0" y="1" width="535" height="1" forecolor="#A0A0A0"/>
+				<element kind="textField" x="0" y="4" width="295" height="14" style="Bold">
+					<expression><![CDATA["Total for " + new java.text.SimpleDateFormat("MMMM", java.util.Locale.US).format($F{date}) + " (" + $V{MonthCount} + " movements)"]]></expression>
+				</element>
+				<element kind="textField" x="295" y="4" width="80" height="14" style="Amount" bold="true">
+					<expression><![CDATA[$V{MonthDebits}]]></expression>
+				</element>
+				<element kind="textField" x="375" y="4" width="80" height="14" style="Amount" bold="true">
+					<expression><![CDATA[$V{MonthCredits}]]></expression>
+				</element>
+				<element kind="textField" x="455" y="4" width="80" height="14" style="Amount" bold="true">
+					<expression><![CDATA[$P{OpeningBalance} + $V{Movement}]]></expression>
+				</element>
+			</band>
+		</groupFooter>
+	</group>
+	<title height="150">
+		<element kind="rectangle" x="0" y="0" width="535" height="44" forecolor="#1F3A5F" backcolor="#1F3A5F"/>
+		<element kind="textField" x="10" y="6" width="300" height="20" forecolor="#FFFFFF" fontSize="14.0" bold="true">
+			<expression><![CDATA[$P{Bank}]]></expression>
+		</element>
+		<element kind="textField" x="10" y="26" width="300" height="12" forecolor="#D0DCEA">
+			<expression><![CDATA[$P{BankAddress}]]></expression>
+		</element>
+		<element kind="staticText" x="315" y="10" width="210" height="24" forecolor="#FFFFFF" fontSize="16.0" hTextAlign="Right">
+			<text><![CDATA[Account statement]]></text>
+		</element>
+		<element kind="textField" x="0" y="56" width="260" height="14" style="Bold" fontSize="10.0">
+			<expression><![CDATA[$P{Holder}]]></expression>
+		</element>
+		<element kind="textField" x="0" y="70" width="260" height="36" textAdjust="StretchHeight">
+			<expression><![CDATA[$P{HolderAddress}]]></expression>
+		</element>
+		<element kind="frame" x="300" y="54" width="235" height="56">
+			<box><pen lineWidth="0.5" lineColor="#A0A0A0"/></box>
+			<element kind="staticText" x="6" y="4" width="80" height="12" forecolor="#606060"><text><![CDATA[Account]]></text></element>
+			<element kind="textField" x="86" y="4" width="143" height="12" hTextAlign="Right"><expression><![CDATA[$P{Account}]]></expression></element>
+			<element kind="staticText" x="6" y="17" width="80" height="12" forecolor="#606060"><text><![CDATA[Currency]]></text></element>
+			<element kind="textField" x="86" y="17" width="143" height="12" hTextAlign="Right"><expression><![CDATA[$P{Currency}]]></expression></element>
+			<element kind="staticText" x="6" y="30" width="80" height="12" forecolor="#606060"><text><![CDATA[Period]]></text></element>
+			<element kind="textField" x="86" y="30" width="143" height="12" hTextAlign="Right">
+				<expression><![CDATA[new java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.US).format($P{From}) + " – " + new java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.US).format($P{To})]]></expression>
+			</element>
+			<element kind="staticText" x="6" y="43" width="80" height="12" forecolor="#606060"><text><![CDATA[Opening balance]]></text></element>
+			<element kind="textField" x="86" y="43" width="143" height="12" style="Amount" bold="true"><expression><![CDATA[$P{OpeningBalance}]]></expression></element>
+		</element>
+		<element kind="staticText" x="0" y="124" width="535" height="20" style="Bold" fontSize="11.0" forecolor="#1F3A5F">
+			<text><![CDATA[Movements]]></text>
+		</element>
+	</title>
+	<columnHeader height="18">
+		<element kind="staticText" x="0" y="0" width="60" height="18" style="Head"><text><![CDATA[Date]]></text></element>
+		<element kind="staticText" x="60" y="0" width="165" height="18" style="Head"><text><![CDATA[Description]]></text></element>
+		<element kind="staticText" x="225" y="0" width="70" height="18" style="Head"><text><![CDATA[Reference]]></text></element>
+		<element kind="staticText" x="295" y="0" width="80" height="18" style="Head" hTextAlign="Right"><text><![CDATA[Debit]]></text></element>
+		<element kind="staticText" x="375" y="0" width="80" height="18" style="Head" hTextAlign="Right"><text><![CDATA[Credit]]></text></element>
+		<element kind="staticText" x="455" y="0" width="80" height="18" style="Head" hTextAlign="Right"><text><![CDATA[Balance]]></text></element>
+	</columnHeader>
+	<detail>
+		<band height="16">
+			<element kind="rectangle" x="0" y="0" width="535" height="16" forecolor="#F2F5F9" backcolor="#F2F5F9">
+				<printWhenExpression><![CDATA[$V{MonthCount} % 2 == 0]]></printWhenExpression>
+			</element>
+			<element kind="textField" x="0" y="0" width="60" height="16" vTextAlign="Middle" pattern="MMM dd">
+				<expression><![CDATA[$F{date}]]></expression>
+				<box leftPadding="4"/>
+			</element>
+			<element kind="textField" x="60" y="0" width="165" height="16" vTextAlign="Middle">
+				<expression><![CDATA[$F{description}]]></expression>
+				<box leftPadding="4"/>
+			</element>
+			<element kind="textField" x="225" y="0" width="70" height="16" vTextAlign="Middle" forecolor="#606060" blankWhenNull="true">
+				<expression><![CDATA[$F{reference}]]></expression>
+				<box leftPadding="4"/>
+			</element>
+			<element kind="textField" x="295" y="0" width="80" height="16" style="Amount" vTextAlign="Middle" forecolor="#B00020" blankWhenNull="true">
+				<expression><![CDATA[$F{amount} < 0 ? -$F{amount} : null]]></expression>
+				<box rightPadding="4"/>
+			</element>
+			<element kind="textField" x="375" y="0" width="80" height="16" style="Amount" vTextAlign="Middle" forecolor="#1B7F3B" blankWhenNull="true">
+				<expression><![CDATA[$F{amount} > 0 ? $F{amount} : null]]></expression>
+				<box rightPadding="4"/>
+			</element>
+			<element kind="textField" x="455" y="0" width="80" height="16" style="Amount" vTextAlign="Middle">
+				<expression><![CDATA[$P{OpeningBalance} + $V{Movement}]]></expression>
+				<box rightPadding="4"/>
+			</element>
+		</band>
+	</detail>
+	<pageFooter height="24">
+		<element kind="line" x="0" y="4" width="535" height="1" forecolor="#A0A0A0"/>
+		<element kind="textField" x="0" y="8" width="300" height="12" forecolor="#606060">
+			<expression><![CDATA[$P{Bank} + " · " + $P{Account}]]></expression>
+		</element>
+		<element kind="textField" x="335" y="8" width="160" height="12" forecolor="#606060" hTextAlign="Right">
+			<expression><![CDATA["Page " + $V{PAGE_NUMBER} + " of"]]></expression>
+		</element>
+		<element kind="textField" x="495" y="8" width="40" height="12" forecolor="#606060" evaluationTime="Report">
+			<expression><![CDATA[" " + $V{PAGE_NUMBER}]]></expression>
+		</element>
+	</pageFooter>
+	<summary height="110">
+		<element kind="frame" x="275" y="14" width="260" height="76">
+			<box><pen lineWidth="0.5" lineColor="#1F3A5F"/></box>
+			<element kind="staticText" x="8" y="6" width="140" height="14"><text><![CDATA[Opening balance]]></text></element>
+			<element kind="textField" x="148" y="6" width="104" height="14" style="Amount"><expression><![CDATA[$P{OpeningBalance}]]></expression></element>
+			<element kind="staticText" x="8" y="20" width="140" height="14"><text><![CDATA[Total debits]]></text></element>
+			<element kind="textField" x="148" y="20" width="104" height="14" style="Amount" forecolor="#B00020"><expression><![CDATA[-$V{Debits}]]></expression></element>
+			<element kind="staticText" x="8" y="34" width="140" height="14"><text><![CDATA[Total credits]]></text></element>
+			<element kind="textField" x="148" y="34" width="104" height="14" style="Amount" forecolor="#1B7F3B"><expression><![CDATA[$V{Credits}]]></expression></element>
+			<element kind="line" x="8" y="51" width="244" height="1" forecolor="#1F3A5F"/>
+			<element kind="staticText" x="8" y="56" width="140" height="14" style="Bold" fontSize="9.0"><text><![CDATA[Closing balance]]></text></element>
+			<element kind="textField" x="148" y="56" width="104" height="14" style="Amount" bold="true" fontSize="9.0"><expression><![CDATA[$P{OpeningBalance} + $V{Movement}]]></expression></element>
+		</element>
+		<element kind="textField" x="0" y="14" width="260" height="76" forecolor="#606060" fontSize="7.0" textAdjust="StretchHeight">
+			<expression><![CDATA["Please check this statement and tell us of any difference within 30 days of " + new java.text.SimpleDateFormat("MMMM d, yyyy", java.util.Locale.US).format($P{To}) + ". " + $V{REPORT_COUNT} + " movements in the period."]]></expression>
+		</element>
+	</summary>
+</jasperReport>
