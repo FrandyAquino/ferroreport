@@ -42,6 +42,8 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   numbers, as in 1.3: the pictures are reported beside it.
 - Docs: rows from pandas, Polars and SQLAlchemy in Python (README and the Data section of the
   documentation, in English and Spanish).
+- Tests: every template in `examples/` (the `.ferro` files and each folder's report) is
+  rendered on every push, so an example that stops rendering fails CI.
 
 ## 1.3.0
 
