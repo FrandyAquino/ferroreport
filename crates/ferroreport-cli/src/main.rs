@@ -372,8 +372,11 @@ fn compare_with_jasper(
     }
     let separator = if cfg!(windows) { ";" } else { ":" };
     let classpath = format!("{}{separator}{}", lib.join("*").display(), work.display());
+    // UTC, as MigrateCheck's REPORT_TIME_ZONE and ferroreport's defaults: expressions that use
+    // the runtime's own zone (new SimpleDateFormat(...), HOUR, DATEFORMAT...) would otherwise be
+    // shifted in JasperReports only, on a machine outside UTC.
     let mut child = std::process::Command::new("java")
-        .args(["-Djava.awt.headless=true", "-cp", &classpath])
+        .args(["-Djava.awt.headless=true", "-Duser.timezone=UTC", "-cp", &classpath])
         .arg(&program)
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())

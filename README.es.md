@@ -25,7 +25,7 @@ mitad del tamaño de un JRXML y accesible por defecto. Frente al propio JasperRe
 > Las 48 plantillas comparables de la batería de pruebas salen píxel por píxel igual que en JasperReports 6.20, incluyendo bandas divididas entre páginas,
 > imágenes (también SVG), subreportes, tablas, listas, crosstabs, códigos QR, PDF417, Barbecue
 > y de barras, enlaces, texto con formato y varias columnas; los gráficos se dibujan como los
-> dibuja JasperReports 7 (20 de sus 24 muestras de gráficos salen iguales). Las 49 que ambos
+> dibuja JasperReports 7 (21 de sus 24 muestras de gráficos salen iguales). Las 49 que ambos
 > motores pueden exportar dan el mismo Excel y CSV, las
 > 51 pasan las pruebas PDF/UA-1, PDF/A-2a, PDF/A-3b y PDF/A-2b (firmado) de veraPDF, y las
 > muestras del propio JasperReports se comparan contra 6.20.6 y 7.1.1. `ferroreport doctor` te
@@ -352,8 +352,8 @@ lista), así que el JRXML convertido funciona también en JasperReports:
   burbujas, series de tiempo, velas (candlestick), máximo-mínimo, Gantt, medidor, termómetro y
   de varios ejes, con títulos, leyendas y datasets por registro, grupo o reporte, también desde un
   subdataset. Se dibujan como los dibuja JasperReports 7.1 con JFreeChart 1.5, píxel por píxel en
-  sus propias muestras, salvo el medidor, el termómetro y los de varios ejes hechos de gráficos
-  XY, que siguen el estilo de JFreeChart sin ser iguales. JasperReports 6 (JFreeChart 1.0.19)
+  sus propias muestras, salvo el medidor, cuya etiqueta de valor queda a una fracción de punto, y
+  los de varios ejes hechos de gráficos XY, que siguen el estilo de JFreeChart sin ser iguales. JasperReports 6 (JFreeChart 1.0.19)
   enmarca la leyenda y dibuja en 3D los gráficos 3D; ferroreport no. El texto de los gráficos va
   como contornos, igual que en JasperReports, así que no se puede seleccionar.
 - Tablas (`jr:table`) como las crea el asistente de Jaspersoft Studio: grupos de columnas, encabezados
@@ -594,7 +594,7 @@ códigos de barras y un formato de plantilla propio. Lo que viene, en versiones 
   jemer y birmano, y separar en sílabas el texto con formato (styled y HTML). El motor de
   composición es harfrust, el port a Rust que mantiene el proyecto HarfBuzz (reemplazó a
   rustybuzz, que ya no se mantiene).
-- **Los últimos gráficos píxel por píxel:** medidor y termómetro, y el estilo de JFreeChart de
+- **Los últimos gráficos píxel por píxel:** la etiqueta de valor del medidor, y el estilo de JFreeChart de
   JasperReports 6 (leyenda enmarcada, gráficos 3D) junto al de la 7.
 - **Mapas** y los demás componentes propios; firmas PAdES con sello de tiempo (B-T, B-LT) y con
   recuadro visible.
