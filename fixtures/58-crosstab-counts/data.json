@@ -1,0 +1,284 @@
+[
+ {
+  "region": "Este",
+  "city": "La Romana",
+  "quarter": "Q3",
+  "amount": "4671.73"
+ },
+ {
+  "region": "Norte",
+  "city": "Santiago",
+  "quarter": "Q3",
+  "amount": "4874.07"
+ },
+ {
+  "region": "Este",
+  "city": "San Pedro",
+  "quarter": "Q4",
+  "amount": "4167.10"
+ },
+ {
+  "region": "Sur",
+  "city": "Barahona",
+  "quarter": "Q4",
+  "amount": "4166.87"
+ },
+ {
+  "region": "Este",
+  "city": "La Romana",
+  "quarter": "Q4",
+  "amount": "2968.76"
+ },
+ {
+  "region": "Este",
+  "city": "San Pedro",
+  "quarter": "Q1",
+  "amount": "3882.45"
+ },
+ {
+  "region": "Norte",
+  "city": "Santiago",
+  "quarter": "Q3",
+  "amount": "4256.27"
+ },
+ {
+  "region": "Sur",
+  "city": "Azua",
+  "quarter": "Q2",
+  "amount": "1572.89"
+ },
+ {
+  "region": "Este",
+  "city": "La Romana",
+  "quarter": "Q1",
+  "amount": "699.15"
+ },
+ {
+  "region": "Norte",
+  "city": "Puerto Plata",
+  "quarter": "Q2",
+  "amount": "4614.54"
+ },
+ {
+  "region": "Este",
+  "city": "La Romana",
+  "quarter": "Q3",
+  "amount": "735.97"
+ },
+ {
+  "region": "Sur",
+  "city": "Azua",
+  "quarter": "Q3",
+  "amount": "770.73"
+ },
+ {
+  "region": "Norte",
+  "city": "La Vega",
+  "quarter": "Q3",
+  "amount": "1064.73"
+ },
+ {
+  "region": "Este",
+  "city": "San Pedro",
+  "quarter": "Q1",
+  "amount": "1476.78"
+ },
+ {
+  "region": "Norte",
+  "city": "La Vega",
+  "quarter": "Q1",
+  "amount": "4875.07"
+ },
+ {
+  "region": "Norte",
+  "city": "Santiago",
+  "quarter": "Q1",
+  "amount": "495.09"
+ },
+ {
+  "region": "Sur",
+  "city": "Azua",
+  "quarter": "Q4",
+  "amount": "2913.93"
+ },
+ {
+  "region": "Norte",
+  "city": "La Vega",
+  "quarter": "Q2",
+  "amount": "1190.37"
+ },
+ {
+  "region": "Este",
+  "city": "La Romana",
+  "quarter": "Q3",
+  "amount": "3554.05"
+ },
+ {
+  "region": "Sur",
+  "city": "Azua",
+  "quarter": "Q1",
+  "amount": "3062.38"
+ },
+ {
+  "region": "Este",
+  "city": "San Pedro",
+  "quarter": "Q3",
+  "amount": "2128.50"
+ },
+ {
+  "region": "Este",
+  "city": "San Pedro",
+  "quarter": "Q3",
+  "amount": "2454.16"
+ },
+ {
+  "region": "Norte",
+  "city": "La Vega",
+  "quarter": "Q3",
+  "amount": "2627.71"
+ },
+ {
+  "region": "Norte",
+  "city": "Puerto Plata",
+  "quarter": "Q2",
+  "amount": "3525.08"
+ },
+ {
+  "region": "Este",
+  "city": "La Romana",
+  "quarter": "Q4",
+  "amount": "2886.88"
+ },
+ {
+  "region": "Este",
+  "city": "Higuey",
+  "quarter": "Q1",
+  "amount": "663.11"
+ },
+ {
+  "region": "Este",
+  "city": "San Pedro",
+  "quarter": "Q4",
+  "amount": "1462.57"
+ },
+ {
+  "region": "Este",
+  "city": "Higuey",
+  "quarter": "Q4",
+  "amount": "4834.87"
+ },
+ {
+  "region": "Sur",
+  "city": "Azua",
+  "quarter": "Q1",
+  "amount": "4896.58"
+ },
+ {
+  "region": "Este",
+  "city": "San Pedro",
+  "quarter": "Q3",
+  "amount": "582.27"
+ },
+ {
+  "region": "Sur",
+  "city": "Barahona",
+  "quarter": "Q1",
+  "amount": "3150.12"
+ },
+ {
+  "region": "Norte",
+  "city": "Santiago",
+  "quarter": "Q1",
+  "amount": "1335.50"
+ },
+ {
+  "region": "Este",
+  "city": "Higuey",
+  "quarter": "Q1",
+  "amount": "4850.58"
+ },
+ {
+  "region": "Este",
+  "city": "San Pedro",
+  "quarter": "Q1",
+  "amount": "2942.02"
+ },
+ {
+  "region": "Este",
+  "city": "Higuey",
+  "quarter": "Q4",
+  "amount": "3750.36"
+ },
+ {
+  "region": "Norte",
+  "city": "La Vega",
+  "quarter": "Q3",
+  "amount": "1281.69"
+ },
+ {
+  "region": "Norte",
+  "city": "Puerto Plata",
+  "quarter": "Q2",
+  "amount": "2071.11"
+ },
+ {
+  "region": "Norte",
+  "city": "La Vega",
+  "quarter": "Q2",
+  "amount": "481.71"
+ },
+ {
+  "region": "Norte",
+  "city": "La Vega",
+  "quarter": "Q4",
+  "amount": "944.74"
+ },
+ {
+  "region": "Este",
+  "city": "La Romana",
+  "quarter": "Q1",
+  "amount": "2458.77"
+ },
+ {
+  "region": "Sur",
+  "city": "Azua",
+  "quarter": "Q4",
+  "amount": "4402.63"
+ },
+ {
+  "region": "Este",
+  "city": "La Romana",
+  "quarter": "Q1",
+  "amount": "4293.53"
+ },
+ {
+  "region": "Este",
+  "city": "San Pedro",
+  "quarter": "Q4",
+  "amount": "3390.70"
+ },
+ {
+  "region": "Este",
+  "city": "Higuey",
+  "quarter": "Q1",
+  "amount": "2311.60"
+ },
+ {
+  "region": "Este",
+  "city": "La Romana",
+  "quarter": "Q2",
+  "amount": "2902.19"
+ },
+ {
+  "region": "Norte",
+  "city": "La Vega",
+  "quarter": "Q2",
+  "amount": "506.28"
+ },
+ {
+  "region": "Sur",
+  "city": "Azua",
+  "quarter": "Q1",
+  "amount": "2673.59"
+ }
+]

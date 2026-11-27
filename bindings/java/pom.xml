@@ -5,11 +5,11 @@
 
   <groupId>io.github.cristianencarnacion</groupId>
   <artifactId>ferroreport</artifactId>
-  <version>1.2.0</version>
+  <version>1.3.0</version>
   <packaging>jar</packaging>
 
   <name>ferroreport</name>
-  <description>Report engine for Java: PDF, Excel, CSV and HTML in milliseconds from JasperReports JRXML templates, without JasperReports on the classpath. Rows stream from a ResultSet or any Iterable, so a report can be larger than the heap.</description>
+  <description>Report engine for Java and JasperReports alternative: renders JasperReports JRXML templates (6 and 7) to PDF, Excel (XLSX), Word (DOCX), PowerPoint (PPTX), ODS, ODT, CSV and HTML in milliseconds, without JasperReports on the classpath (the engine is native, not JVM-based). A plain Maven dependency with no dependencies of its own; rows stream from a ResultSet or any Iterable, so a report can be larger than the heap.</description>
   <url>https://github.com/cristianEncarnacion/ferroreport</url>
   <licenses>
     <license><name>MIT</name><url>https://opensource.org/licenses/MIT</url></license>

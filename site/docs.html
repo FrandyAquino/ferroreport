@@ -5,13 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ferroreport documentation: render JRXML to PDF, Excel and Word</title>
 <link rel="canonical" href="https://cristianencarnacion.github.io/ferroreport/docs.html">
+<link rel="alternate" hreflang="en" href="https://cristianencarnacion.github.io/ferroreport/docs.html">
+<link rel="alternate" hreflang="es" href="https://cristianencarnacion.github.io/ferroreport/es/docs.html">
+<link rel="alternate" hreflang="x-default" href="https://cristianencarnacion.github.io/ferroreport/docs.html">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://cristianencarnacion.github.io/ferroreport/docs.html">
+<meta property="og:site_name" content="ferroreport">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="es_LA">
 <meta property="og:title" content="ferroreport documentation">
 <meta property="og:image" content="https://cristianencarnacion.github.io/ferroreport/img/invoice.png">
-<meta name="description" content="How to render JasperReports JRXML templates to PDF, Excel, Word, PowerPoint, CSV and HTML with ferroreport: command line, HTTP API, JavaScript, Python, Java and Rust; PDF/A, encryption, .ferro templates and migrating a project.">
+<meta name="description" content="How to render JasperReports JRXML templates to PDF, Excel, Word, PowerPoint, OpenDocument, CSV and HTML with ferroreport: command line, HTTP API, JavaScript, Python, Java and Rust; PDF/A, encryption, .ferro templates and migrating a project.">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "ferroreport documentation", "description": "How to render JasperReports JRXML templates to PDF, Excel, Word, PowerPoint, OpenDocument, CSV and HTML with ferroreport: command line, HTTP API, JavaScript, Python, Java and Rust.", "inLanguage": "en", "url": "https://cristianencarnacion.github.io/ferroreport/docs.html", "about": {"@type": "SoftwareSourceCode", "name": "ferroreport", "codeRepository": "https://github.com/cristianEncarnacion/ferroreport"}, "author": {"@type": "Person", "name": "Cristian Encarnación"}}</script>
 <link rel="preload" href="fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="site.css">
+<script src="highlight.js" defer></script>
 </head>
 <body>
 <div class="wrap">
@@ -19,9 +27,15 @@
     <a class="brand" href="./">ferro<span>report</span></a>
     <nav>
       <a class="wide" href="./#playground">Playground</a>
+      <a class="wide" href="migrate.html">Migrate</a>
+      <a class="wide" href="compare.html">Compare</a>
       <a href="designer/">Designer</a>
       <a href="docs.html" aria-current="page">Docs</a>
       <a href="https://github.com/cristianEncarnacion/ferroreport">GitHub</a>
+      <span class="lang" role="group" aria-label="Language">
+        <a href="docs.html" hreflang="en" lang="en" aria-label="English" aria-current="true">EN</a>
+        <a href="es/docs.html" hreflang="es" lang="es" aria-label="Español">ES</a>
+      </span>
     </nav>
   </header>
 
@@ -33,6 +47,8 @@
       <a href="#inputs">Template, data, parameters</a>
       <a href="#ferro">Templates in .ferro</a>
       <a href="#designer">The designer</a>
+      <a href="migrate.html">Migrating from JasperReports</a>
+      <a href="compare.html">Compared with other tools</a>
       <b>Ways to call it</b>
       <a href="#cli">Command line</a>
       <a href="#http">HTTP API (any language)</a>
@@ -68,8 +84,8 @@
 
       <h2 id="first">Your first PDF</h2>
       <p>You need three files: the template you designed in Jaspersoft Studio, the rows, and the parameters.</p>
-<pre>ferroreport render invoice.jrxml --data rows.json --params params.json -o invoice.pdf</pre>
-<pre># rows.json: one object per detail row; keys are the template's &lt;field&gt; names
+<pre data-lang="shell">ferroreport render invoice.jrxml --data rows.json --params params.json -o invoice.pdf</pre>
+<pre data-lang="json"># rows.json: one object per detail row; keys are the template's &lt;field&gt; names
 [
   { "sku": "FX-1000", "description": "Hydraulic pump 2HP", "qty": 21, "price": "185.00" },
   { "sku": "FX-1007", "description": "Stainless steel valve", "qty": 26, "price": "42.50" }
@@ -78,7 +94,7 @@
 # params.json: one key per &lt;parameter&gt;
 { "CUSTOMER": "Distribuidora Caribe, S.A.", "ISSUED": "2026-03-05", "TAX_RATE": "0.18" }</pre>
       <p>The same render from code:</p>
-<pre>// JavaScript
+<pre data-lang="js python shell">// JavaScript
 import { render } from "ferroreport";
 const pdf = render(jrxml, rows, params, { locale: "es_DO" });
 
@@ -97,9 +113,10 @@ curl -X POST localhost:8080/render/invoice -H 'Content-Type: application/json' \
         <tr><td>Docker, HTTP</td><td><code>docker pull ghcr.io/cristianencarnacion/ferroreport</code></td></tr>
         <tr><td>JavaScript</td><td><code>npm install ferroreport</code></td></tr>
         <tr><td>Python</td><td><code>pip install ferroreport</code></td></tr>
+        <tr><td>Java</td><td>Maven Central: <code>io.github.cristianencarnacion:ferroreport</code> (<a href="#java">details</a>)</td></tr>
         <tr><td>Rust</td><td><code>cargo add ferroreport</code></td></tr>
       </table>
-      <p class="note">The npm package, the Rust crates, the binaries and the Docker image are available now. The PyPI package is being published.</p>
+      <p class="note">The npm package, the PyPI package, the Java library on Maven Central, the Rust crates, the binaries and the Docker image are available now.</p>
 
       <h2 id="inputs">Template, data, parameters</h2>
       <h3>Template</h3>
@@ -130,7 +147,7 @@ curl -X POST localhost:8080/render/invoice -H 'Content-Type: application/json' \
       <h2 id="ferro">Templates in .ferro</h2>
       <p><code>.ferro</code> is ferroreport's own template format: the same reports as JRXML, written as an indented outline instead of
         XML. It is about half the size, a person can write it without a designer, and its reports are accessible by default.</p>
-<pre>// Employees, with their salaries and the total.
+<pre data-lang="ferro">// Employees, with their salaries and the total.
 report "Employees" lang=en
   style Base default fontName="DejaVu Sans" size=10
   field salary Double
@@ -221,7 +238,7 @@ report "Employees" lang=en
         <code>language=groovy</code> (or <code>javascript</code>), braces in expressions belong to the language and are left alone:
         write <code>$F{name}</code> there (the holes of a <code>text</code> still work). The first example in long forms gives the
         same JRXML:</p>
-<pre>report "Employees" lang=en
+<pre data-lang="ferro">report "Employees" lang=en
   style Base default fontName="DejaVu Sans" fontSize=10
   field salary Double
   field name Object
@@ -245,7 +262,7 @@ report "Employees" lang=en
         (or <code>td</code>, <code>table</code>, <code>h2</code>...) says what any element is.</p>
       <h3 id="ferro-layout">Without coordinates</h3>
       <p>Positions and sizes can be left out, and ferroreport works them out:</p>
-<pre>report "Employees" lang=en
+<pre data-lang="ferro">report "Employees" lang=en
   field salary Double
 
   def money value
@@ -274,7 +291,7 @@ report "Employees" lang=en
         overlaps when a value is longer than expected. Parts that give <code>x,y</code> stay where they say. <code>convert</code> writes
         the result as JRXML with every coordinate worked out, which Jaspersoft Studio and JasperReports open like any other report.</p>
       <p>Everything JRXML 7 can say, <code>.ferro</code> can say, so converting between them loses nothing:</p>
-<pre>ferroreport convert invoice.jrxml -o invoice.ferro      # JRXML 6 or 7 -&gt; .ferro
+<pre data-lang="shell">ferroreport convert invoice.jrxml -o invoice.ferro      # JRXML 6 or 7 -&gt; .ferro
 ferroreport convert invoice.ferro -o invoice.jrxml      # .ferro -&gt; JRXML 7, for Jaspersoft Studio 7
 ferroreport convert old.jrxml --to jrxml -o new.jrxml   # JRXML 6 -&gt; JRXML 7</pre>
       <p>From code: <code>convert(template, "ferro")</code> in JavaScript, <code>ferroreport.convert(template, to="ferro")</code> in
@@ -319,7 +336,7 @@ ferroreport convert old.jrxml --to jrxml -o new.jrxml   # JRXML 6 -&gt; JRXML 7<
         and <code>fromTree(tree, "ferro" | "jrxml")</code> writes it back (see <a href="#js">JavaScript</a>).</p>
 
       <h2 id="cli">Command line</h2>
-<pre>ferroreport render &lt;template.jrxml|template.ferro&gt; [options]
+<pre data-lang="usage">ferroreport render &lt;template.jrxml|template.ferro&gt; [options]
 ferroreport doctor &lt;template&gt;
 ferroreport convert &lt;template&gt; [-o &lt;output&gt;] [--to ferro|jrxml]
 ferroreport migrate &lt;folder|templates...&gt; [--report &lt;file.md|file.json&gt;] [--resources &lt;dir&gt;] [--strict] [--jasper &lt;lib&gt; [--keep &lt;dir&gt;]] [--to ferro|jrxml --out &lt;dir&gt;]
@@ -330,7 +347,7 @@ ferroreport serve [options]</pre>
         <tr><td><code>-d, --data &lt;file.json&gt;</code></td><td>Rows: a JSON array of objects, or one object per line. <code>-</code> reads them from standard input. Omit for reports without data. The file is read as the report needs it, so it can be larger than memory</td></tr>
         <tr><td><code>-p, --params &lt;file.json&gt;</code></td><td>Parameter values</td></tr>
         <tr><td><code>-o, --output &lt;file&gt;</code></td><td>Output file (default: the template name with <code>.pdf</code>). The extension picks the format: <code>.pdf</code>, <code>.xlsx</code>, <code>.docx</code>, <code>.pptx</code>, <code>.ods</code>, <code>.odt</code>, <code>.csv</code> or <code>.html</code>. <code>-</code> writes to standard output</td></tr>
-        <tr><td><code>-f, --format &lt;pdf|xlsx|docx|pptx|ods|odt|csv|html&gt;</code></td><td>Output format, when the file name does not say it (for example with <code>-o -</code>)</td></tr>
+        <tr><td class="long"><code>-f, --format &lt;pdf|xlsx|docx|pptx|ods|odt|csv|html&gt;</code></td><td>Output format, when the file name does not say it (for example with <code>-o -</code>)</td></tr>
         <tr><td><code>--xlsx-numbers</code></td><td>In Excel and ODS, writes numbers as numbers with their format pattern instead of as the formatted text. See <a href="#excel">Excel and CSV</a></td></tr>
         <tr><td><code>--csv-safe</code></td><td>In CSV, puts an apostrophe before values a spreadsheet would run as a formula. Use it when the data comes from other people</td></tr>
         <tr><td><code>--tagged</code></td><td>In PDF, says what the content is, for screen readers. See <a href="#tagged">Accessible PDFs</a></td></tr>
@@ -351,13 +368,13 @@ ferroreport serve [options]</pre>
         <tr><td><code>--now &lt;YYYY-MM-DDTHH:MM:SS&gt;</code></td><td>Fixes the value of <code>new Date()</code>, for reproducible output</td></tr>
         <tr><td><code>-q, --quiet</code></td><td>Does not print the timing line</td></tr>
       </table>
-<pre># From a script or another program: rows in, PDF out
+<pre data-lang="shell"># From a script or another program: rows in, PDF out
 cat rows.json | ferroreport render invoice.jrxml -d - -p params.json -o - -q &gt; invoice.pdf
 
 # The same report as an Excel workbook, or as CSV
 ferroreport render invoice.jrxml -d rows.json -p params.json -o invoice.xlsx
 ferroreport render invoice.jrxml -d rows.json -o - -f csv -q &gt; invoice.csv</pre>
-<pre># With a company font and a shared images folder
+<pre data-lang="shell"># With a company font and a shared images folder
 ferroreport render invoice.jrxml -d rows.json \
   --font "Montserrat=fonts/Montserrat-Regular.ttf" --font "Montserrat=fonts/Montserrat-Bold.ttf:bold" \
   --resources ./brand</pre>
@@ -377,6 +394,7 @@ ferroreport render invoice.jrxml -d rows.json \
         (or <code>--to jrxml</code>, for JRXML 7) it also writes each template converted, in the same folders. It exits with 1 when a
         template cannot be loaded, so it can stop a build; with <code>--strict</code> also when one uses something not supported yet,
         stops when rendered with no rows, or differs from JasperReports.</p>
+      <p>The <a href="migrate.html">migration guide</a> takes a JasperReports project through it step by step.</p>
       <h3 id="migrate-jasper">Compared with JasperReports itself</h3>
       <p>With <code>--jasper lib/</code>, the folder of your JasperReports jars (6 or 7, with their dependencies, as your application
         runs them) and a JDK 11 or newer on the PATH, every template that loads is also rendered by JasperReports, in one Java process,
@@ -386,12 +404,12 @@ ferroreport render invoice.jrxml -d rows.json \
         by line), and how long each took to fill and write the PDF. <code>--keep compared/</code> keeps both PDFs and both CSVs of every
         template, to look at side by side. Images, styles and subreports are read from the template's folder; nothing is written there.</p>
       <p>Over this project's own test templates, with JasperReports 6.20.6:</p>
-<pre>$ ferroreport migrate fixtures/ --jasper jasperreports-6.20.6/lib --keep compared/
+<pre data-lang="console">$ ferroreport migrate fixtures/ --jasper jasperreports-6.20.6/lib --keep compared/
 ✓ fixtures/02-invoice/report.jrxml (JRXML 6)
     with the rows of fixtures/02-invoice/data.json: 2 pages in both, every text and number the same; JasperReports 228 ms, ferroreport 2.5 ms
 ...
 compared with JasperReports: 46 the same pages and text, 0 differ, 2 JasperReports could not render; filling and writing the PDFs took JasperReports 7676 ms in all (its first template includes starting up), ferroreport 361 ms</pre>
-<pre>$ ferroreport migrate reports/ --report migration.md
+<pre data-lang="console">$ ferroreport migrate reports/ --report migration.md
 ✓ reports/invoice.jrxml (JRXML 6)
 ✓ reports/sales.jrxml (JRXML 6)
     - hql query is not run (only SQL is): pass the rows it gives
@@ -425,7 +443,7 @@ compared with JasperReports: 46 the same pages and text, 0 differ, 2 JasperRepor
 
       <h2 id="http">HTTP API (any language)</h2>
       <p>For Java, C#, PHP, Go, Ruby and anything else that can make an HTTP request. Run the server next to your application:</p>
-<pre>docker run -p 8080:8080 \
+<pre data-lang="shell">docker run -p 8080:8080 \
   -v "$PWD/templates:/templates" -e FERROREPORT_TEMPLATES=/templates \
   -e FERROREPORT_TOKEN=change-me \
   ghcr.io/cristianencarnacion/ferroreport</pre>
@@ -434,7 +452,7 @@ compared with JasperReports: 46 the same pages and text, 0 differ, 2 JasperRepor
         <tr><td><code>POST /render/&lt;name&gt;</code></td><td>Renders <code>&lt;name&gt;.jrxml</code> from the templates directory (subfolders allowed: <code>/render/sales/invoice</code>)</td><td><code>application/pdf</code>, or the Excel or CSV file with <code>format</code></td></tr>
         <tr><td><code>POST /render</code></td><td>Renders the template sent in the request</td><td><code>application/pdf</code>, or the Excel or CSV file with <code>format</code></td></tr>
         <tr><td><code>POST /inspect</code></td><td>Reports a template's parameters, fields and unsupported features</td><td>JSON</td></tr>
-        <tr><td><code>GET /health</code></td><td>For load balancers. Answers without the token</td><td><code>{"status": "ok", "version": "1.2.0"}</code></td></tr>
+        <tr><td><code>GET /health</code></td><td>For load balancers. Answers without the token</td><td><code>{"status": "ok", "version": "1.3.0"}</code></td></tr>
         <tr><td><code>GET /metrics</code></td><td>Counters for Prometheus: renders, errors, renders stopped by a limit, renders stopped because the client left, documents sent as they rendered, time spent, pages, rows, bytes sent, template cache hits and misses, renders in flight, disk in use for documents</td><td>Prometheus text</td></tr>
       </table>
       <p>The request body is JSON:</p>
@@ -461,7 +479,7 @@ compared with JasperReports: 46 the same pages and text, 0 differ, 2 JasperRepor
       <p>A document is sent only once it is complete, with its <code>Content-Length</code>: the answer is the whole document or an error,
         never part of one. It comes with two more headers: <code>Server-Timing</code> (milliseconds spent parsing the template, 0 when it
         came from the cache, and rendering) and <code>X-Report-Pages</code>.</p>
-<pre># curl
+<pre data-lang="shell"># curl
 curl -X POST localhost:8080/render/invoice \
   -H 'Authorization: Bearer change-me' -H 'Content-Type: application/json' \
   -d '{"data": [{"sku": "FX-1000", "qty": 21, "price": "185.00"}], "params": {"CUSTOMER": "Caribe"}}' \
@@ -471,16 +489,16 @@ curl -X POST localhost:8080/render/invoice \
 curl -X POST 'localhost:8080/render/invoice?format=xlsx' \
   -H 'Authorization: Bearer change-me' -H 'Content-Type: application/json' \
   -d '{"data": [...], "params": {...}}' -o invoice.xlsx</pre>
-<pre>// Java: use the <a href="#java">Java library</a>, which talks to this server too
+<pre data-lang="java">// Java: use the <a href="#java">Java library</a>, which talks to this server too
 Ferroreport reports = Ferroreport.server(URI.create("http://localhost:8080"), "change-me");
 byte[] pdf = reports.named("invoice").rows(lines).param("CUSTOMER", "Caribe").render();</pre>
-<pre>// C#
+<pre data-lang="csharp">// C#
 using var http = new HttpClient();
 http.DefaultRequestHeaders.Authorization = new("Bearer", "change-me");
 var response = await http.PostAsJsonAsync("http://localhost:8080/render/invoice", new { data = rows, @params = parameters });
 response.EnsureSuccessStatusCode();
 byte[] pdf = await response.Content.ReadAsByteArrayAsync();</pre>
-<pre>// PHP
+<pre data-lang="php">// PHP
 $ch = curl_init("http://localhost:8080/render/invoice");
 curl_setopt_array($ch, [
     CURLOPT_POSTFIELDS => json_encode(["data" => $rows, "params" => $params]),
@@ -494,7 +512,7 @@ $pdf = curl_exec($ch);</pre>
       <p><b>Rows one per line.</b> Send <code>Content-Type: application/x-ndjson</code> with the request (everything in the table above
         except <code>data</code>) on the first line, and one row per line after it. The server reads the rows as the report asks for them,
         so neither side holds them all: a million rows render with the server at about 50 MB. Send them straight from a query:</p>
-<pre># rows.ndjson
+<pre data-lang="json shell"># rows.ndjson
 {"params": {"YEAR": 2026}}
 {"sku": "FX-1000", "qty": 21, "price": "185.00"}
 {"sku": "FX-2000", "qty": 4, "price": "92.50"}
@@ -531,7 +549,7 @@ psql -At -c "select row_to_json(s) from sales s" | { echo '{"params": {"YEAR": 2
 
       <h2 id="js">JavaScript</h2>
       <p>For Node.js 18+, Deno, Bun and browsers. The engine is WebAssembly: no native build step, no JVM.</p>
-<pre>import { render, inspect, convert, version } from "ferroreport";
+<pre data-lang="js">import { render, inspect, convert, version } from "ferroreport";
 import { readFileSync, writeFileSync } from "node:fs";
 
 const pdf = render(
@@ -553,7 +571,7 @@ writeFileSync("invoice.pdf", pdf);             // pdf is a Uint8Array
 writeFileSync("invoice.xlsx", render(template, rows, params, { format: "xlsx" }));</pre>
       <table>
         <tr><th>Function</th><th>Returns</th></tr>
-        <tr><td><code>render(template, data?, params?, options?)</code></td><td><code>Uint8Array</code> with the PDF (or the Excel workbook or CSV text with <code>options.format</code>). Throws an <code>Error</code> with the reason if the template cannot be rendered</td></tr>
+        <tr><td class="long"><code>render(template, data?, params?, options?)</code></td><td><code>Uint8Array</code> with the PDF (or the Excel workbook or CSV text with <code>options.format</code>). Throws an <code>Error</code> with the reason if the template cannot be rendered</td></tr>
         <tr><td><code>inspect(template)</code></td><td><code>{ name, parameters, fields, warnings }</code>. <code>warnings</code> lists what the engine does not support in that template</td></tr>
         <tr><td><code>convert(template, to)</code></td><td>The template rewritten: <code>to</code> is <code>"ferro"</code> or <code>"jrxml"</code> (JRXML 7). See <a href="#ferro">Templates in .ferro</a></td></tr>
         <tr><td><code>toTree(template, options?)</code></td><td>Any template (JRXML 6 or 7, or <code>.ferro</code>) as a tree an editor can change: its JRXML 7 form, one <code>{ tag, attrs, children, text? }</code> per element, with <code>attrs</code> as <code>[name, value]</code> pairs. <code>options.resources</code> holds the files a <code>.ferro</code> imports. The <a href="#designer">designer</a> is built on it</td></tr>
@@ -567,11 +585,11 @@ writeFileSync("invoice.xlsx", render(template, rows, params, { format: "xlsx" })
         <code>attachments</code> (<code>[{ name, data, mime }]</code>), and <code>password</code>, <code>ownerPassword</code> and
         <code>permissions</code> to encrypt it (see <a href="#pdf">PDF/A, attachments, encryption</a>).</p>
       <p>In a browser, or with a bundler that picks the web build, load the engine once before the first render:</p>
-<pre>import init, { render } from "ferroreport";
+<pre data-lang="js">import init, { render } from "ferroreport";
 await init();
 const pdf = render(template, rows, params);
 window.open(URL.createObjectURL(new Blob([pdf], { type: "application/pdf" })));</pre>
-<pre>// Express: send a PDF
+<pre data-lang="js">// Express: send a PDF
 app.get("/invoices/:id.pdf", async (req, res) => {
   const { rows, params } = await loadInvoice(req.params.id);
   res.type("application/pdf").send(Buffer.from(render(template, rows, params, { locale: "es_DO" })));
@@ -579,7 +597,7 @@ app.get("/invoices/:id.pdf", async (req, res) => {
       <p>Templates read files only from <code>options.resources</code>, so the JavaScript build never touches the disk on its own.</p>
 
       <h2 id="python">Python</h2>
-<pre>import ferroreport
+<pre data-lang="python">import ferroreport
 
 pdf = ferroreport.render(
     "invoice.jrxml",                       # a path, or the JRXML text itself
@@ -600,8 +618,8 @@ stats = ferroreport.render_to_file("sales.jrxml", "sales.pdf", data_file="sales.
 print(stats)                               # {"pages": 23810, "rows": 1000000}</pre>
       <table>
         <tr><th>Function</th><th>Does</th></tr>
-        <tr><td><code>render(template, data=None, params=None, *, locale, resources, resource_dirs, now, format, max_pages, timeout, csv_safe, xlsx_numbers, tagged, pdfa, attachments, password, owner_password, permissions)</code></td><td>Returns the file as <code>bytes</code>: PDF by default, Excel with <code>format="xlsx"</code>, Word with <code>format="docx"</code>, PowerPoint with <code>format="pptx"</code>, OpenDocument with <code>format="ods"</code> or <code>format="odt"</code>, CSV with <code>format="csv"</code>, HTML with <code>format="html"</code>. <code>max_pages</code> and <code>timeout</code> (seconds) stop a report that grows past what you expect; <code>pdfa</code>, <code>attachments</code> and the passwords and <code>permissions</code> are described in <a href="#pdf">PDF/A, attachments, encryption</a></td></tr>
-        <tr><td><code>render_to_file(template, output, data=None, params=None, *, data_file, ...)</code></td><td>Same arguments; writes the file to <code>output</code> as it is made and returns <code>{"pages", "rows"}</code>. Without <code>format</code>, the extension (<code>.pdf</code>, <code>.xlsx</code>, <code>.docx</code>, <code>.pptx</code>, <code>.ods</code>, <code>.odt</code>, <code>.csv</code>, <code>.html</code>) decides. <code>data_file</code> is a file of rows (a JSON array or one object per line) read as the report needs it, instead of <code>data</code></td></tr>
+        <tr><td class="long"><code>render(template, data=None, params=None, *, locale, resources, resource_dirs, now, format, max_pages, timeout, csv_safe, xlsx_numbers, tagged, pdfa, attachments, password, owner_password, permissions)</code></td><td>Returns the file as <code>bytes</code>: PDF by default, Excel with <code>format="xlsx"</code>, Word with <code>format="docx"</code>, PowerPoint with <code>format="pptx"</code>, OpenDocument with <code>format="ods"</code> or <code>format="odt"</code>, CSV with <code>format="csv"</code>, HTML with <code>format="html"</code>. <code>max_pages</code> and <code>timeout</code> (seconds) stop a report that grows past what you expect; <code>pdfa</code>, <code>attachments</code> and the passwords and <code>permissions</code> are described in <a href="#pdf">PDF/A, attachments, encryption</a></td></tr>
+        <tr><td class="long"><code>render_to_file(template, output, data=None, params=None, *, data_file, ...)</code></td><td>Same arguments; writes the file to <code>output</code> as it is made and returns <code>{"pages", "rows"}</code>. Without <code>format</code>, the extension (<code>.pdf</code>, <code>.xlsx</code>, <code>.docx</code>, <code>.pptx</code>, <code>.ods</code>, <code>.odt</code>, <code>.csv</code>, <code>.html</code>) decides. <code>data_file</code> is a file of rows (a JSON array or one object per line) read as the report needs it, instead of <code>data</code></td></tr>
         <tr><td><code>inspect(template)</code></td><td>Returns a dict with <code>name</code>, <code>parameters</code>, <code>fields</code> and <code>warnings</code></td></tr>
         <tr><td><code>convert(template, to="ferro")</code></td><td>Returns the template rewritten, as <code>.ferro</code> or (<code>to="jrxml"</code>) JRXML 7. See <a href="#ferro">Templates in .ferro</a></td></tr>
         <tr><td><code>FerroreportError</code></td><td>Raised when a template cannot be parsed, filled or exported</td></tr>
@@ -609,7 +627,7 @@ print(stats)                               # {"pages": 23810, "rows": 1000000}</
       <p>Python values are converted for you: <code>datetime</code> and <code>date</code> become dates, <code>Decimal</code> keeps its exact
         digits, <code>bytes</code> become images, and plain objects are read through their attributes. When the template is a path, its
         folder is searched for images and subreports. Rendering releases the GIL, so threads render in parallel.</p>
-<pre># Django
+<pre data-lang="python"># Django
 def invoice_pdf(request, pk):
     invoice = Invoice.objects.get(pk=pk)
     pdf = ferroreport.render("reports/invoice.jrxml", list(invoice.lines.values()),
@@ -625,16 +643,13 @@ def invoice_pdf(pk: int):
       <h2 id="java">Java</h2>
       <p>A library with no dependencies, for Java 11 and newer (Quarkus, Spring, plain Java). It runs the native engine and feeds it
         the rows as they are read, so a report can be far larger than the heap.</p>
-<pre>&lt;!-- pom.xml --&gt;
-&lt;repositories&gt;
-  &lt;repository&gt;&lt;id&gt;jitpack.io&lt;/id&gt;&lt;url&gt;https://jitpack.io&lt;/url&gt;&lt;/repository&gt;
-&lt;/repositories&gt;
+<pre data-lang="xml">&lt;!-- pom.xml: from Maven Central --&gt;
 &lt;dependency&gt;
-  &lt;groupId&gt;com.github.cristianEncarnacion&lt;/groupId&gt;
+  &lt;groupId&gt;io.github.cristianencarnacion&lt;/groupId&gt;
   &lt;artifactId&gt;ferroreport&lt;/artifactId&gt;
-  &lt;version&gt;v1.2.0&lt;/version&gt;
+  &lt;version&gt;1.3.0&lt;/version&gt;
 &lt;/dependency&gt;</pre>
-<pre>Ferroreport reports = Ferroreport.local();
+<pre data-lang="java">Ferroreport reports = Ferroreport.local();
 
 byte[] pdf = reports.template(Path.of("reports/invoice.jrxml"))
     .rows(lines)                                  // List&lt;Map&lt;String, Object&gt;&gt;, or any Iterable
@@ -656,18 +671,18 @@ StreamingOutput body = out -&gt; reports.template(Path.of("reports/invoice.jrxml
         <tr><th>Call</th><th>Does</th></tr>
         <tr><td><code>Ferroreport.local()</code>, <code>local(Path)</code></td><td>The engine on this machine. It is found through <code>-Dferroreport.bin</code> or <code>FERROREPORT_BIN</code>, then the <code>PATH</code>, and otherwise downloaded once from the project's releases and checked against their SHA-256 list (<code>-Dferroreport.download=false</code> forbids that)</td></tr>
         <tr><td><code>Ferroreport.server(URI, token)</code></td><td>A <code>ferroreport serve</code> instance (0.9.0 or later), for a sidecar or a shared service. Rows are sent to it one per line as they are read, so a large <code>ResultSet</code> is never in memory on either side, and the answer is the whole document or an exception</td></tr>
-        <tr><td><code>.template(Path)</code>, <code>.source(String)</code>, <code>.named(String)</code></td><td>A report from a file, from JRXML text, or by the name a server knows it by</td></tr>
+        <tr><td class="long"><code>.template(Path)</code>, <code>.source(String)</code>, <code>.named(String)</code></td><td>A report from a file, from JRXML text, or by the name a server knows it by</td></tr>
         <tr><td><code>.rows(Iterable)</code>, <code>.rows(ResultSet)</code></td><td>The rows, read one at a time: Maps of field name to value (nested Maps and Lists feed subreports and tables), or the columns of a query</td></tr>
-        <tr><td><code>.param</code>, <code>.params</code>, <code>.locale</code>, <code>.now</code>, <code>.format</code>, <code>.resources</code></td><td>Parameters, formatting locale, the value of <code>new Date()</code>, output format, extra folders for images and subreports</td></tr>
-        <tr><td><code>.maxPages(n)</code>, <code>.timeout(Duration)</code>, <code>.csvSafe(true)</code>, <code>.xlsxNumbers(true)</code>, <code>.tagged(true)</code>, <code>.pdfa("3b")</code>, <code>.attach(Path)</code>, <code>.password(user, owner)</code>, <code>.permissions("print", ...)</code></td><td>Limits and export options, as on the command line (the local engine gets the passwords through its environment, never its command line; attachments need the local engine)</td></tr>
-        <tr><td><code>.render()</code>, <code>.renderTo(Path)</code>, <code>.renderTo(OutputStream)</code></td><td>The document as bytes, as a file written page by page (nothing is left if it fails), or into a stream as it is made</td></tr>
+        <tr><td class="long"><code>.param</code>, <code>.params</code>, <code>.locale</code>, <code>.now</code>, <code>.format</code>, <code>.resources</code></td><td>Parameters, formatting locale, the value of <code>new Date()</code>, output format, extra folders for images and subreports</td></tr>
+        <tr><td class="long"><code>.maxPages(n)</code>, <code>.timeout(Duration)</code>, <code>.csvSafe(true)</code>, <code>.xlsxNumbers(true)</code>, <code>.tagged(true)</code>, <code>.pdfa("3b")</code>, <code>.attach(Path)</code>, <code>.password(user, owner)</code>, <code>.permissions("print", ...)</code></td><td>Limits and export options, as on the command line (the local engine gets the passwords through its environment, never its command line; attachments need the local engine)</td></tr>
+        <tr><td class="long"><code>.render()</code>, <code>.renderTo(Path)</code>, <code>.renderTo(OutputStream)</code></td><td>The document as bytes, as a file written page by page (nothing is left if it fails), or into a stream as it is made</td></tr>
         <tr><td><code>FerroreportException</code></td><td>Thrown with the engine's message when a report cannot be rendered</td></tr>
       </table>
       <p>In a container, copy the engine into the image so nothing is downloaded at run time:
         <code>COPY --from=ghcr.io/cristianencarnacion/ferroreport /ferroreport /usr/local/bin/ferroreport</code>.</p>
 
       <h2 id="rust">Rust</h2>
-<pre>use ferroreport::Renderer;
+<pre data-lang="rust">use ferroreport::Renderer;
 
 let template = std::fs::read_to_string("invoice.jrxml")?;
 let rows: serde_json::Value = serde_json::from_str(&amp;std::fs::read_to_string("rows.json")?)?;
@@ -684,19 +699,19 @@ std::fs::write("invoice.pdf", pdf)?;</pre>
         <tr><td><code>.locale(tag)</code></td><td>Number and date formatting</td></tr>
         <tr><td><code>.now(datetime)</code></td><td>Fixes the value of <code>new Date()</code></td></tr>
         <tr><td><code>.resource_dir(dir)</code></td><td>Adds a folder for images and subreports. Templates cannot read outside these folders</td></tr>
-        <tr><td><code>.resource(name, bytes)</code>, <code>add_resource(name, bytes)</code></td><td>Adds an image or subreport held in memory</td></tr>
-        <tr><td><code>register_font(family, bold, italic, data)</code></td><td>Registers a TrueType or OpenType font</td></tr>
+        <tr><td class="long"><code>.resource(name, bytes)</code>, <code>add_resource(name, bytes)</code></td><td>Adds an image or subreport held in memory</td></tr>
+        <tr><td class="long"><code>register_font(family, bold, italic, data)</code></td><td>Registers a TrueType or OpenType font</td></tr>
         <tr><td><code>register_font_set(name, &amp;[families])</code></td><td>Defines a font set (see <a href="#fonts">Fonts</a>)</td></tr>
-        <tr><td><code>.font_fallback(true)</code>, <code>set_font_fallback(true)</code></td><td>Draws characters a text's font lacks in another font that has them</td></tr>
+        <tr><td class="long"><code>.font_fallback(true)</code>, <code>set_font_fallback(true)</code></td><td>Draws characters a text's font lacks in another font that has them</td></tr>
         <tr><td><code>render_json(template, rows, params)</code></td><td>Parses, fills and exports to PDF in one call</td></tr>
-        <tr><td><code>render_json_as(template, rows, params, Format::Xlsx)</code></td><td>The same, to <code>Format::Pdf</code>, <code>Format::Xlsx</code>, <code>Format::Docx</code>, <code>Format::Pptx</code>, <code>Format::Ods</code>, <code>Format::Odt</code>, <code>Format::Csv</code> or <code>Format::Html</code></td></tr>
-        <tr><td><code>ferroreport::parse</code>, <code>fill</code>, <code>to_pdf</code> on the renderer</td><td>The three steps separately, to parse a template once and fill it many times</td></tr>
-        <tr><td><code>render_report_json(&amp;report, rows, params, format)</code></td><td>Renders a template already parsed with <code>ferroreport::parse</code></td></tr>
-        <tr><td><code>render_to(&amp;report, rows, params, format, writer)</code></td><td>Renders rows that arrive one at a time (any iterator of records; <code>JsonRows</code> reads them from JSON text) to any <code>std::io::Write</code>, page by page. Returns the number of pages and rows. See <a href="#large">Large reports and limits</a></td></tr>
-        <tr><td><code>fill_to(&amp;report, rows, params, &amp;mut sink)</code></td><td>Hands each finished page to a <code>PageSink</code> of your own</td></tr>
+        <tr><td class="long"><code>render_json_as(template, rows, params, Format::Xlsx)</code></td><td>The same, to <code>Format::Pdf</code>, <code>Format::Xlsx</code>, <code>Format::Docx</code>, <code>Format::Pptx</code>, <code>Format::Ods</code>, <code>Format::Odt</code>, <code>Format::Csv</code> or <code>Format::Html</code></td></tr>
+        <tr><td class="long"><code>ferroreport::parse</code>, <code>fill</code>, <code>to_pdf</code> on the renderer</td><td>The three steps separately, to parse a template once and fill it many times</td></tr>
+        <tr><td class="long"><code>render_report_json(&amp;report, rows, params, format)</code></td><td>Renders a template already parsed with <code>ferroreport::parse</code></td></tr>
+        <tr><td class="long"><code>render_to(&amp;report, rows, params, format, writer)</code></td><td>Renders rows that arrive one at a time (any iterator of records; <code>JsonRows</code> reads them from JSON text) to any <code>std::io::Write</code>, page by page. Returns the number of pages and rows. See <a href="#large">Large reports and limits</a></td></tr>
+        <tr><td class="long"><code>fill_to(&amp;report, rows, params, &amp;mut sink)</code></td><td>Hands each finished page to a <code>PageSink</code> of your own</td></tr>
         <tr><td><code>.limits(Limits { max_pages, timeout })</code></td><td>Stops a render that goes over, with <code>Error::Limit</code></td></tr>
         <tr><td><code>.csv_options(...)</code>, <code>.xlsx_options(...)</code></td><td>Options the <code>render</code> methods use for CSV, and for Excel and ODS</td></tr>
-        <tr><td><code>to_xlsx(doc, &amp;XlsxOptions)</code>, <code>to_ods(doc, &amp;XlsxOptions)</code>, <code>to_csv(doc, &amp;CsvOptions)</code>, <code>export(doc, format)</code></td><td>Export a filled document to Excel, ODS or CSV (<code>export</code> to any format). <code>XlsxOptions { detect_cell_type }</code> writes numbers as numbers; <code>CsvOptions</code> sets the field and record delimiters</td></tr>
+        <tr><td class="long"><code>to_xlsx(doc, &amp;XlsxOptions)</code>, <code>to_ods(doc, &amp;XlsxOptions)</code>, <code>to_csv(doc, &amp;CsvOptions)</code>, <code>export(doc, format)</code></td><td>Export a filled document to Excel, ODS or CSV (<code>export</code> to any format). <code>XlsxOptions { detect_cell_type }</code> writes numbers as numbers; <code>CsvOptions</code> sets the field and record delimiters</td></tr>
         <tr><td><code>font_substitutions()</code></td><td>Font families the last renders had to replace</td></tr>
       </table>
 
@@ -707,7 +722,7 @@ std::fs::write("invoice.pdf", pdf)?;</pre>
       <p>Images are PNG, JPEG or GIF (its first picture, with its transparent color). They can also come from the data: a <code>byte[]</code> field with base64 content, or a string field with a
         base64 expression.</p>
       <p>A subreport gets its rows from a nested array in the parent row:</p>
-<pre># Parent row
+<pre data-lang="json xml"># Parent row
 { "order": "ORD-2026000", "customer": "Grupo Ramos",
   "lines": [ { "product": "Clavos 3\"", "qty": 26, "price": 65.0 }, ... ] }
 
@@ -729,7 +744,7 @@ std::fs::write("invoice.pdf", pdf)?;</pre>
         whose rows come from the <code>dataSourceExpression</code> of its <code>datasetRun</code>, usually a nested array of the
         current row, and its <code>datasetParameter</code>s pass values in. Fields of the main report are not visible inside the
         table; pass them as parameters.</p>
-<pre>&lt;subDataset name="lines"&gt;
+<pre data-lang="xml">&lt;subDataset name="lines"&gt;
   &lt;parameter name="ORDER" class="java.lang.String"/&gt;
   &lt;field name="product" class="java.lang.String"/&gt; ...
 &lt;/subDataset&gt;
@@ -833,8 +848,8 @@ std::fs::write("invoice.pdf", pdf)?;</pre>
         number style made from their pattern (decimals, grouping, percent, scientific, text around them). The text document is the
         <a href="#word">Word</a> layout: a table per page, each element in the cells it covers, a page break between pages; ellipses and
         slanted lines are drawn as pictures. Links, anchors and page anchors carry over, and the page has the report's size.</p>
-      <p>Not available yet: the <code>net.sf.jasperreports.export.ods.*</code> and <code>.odt.*</code> properties, dates as date cells,
-        the per-mille sign in number styles, and upside-down text in ODT.</p>
+      <p>Not available yet: the <code>net.sf.jasperreports.export.ods.*</code> and <code>.odt.*</code> properties, date cells for patterns with month or
+        day names, AM/PM, two-digit years or milliseconds (they stay text), the per-mille sign in number styles, and upside-down text in ODT.</p>
       <p>Large reports are written as they are made, in about the memory of a small one. A document's styles come before its body
         in the file, so a large report is filled once more first to find them (a spreadsheet three times in all: its columns, its
         styles, its rows; a text twice), and its rows are then compressed and written as they come: 100,000 rows in 68 MiB as ODS
@@ -888,13 +903,13 @@ std::fs::write("invoice.pdf", pdf)?;</pre>
       <p><code>--sign-key</code> signs the PDF with PAdES baseline B-B: a CAdES detached signature (<code>/ETSI.CAdES.detached</code>) over
         the whole file, with the signer's certificate bound to it by the <code>signing-certificate-v2</code> attribute, as Adobe Reader, EU
         validators and <code>pdfsig</code> expect.</p>
-<pre>FERROREPORT_SIGN_PASSWORD=... ferroreport render invoice.jrxml -d rows.json -o invoice.pdf --sign-key company.p12 --sign-reason "Approved"
+<pre data-lang="shell">FERROREPORT_SIGN_PASSWORD=... ferroreport render invoice.jrxml -d rows.json -o invoice.pdf --sign-key company.p12 --sign-reason "Approved"
 ferroreport render invoice.jrxml -d rows.json -o invoice.pdf --sign-key key.pem --sign-cert cert.pem --sign-location "Santo Domingo"</pre>
       <table>
         <tr><th>Option</th><th>Meaning</th></tr>
         <tr><td><code>--sign-key</code></td><td>A <code>.p12</code>/<code>.pfx</code> (the AES files OpenSSL 3 writes, and the older Triple DES and RC2 ones), its password in <code>FERROREPORT_SIGN_PASSWORD</code>; or a PEM private key, RSA (2048 bits or more) or ECDSA P-256. <code>FERROREPORT_SIGN_KEY</code> does the same</td></tr>
         <tr><td><code>--sign-cert</code></td><td>With a PEM key: the signer's certificate and its chain (repeatable). The one that matches the key goes first</td></tr>
-        <tr><td><code>--sign-reason</code>, <code>--sign-location</code>, <code>--sign-name</code>, <code>--sign-contact</code></td><td>The signature's details, shown by readers</td></tr>
+        <tr><td class="long"><code>--sign-reason</code>, <code>--sign-location</code>, <code>--sign-name</code>, <code>--sign-contact</code></td><td>The signature's details, shown by readers</td></tr>
       </table>
       <p>A signature goes with PDF/A (every fixture is signed as PDF/A-2b, checked by veraPDF and verified by pdfsig and pyHanko on every
         push), not with encryption. <code>serve --sign-key</code> signs every PDF the server sends. In Rust, implement
@@ -970,7 +985,7 @@ ferroreport render invoice.jrxml -d rows.json -o invoice.pdf --sign-key key.pem 
         <code>NOTEQUAL</code>, <code>LESS</code>, <code>LESS]</code>, <code>GREATER</code>, <code>[GREATER</code> and the <code>BETWEEN</code> forms)
         becomes its clause. Subreports, tables, lists, crosstabs and charts that pass <code>$P{REPORT_CONNECTION}</code> run their
         own query on the same database. Rows are read as the report needs them.</p>
-<pre>ferroreport render sales.jrxml --db postgres://reports@db:5432/erp -p params.json -o sales.pdf
+<pre data-lang="shell">ferroreport render sales.jrxml --db postgres://reports@db:5432/erp -p params.json -o sales.pdf
 ferroreport render sales.jrxml --db mysql://reports@db:3306/erp -o sales.xlsx
 ferroreport render sales.jrxml --db "jdbc:sqlserver://db:1433;databaseName=erp;user=reports" -o sales.pdf
 ferroreport render sales.jrxml --db sqlite:app.db -o sales.pdf</pre>
@@ -989,7 +1004,7 @@ ferroreport render sales.jrxml --db sqlite:app.db -o sales.pdf</pre>
         <code>Renderer::render_query_to</code>.</p>
       <p>Queries in other languages (HQL, XPath, MDX, MongoDB...) and other databases (Oracle) are not run: hand the engine the rows
         your application already reads, as they come, and nothing is held in memory.</p>
-<pre># PostgreSQL: one JSON object per row, straight into the report
+<pre data-lang="shell"># PostgreSQL: one JSON object per row, straight into the report
 psql -At -c "select row_to_json(s) from (select * from sales order by region) s" mydb \
   | ferroreport render sales.jrxml -d - -o sales.pdf
 
@@ -997,9 +1012,9 @@ psql -At -c "select row_to_json(s) from (select * from sales order by region) s"
 sqlite3 -json app.db "select * from sales order by region" | ferroreport render sales.jrxml -d - -o sales.pdf
 mysql -N -B -e "select json_object('region', region, 'amount', amount) from sales" mydb \
   | ferroreport render sales.jrxml -d - -o sales.pdf</pre>
-<pre>// Java: the ResultSet is read as the report needs it
+<pre data-lang="java">// Java: the ResultSet is read as the report needs it
 reports.template(Path.of("sales.jrxml")).rows(statement.executeQuery("select * from sales")).renderTo(Path.of("sales.pdf"));</pre>
-<pre># Python: any cursor or generator is read one row at a time
+<pre data-lang="python"># Python: any cursor or generator is read one row at a time
 cursor.execute("select region, amount from sales order by region")
 rows = (dict(zip(("region", "amount"), r)) for r in cursor)
 ferroreport.render_to_file("sales.jrxml", "sales.pdf", rows)</pre>
@@ -1009,6 +1024,14 @@ ferroreport.render_to_file("sales.jrxml", "sales.pdf", rows)</pre>
         extension, so templates that use them match JasperReports exactly. A family the engine does not have is replaced by a built-in one.</p>
       <p>Add your own TrueType or OpenType fonts with <code>--font</code> on the command line or <code>register_font</code> in Rust. The
         JavaScript and Python packages use the built-in families for now.</p>
+      <p>A JasperReports font extension is read where JasperReports would find it on its class path: in a resource folder (the
+        template's folder or one given with <code>-r</code>) with a <code>jasperreports_extension.properties</code> at its root.
+        <code>render</code> and <code>check</code> register the font families and font sets of the <code>fonts.xml</code> files it names
+        (<code>net.sf.jasperreports.extension.simple.font.families.*</code>), with the font files at the paths the extension gives them,
+        and warn about any they cannot read; in Rust, <code>load_font_extensions</code> does it for the renderer's resources. Extensions
+        inside jars are not read: unpack the jar into a folder.</p>
+      <p>Bold or italic text in a family that has no face for that style is drawn from its regular face, and the PDF simulates the
+        style as JasperReports does: bold by stroking the outlines as well, italic by slanting the text.</p>
       <p>A character the text's font does not have is left out of the PDF, as JasperReports leaves it out (when the text is measured
         for its height it still counts as wide as the font's missing-glyph box, as in JasperReports). To draw it in another font, use a
         font set or font fallback:</p>
@@ -1032,7 +1055,7 @@ ferroreport.render_to_file("sales.jrxml", "sales.pdf", rows)</pre>
       <p>JasperReports does not hyphenate: a word that does not fit at the end of a line goes to the next one, and a word longer than
         the line is cut between letters. ferroreport does the same unless the template asks for hyphenation with its own property,
         <code>ferroreport.text.hyphenate</code>, which JasperReports ignores:</p>
-<pre>&lt;!-- every text of the report, in the language of the render's locale (--locale) --&gt;
+<pre data-lang="xml">&lt;!-- every text of the report, in the language of the render's locale (--locale) --&gt;
 &lt;property name="ferroreport.text.hyphenate" value="true"/&gt;
 
 &lt;!-- or in a language of its own; "false" turns it off --&gt;
@@ -1072,7 +1095,7 @@ ferroreport.render_to_file("sales.jrxml", "sales.pdf", rows)</pre>
         the render's date) or <code>"2026-03-05"</code> / <code>"2026-03-05 14:30:00"</code> give a range with <code>getStart()</code> and
         <code>getEnd()</code>; a <code>DateRange</code> parameter takes the same text, and <code>$X{[GREATER, column, Range}</code> and the other
         <code>$X{}</code> clauses compare the column with the range's start or end as JasperReports does.</p>
-<pre>IF($F{balance} &lt; 0, "Overdue", "OK")
+<pre data-lang="java">IF($F{balance} &lt; 0, "Overdue", "OK")
 DATEFORMAT(EDATE($F{issued}, 1), "dd/MM/yyyy")
 SUBSTITUTE(PROPER($F{name}), " ", "_")</pre>
       <p><b>Groovy</b>: lists, maps and ranges (<code>[1, 2]</code>, <code>[a: 1]</code>, <code>1..5</code>); closures given to
@@ -1082,7 +1105,7 @@ SUBSTITUTE(PROPER($F{name}), " ", "_")</pre>
         <code>as</code>, <code>list[i]</code>, <code>text[0..2]</code>; <code>padLeft</code>, <code>padRight</code>, <code>center</code>, <code>tokenize</code>,
         <code>capitalize</code>, <code>reverse</code>, <code>take</code>, <code>drop</code>, <code>toInteger</code>, <code>intdiv</code>, <code>round</code>.
         Groovy's arithmetic too: <code>5 / 2</code> is 2.5 and <code>1234.50 / 3</code> is 411.50.</p>
-<pre>$F{lines}.findAll { it.qty &gt; 0 }.sum { it.qty * it.price }
+<pre data-lang="groovy">$F{lines}.findAll { it.qty &gt; 0 }.sum { it.qty * it.price }
 "${$F{first}} ${$F{last}}".toUpperCase()
 $F{tags}.collect { it.capitalize() }.join(", ")</pre>
       <p>Not supported: your own Java classes and scriptlets, and Groovy statements (<code>def</code>, loops, <code>if</code> blocks).
@@ -1090,7 +1113,7 @@ $F{tags}.collect { it.capitalize() }.join(", ")</pre>
 
       <h2 id="check">Check a template</h2>
       <p>Before you depend on a template, ask the engine what it thinks of it:</p>
-<pre>$ ferroreport doctor invoice.jrxml
+<pre data-lang="console">$ ferroreport doctor invoice.jrxml
 invoice.jrxml: report `invoice`
   page 595x842 pt, margins 30/40/30/40, language Java
   5 parameters, 5 fields, 3 variables, 0 groups
@@ -1112,9 +1135,9 @@ invoice.jrxml: report `invoice`
         templates your users upload.</p>
 
       <h2 id="support">What is supported</h2>
-      <p>Bands and page breaks, groups and variables, frames, images, subreports, tables (<code>jr:table</code>), lists (<code>jr:list</code>), crosstabs, every JasperReports chart type, barcodes (QR, DataMatrix, PDF417, Code 128, EAN-128, Code 39, EAN-13, EAN-8, UPC-A, UPC-E, Interleaved 2 of 5, Codabar, POSTNET, Royal Mail, USPS Intelligent Mail, and every type of the Barbecue component but PostNet), links, anchors and bookmarks, PDF form fields, icon labels, styled, HTML and RTF text,
+      <p>Bands and page breaks, groups and variables, frames, images, subreports, tables (<code>jr:table</code>), lists (<code>jr:list</code>), crosstabs, every JasperReports chart type, barcodes (QR, DataMatrix, PDF417, Code 128, EAN-128, Code 39, EAN-13, EAN-8, UPC-A, UPC-E, Interleaved 2 of 5, Codabar, POSTNET, Royal Mail, USPS Intelligent Mail, and every type of the Barbecue component but PostNet), links, anchors and bookmarks, PDF form fields, icon labels, styled, HTML and RTF text, paragraph indents and tab stops,
         rotation, multi-column layouts in either print order, conditional styles and style templates, PNG, JPEG, GIF and SVG images (RealHeight and RealSize too), data from JSON or SQL databases, Groovy expressions and JasperReports' function library, from JRXML 6, JRXML 7 or
-        <code>.ferro</code> templates, exported to PDF (tagged, PDF/UA-1; PDF/A-2 and PDF/A-3 with attachments; encrypted; signed), Excel, Word, CSV or HTML. The
+        <code>.ferro</code> templates, exported to PDF (tagged, PDF/UA-1; PDF/A-2 and PDF/A-3 with attachments; encrypted; signed), Excel, Word, PowerPoint, OpenDocument (ODS, ODT), CSV or HTML. The
         <a href="https://github.com/cristianEncarnacion/ferroreport#compatibility">compatibility table</a> in the repository lists every
         feature and what is not there yet, and <code>ferroreport doctor</code> gives the answer for your own template.</p>
     </article>

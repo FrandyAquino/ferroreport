@@ -5,12 +5,12 @@ the same rows and parameters and compared page by page. Made by `tools/samples.p
 
 | Result | Templates | Meaning |
 |---|---|---|
-| same | 67 | every page is the same picture |
+| same | 74 | every page is the same picture |
 | differs | 19 | both engines render it, the pictures differ |
-| not rendered | 15 | ferroreport refuses the template or fails on it |
+| not rendered | 8 | ferroreport refuses the template or fails on it |
 | no reference | 70 | JasperReports cannot render it from rows alone (it needs the sample's Java classes, a database connection inside the report, or other files), so there is nothing to compare with |
 
-**67 of the 101 templates that can be compared come out the same.** JasperReports runs with the
+**74 of the 101 templates that can be compared come out the same.** JasperReports runs with the
 Java runtime's logical fonts (SansSerif, Serif, Monospaced) on DejaVu, as on a stock Linux server (`tools/oracle/fonts.conf`):
 text that names no font is laid out with them and written in PDF's built-in Helvetica, Times or Courier, by both engines.
 
@@ -32,7 +32,7 @@ write, which is what `fixtures/` holds (all pixel-identical). Use `ferroreport d
 | `batchexport/reports/Report2.jrxml` | same | 2/2 |  |
 | `batchexport/reports/Report3.jrxml` | same | 2/2 |  |
 | `book/reports/BookReport.jrxml` | no reference |  | needs Java classes that are not at hand (the sample's own, or libraries it adds); ferroreport renders it |
-| `book/reports/OrdersReport.jrxml` | not rendered |  | error evaluating expression: variable `ROW_COUNT` is not a measure or group of the crosstab |
+| `book/reports/OrdersReport.jrxml` | same | 1/1 |  |
 | `book/reports/PieChartReport.jrxml` | no reference |  | JasperReports draws nothing for it without the sample's own program; ferroreport renders it |
 | `book/reports/TocReport.jrxml` | same | 1/1 |  |
 | `chartcustomizers/reports/ChartCustomizersReport.jrxml` | no reference |  | needs Java classes that are not at hand (the sample's own, or libraries it adds); ferroreport renders it |
@@ -61,8 +61,8 @@ write, which is what `fixtures/` holds (all pixel-identical). Use `ferroreport d
 | `charts/reports/XYBarChartTimeSeriesReport.jrxml` | same | 19/19 |  |
 | `charts/reports/XYLineChartReport.jrxml` | same | 19/19 |  |
 | `chartthemes/reports/AllChartsReport.jrxml` | no reference |  | JasperReports fails on it without the sample's own program; ferroreport renders it |
-| `crosstabs/reports/LateOrdersReport.jrxml` | no reference |  | needs Java classes that are not at hand (the sample's own, or libraries it adds); ferroreport: error evaluating expression: NullPointerException: cannot call toString() on null |
-| `crosstabs/reports/OrdersReport.jrxml` | no reference |  | needs Java classes that are not at hand (the sample's own, or libraries it adds); ferroreport: error evaluating expression: variable `ROW_COUNT` is not a measure or group of the crosstab |
+| `crosstabs/reports/LateOrdersReport.jrxml` | no reference |  | needs Java classes that are not at hand (the sample's own, or libraries it adds); ferroreport: error evaluating expression: variable `DeliveryDelay` cannot be used in crosstab buckets or measures |
+| `crosstabs/reports/OrdersReport.jrxml` | no reference |  | needs Java classes that are not at hand (the sample's own, or libraries it adds); ferroreport renders it |
 | `crosstabs/reports/ProductsReport.jrxml` | no reference |  | needs Java classes that are not at hand (the sample's own, or libraries it adds); ferroreport renders it |
 | `crosstabs/reports/ShipmentsReport.jrxml` | no reference |  | needs Java classes that are not at hand (the sample's own, or libraries it adds); ferroreport renders it |
 | `csvdatasource/reports/CsvDataSourceReport.jrxml` | no reference |  | JasperReports draws nothing for it without the sample's own program; ferroreport renders it |
@@ -93,10 +93,10 @@ write, which is what `fixtures/` holds (all pixel-identical). Use `ferroreport d
 | `hibernate-j2ee/reports/DocumentsReport.jrxml` | no reference |  | runs SQL through a live database connection inside the report; ferroreport renders it |
 | `hibernate-j2ee/reports/HibernateQueryReport.jrxml` | no reference |  | its rows come from a hql query; ferroreport renders it |
 | `horizontal/reports/HorizontalReport.jrxml` | same | 20/20 |  |
-| `httpdataadapter/reports/JsonHttpDataAdapterReport.jrxml` | no reference |  | JasperReports fails on it without the sample's own program; ferroreport: error evaluating expression: NullPointerException: arithmetic on a null value |
+| `httpdataadapter/reports/JsonHttpDataAdapterReport.jrxml` | no reference |  | JasperReports fails on it without the sample's own program; ferroreport renders it |
 | `httpdataadapter/reports/XmlHttpDataAdapterReport.jrxml` | no reference |  | its rows come from a xPath query; ferroreport renders it |
 | `hyperlink/reports/HyperlinkReport.jrxml` | same | 3/3 |  |
-| `i18n/reports/I18nReport.jrxml` | not rendered |  | error evaluating expression: unsupported method String.getDisplayName() |
+| `i18n/reports/I18nReport.jrxml` | differs | 1/1 | worst page differs in 9.3% of its ink |
 | `iconlabel/reports/IconLabelReport.jrxml` | differs | 2/2 | worst page differs in 49.1% of its ink |
 | `images/reports/ImagesReport.jrxml` | no reference |  | JasperReports fails on it without the sample's own program; ferroreport: unsupported feature: image format (only PNG, JPEG, GIF and SVG are supported) |
 | `images/reports/scale/ClipNarrowShortImagesReport.jrxml` | same | 1/1 |  |
@@ -120,7 +120,7 @@ write, which is what `fixtures/` holds (all pixel-identical). Use `ferroreport d
 | `images/reports/scale/RetainShapeWideShortImagesReport.jrxml` | same | 1/1 |  |
 | `images/reports/scale/RetainShapeWideTallImagesReport.jrxml` | same | 1/1 |  |
 | `jasper/reports/FirstJasper.jrxml` | same | 9/9 |  |
-| `java1.5/reports/Java5Report.jrxml` | not rendered |  | error evaluating expression: unsupported static field Greeting.bye |
+| `java1.5/reports/Java5Report.jrxml` | same | 1/1 |  |
 | `javascript/reports/JavaScriptReport.jrxml` | no reference |  | needs Java classes that are not at hand (the sample's own, or libraries it adds); ferroreport renders it |
 | `jfreechart/reports/JFreeChartReport.jrxml` | no reference |  | needs Java classes that are not at hand (the sample's own, or libraries it adds); ferroreport renders it |
 | `jsondatasource/reports/JsonCustomersReport.jrxml` | no reference |  | its rows come from a json query; ferroreport renders it |
@@ -143,13 +143,13 @@ write, which is what `fixtures/` holds (all pixel-identical). Use `ferroreport d
 | `mondrian/reports/MondrianFoodMartSalesOlap4jReport.jrxml` | no reference |  | its rows come from a olap4j query; ferroreport renders it |
 | `mondrian/reports/MondrianFoodMartSalesReport.jrxml` | no reference |  | its rows come from a mdx query; ferroreport renders it |
 | `mondrian/reports/MondrianReport.jrxml` | no reference |  | its rows come from a mdx query; ferroreport renders it |
-| `nopagebreak/reports/NoPageBreakReport.jrxml` | not rendered |  | error evaluating expression: unsupported constructor new ArrayList() |
+| `nopagebreak/reports/NoPageBreakReport.jrxml` | same | 9/9 |  |
 | `osgi/reports/ExcelXlsDataAdapterReport.jrxml` | no reference |  | runs SQL through a live database connection inside the report; ferroreport renders it |
 | `osgi/reports/ExcelXlsQeDataAdapterReport.jrxml` | no reference |  | needs Java classes that are not at hand (the sample's own, or libraries it adds); ferroreport renders it |
 | `osgi/reports/GroovyReport.jrxml` | no reference |  | runs SQL through a live database connection inside the report; ferroreport renders it |
 | `osgi/reports/ImagesReport.jrxml` | no reference |  | runs SQL through a live database connection inside the report; ferroreport: invalid data: `dukesign.jpg` not found in the resource directories |
 | `osgi/reports/JavaScriptReport.jrxml` | no reference |  | runs SQL through a live database connection inside the report; ferroreport renders it |
-| `paragraphs/reports/ParagraphsReport.jrxml` | differs | 1/1 | worst page differs in 84.4% of its ink |
+| `paragraphs/reports/ParagraphsReport.jrxml` | same | 1/1 |  |
 | `pdfa/reports/PdfA1Report.jrxml` | no reference |  | JasperReports fails on it without the sample's own program; ferroreport renders it |
 | `pdfa/reports/PdfA2Report.jrxml` | no reference |  | JasperReports fails on it without the sample's own program; ferroreport renders it |
 | `pdfa/reports/PdfA3Report.jrxml` | no reference |  | JasperReports fails on it without the sample's own program; ferroreport renders it |
@@ -158,7 +158,7 @@ write, which is what `fixtures/` holds (all pixel-identical). Use `ferroreport d
 | `pdfencrypt/reports/PdfEncryptReport.jrxml` | same | 1/1 |  |
 | `query/reports/QueryReport.jrxml` | same | 1/1 |  |
 | `rotation/reports/RotationReport.jrxml` | differs | 1/1 | worst page differs in 1.3% of its ink |
-| `scriptlet/reports/ScriptletReport.jrxml` | no reference |  | needs Java classes that are not at hand (the sample's own, or libraries it adds); ferroreport: error evaluating expression: NullPointerException: cannot call hello() on null |
+| `scriptlet/reports/ScriptletReport.jrxml` | no reference |  | needs Java classes that are not at hand (the sample's own, or libraries it adds); ferroreport renders it |
 | `shapes/reports/ShapesReport.jrxml` | same | 1/1 |  |
 | `spiderchartcomponent/reports/SpiderChart.jrxml` | no reference |  | JasperReports fails on it without the sample's own program; ferroreport renders it |
 | `springboot/reports/AllChartsReport.jrxml` | no reference |  | runs SQL through a live database connection inside the report; ferroreport renders it |
@@ -166,28 +166,28 @@ write, which is what `fixtures/` holds (all pixel-identical). Use `ferroreport d
 | `springboot/reports/ExcelXlsQeDataAdapterReport.jrxml` | no reference |  | runs SQL through a live database connection inside the report; ferroreport renders it |
 | `springboot/reports/ImagesReport.jrxml` | no reference |  | runs SQL through a live database connection inside the report; ferroreport: unsupported feature: image format (only PNG, JPEG, GIF and SVG are supported) |
 | `springboot/reports/StretchReport.jrxml` | no reference |  | runs SQL through a live database connection inside the report; ferroreport renders it |
-| `stretch/reports/StretchReport.jrxml` | differs | 21/14 | worst page differs in 100.0% of its ink: a different number of pages |
+| `stretch/reports/StretchReport.jrxml` | differs | 14/14 | worst page differs in 12.2% of its ink |
 | `styledtext/reports/StyledTextReport.jrxml` | differs | 1/1 | worst page differs in 2.8% of its ink |
 | `subreport/reports/AddressReport.jrxml` | no reference |  | JasperReports draws nothing for it without the sample's own program; ferroreport renders it |
 | `subreport/reports/MasterReport.jrxml` | differs | 1/1 | worst page differs in 58.9% of its ink |
 | `subreport/reports/ProductReport.jrxml` | same | 1/1 |  |
 | `table/reports/TableReport.jrxml` | differs | 2/2 | worst page differs in 3.6% of its ink |
 | `tableofcontents/reports/TableOfContentsReport.jrxml` | no reference |  | needs Java classes that are not at hand (the sample's own, or libraries it adds); ferroreport renders it |
-| `tableofcontents/reports/TablePart.jrxml` | not rendered |  | error evaluating expression: variable `MASTER_CURRENT_PAGE` is not declared |
+| `tableofcontents/reports/TablePart.jrxml` | same | 27/27 |  |
 | `tableofcontents/reports/TocPart.jrxml` | same | 1/1 |  |
 | `tabular/reports/TabularReport.jrxml` | differs | 2/2 | worst page differs in 0.7% of its ink |
 | `templates/reports/StylesReport.jrxml` | same | 1/1 |  |
 | `text/reports/TextReport.jrxml` | same | 2/2 |  |
 | `unicode/reports/NumberFormatReport.jrxml` | differs | 1/1 | worst page differs in 25.8% of its ink |
-| `unicode/reports/UnicodeReport.jrxml` | differs | 2/2 | worst page differs in 95.7% of its ink |
+| `unicode/reports/UnicodeReport.jrxml` | differs | 2/2 | worst page differs in 64.9% of its ink |
 | `virtualizer/reports/VirtualizerReport.jrxml` | same | 27/27 |  |
 | `webapp/src/main/webapp/reports/WebappReport.jrxml` | no reference |  | needs Java classes that are not at hand (the sample's own, or libraries it adds); ferroreport: error evaluating expression: unsupported constructor new File() |
 | `xchart/reports/XChartReport.jrxml` | no reference |  | needs Java classes that are not at hand (the sample's own, or libraries it adds); ferroreport renders it |
 | `xchartcomponent/reports/XYChart.jrxml` | no reference |  | JasperReports fails on it without the sample's own program; ferroreport renders it |
 | `xlsfeatures/reports/ExcelNames.jrxml` | differs | 1/1 | worst page differs in 8.0% of its ink |
 | `xlsfeatures/reports/FormatPatternsMap.jrxml` | same | 1/1 |  |
-| `xlsfeatures/reports/MacroReport.jrxml` | not rendered |  | error evaluating expression: NullPointerException: cannot call substring() on null |
-| `xlsfeatures/reports/XlsFeaturesReport.jrxml` | not rendered |  | error evaluating expression: NullPointerException: cannot call substring() on null |
+| `xlsfeatures/reports/MacroReport.jrxml` | same | 1/1 |  |
+| `xlsfeatures/reports/XlsFeaturesReport.jrxml` | same | 1/1 |  |
 | `xlsformula/reports/XlsFormulaReport.jrxml` | same | 1/1 |  |
 | `xmldatasource/reports/CustomersReport.jrxml` | no reference |  | JasperReports draws nothing for it without the sample's own program; ferroreport renders it |
 | `xmldatasource/reports/OrdersReport.jrxml` | no reference |  | JasperReports draws nothing for it without the sample's own program; ferroreport renders it |

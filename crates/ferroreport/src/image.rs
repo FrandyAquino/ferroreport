@@ -105,6 +105,26 @@ impl ImageStore {
         self.read(location).ok()
     }
 
+    /// Every copy of a resource: the one in memory and the one in each directory that has it,
+    /// as a Java class path gives every `jasperreports_extension.properties` on it.
+    pub(crate) fn read_every(&self, location: &str) -> Vec<Vec<u8>> {
+        if check_relative(location).is_err() {
+            return Vec::new();
+        }
+        let mut out: Vec<Vec<u8>> = self.files.get(&normalize_name(location)).map(|d| d.to_vec()).into_iter().collect();
+        for root in &self.roots {
+            let path = root.join(location);
+            let inside = match (path.canonicalize(), root.canonicalize()) {
+                (Ok(real), Ok(real_root)) => path.is_file() && real.starts_with(&real_root),
+                _ => false,
+            };
+            if let Some(bytes) = inside.then(|| std::fs::read(&path).ok()).flatten() {
+                out.push(bytes);
+            }
+        }
+        out
+    }
+
     /// Reads a resource by relative location: in-memory files first, then the directories.
     fn read(&self, location: &str) -> Result<Vec<u8>> {
         check_relative(location)?;

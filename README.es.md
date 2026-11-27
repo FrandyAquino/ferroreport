@@ -21,8 +21,8 @@ mitad del tamaño de un JRXML y accesible por defecto. Frente al propio JasperRe
 [Descargas](https://github.com/cristianEncarnacion/ferroreport/releases) ·
 [Docker](https://github.com/cristianEncarnacion/ferroreport/pkgs/container/ferroreport)
 
-> Estado: **estable, versión 1.0.** Las 48 plantillas comparables de la batería de pruebas salen
-> píxel por píxel igual que en JasperReports 6.20, incluyendo bandas divididas entre páginas,
+> Estado: **estable desde la 1.0; la última versión es la 1.3.0** ([qué trajo cada versión](CHANGELOG.md)).
+> Las 48 plantillas comparables de la batería de pruebas salen píxel por píxel igual que en JasperReports 6.20, incluyendo bandas divididas entre páginas,
 > imágenes (también SVG), subreportes, tablas, listas, crosstabs, códigos QR, PDF417, Barbecue
 > y de barras, enlaces, texto con formato y varias columnas; los gráficos se dibujan como los
 > dibuja JasperReports 7 (20 de sus 24 muestras de gráficos salen iguales). Las 49 que ambos
@@ -61,7 +61,10 @@ mitad del tamaño de un JRXML y accesible por defecto. Frente al propio JasperRe
   de una carpeta (si carga, qué usa, qué no está soportado aún, si se renderiza), escribe el
   resultado en Markdown o JSON y, si lo pides, las plantillas convertidas. Si le das los jars
   de JasperReports (`--jasper lib/`), renderiza cada plantilla con los dos motores y los mismos
-  datos, y compara páginas, cada texto y número, y tiempos.
+  datos, y compara páginas, cada texto y número, y tiempos. La
+  [guía de migración](https://cristianencarnacion.github.io/ferroreport/es/migrate.html) lleva un
+  proyecto de JasperReports paso a paso: scriptlets, archivos `.jasper`, la llamada en Java,
+  fuentes de datos y exportaciones.
 - **Seguro con plantillas ajenas.** JasperReports compila las expresiones a Java y carga
   archivos `.jasper` serializados; así ocurrieron fallos recientes de ejecución remota de código
   (CVE-2025-10492, CVE-2026-6009). ferroreport nunca deserializa objetos e interpreta las
@@ -79,9 +82,10 @@ mitad del tamaño de un JRXML y accesible por defecto. Frente al propio JasperRe
 
 ## Desde tu lenguaje
 
-> **[Documentación completa](https://cristianencarnacion.github.io/ferroreport/docs.html)** (en inglés): cada comando,
+> **[Documentación completa](https://cristianencarnacion.github.io/ferroreport/es/docs.html)**: cada comando,
 > endpoint, función y opción. El [paquete de npm](https://www.npmjs.com/package/ferroreport), el
-> [de PyPI](https://pypi.org/project/ferroreport/), los [crates](https://crates.io/crates/ferroreport), los
+> [de PyPI](https://pypi.org/project/ferroreport/), la librería de Java en Maven Central
+> (`io.github.cristianencarnacion:ferroreport`), los [crates](https://crates.io/crates/ferroreport), los
 > [binarios de Releases](https://github.com/cristianEncarnacion/ferroreport/releases) y la imagen Docker ya están disponibles.
 
 - **JavaScript/TypeScript:** `npm install ferroreport` y
@@ -102,7 +106,9 @@ mitad del tamaño de un JRXML y accesible por defecto. Frente al propio JasperRe
   respuesta es el documento completo o un error, nunca medio PDF; con
   `Prefer: respond-streaming` llega mientras se genera (primeros bytes al instante, y si el
   cliente se va, el reporte se detiene).
-- **Java:** `Ferroreport.local().template(Path.of("factura.jrxml")).rows(lineas).param("CLIENTE", "Caribe").render()`;
+- **Java:** la dependencia `io.github.cristianencarnacion:ferroreport:1.3.0` de Maven Central
+  (Java 11 o más nuevo, sin dependencias ni JasperReports) y
+  `Ferroreport.local().template(Path.of("factura.jrxml")).rows(lineas).param("CLIENTE", "Caribe").render()`;
   con `.rows(resultSet).renderTo(Path.of("ventas.pdf"))` un query va directo al archivo sin
   cargarse en memoria.
 - **Rust:** `cargo add ferroreport`. **Línea de comandos:** binarios en
@@ -169,9 +175,14 @@ ferroreport render nomina.jrxml -d filas.json -o nomina.pdf --user-password 0423
 
 La consulta SQL de la plantilla se ejecuta como la ejecuta JasperReports por JDBC: `$P{}` va
 como parámetro, `$P!{}` se pega en el texto y `$X{IN, columna, PARAM}` (y los demás `$X{}`) se
-convierte en su condición. Los subreportes, tablas, listas, crosstabs y gráficos que pasan
-`$P{REPORT_CONNECTION}` hacen su propia consulta en la misma base. Las filas se leen a medida
-que el reporte las necesita.
+convierte en su condición. Los subreportes, y los subdatasets de tablas, listas, crosstabs y
+gráficos, que pasan `$P{REPORT_CONNECTION}` hacen su propia consulta SQL en la misma base. Las
+filas se leen a medida que el reporte las necesita. La base la reciben la línea de comandos
+(`--db`), el servidor HTTP (`serve --db`) y la librería de Rust (`Renderer::connection`); los
+paquetes de JavaScript, Python y Java reciben las filas que les das (en Java, un `ResultSet` se
+lee fila por fila). En Java, `Ferroreport.server(...).named(...)` genera una plantilla de un
+servidor iniciado con `--templates` y `--db`: las filas las das tú y sus subreportes y
+subdatasets consultan la base del servidor.
 
 ```bash
 ferroreport render ventas.jrxml --db postgres://reportes@db:5432/erp -p params.json -o ventas.pdf
@@ -349,10 +360,11 @@ lista), así que el JRXML convertido funciona también en JasperReports:
   Jasper deja ambos fuera). Aún no: las propiedades `net.sf.jasperreports.export.pptx.*`.
 - Exportación a OpenDocument (`.ods` y `.odt`, para LibreOffice), armada como la de los
   exportadores ODS y ODT de JasperReports: el `.ods` es la misma cuadrícula del XLSX (y con
-  `--xlsx-numbers` los números van como números, con un formato hecho de su patrón) y el `.odt`
-  es una tabla por página como el DOCX. Aún no: las propiedades
-  `net.sf.jasperreports.export.ods.*` y `.odt.*`, fechas como celdas de fecha, y el texto al
-  revés (180°) en el `.odt`.
+  `--xlsx-numbers` los números van como números y las fechas como fechas, con un formato hecho
+  de su patrón) y el `.odt` es una tabla por página como el DOCX. Aún no: las propiedades
+  `net.sf.jasperreports.export.ods.*` y `.odt.*`, fechas con nombres de mes o día, AM/PM,
+  año de dos dígitos o milisegundos como celdas de fecha (quedan como texto), y el texto al revés (180°) en el
+  `.odt`.
 - PDF etiquetado para lectores de pantalla (`--tagged`, la propiedad
   `net.sf.jasperreports.export.pdf.tagged` de la plantilla, o por defecto en `.ferro`), que pasa
   las pruebas PDF/UA-1 de veraPDF: párrafos y títulos, imágenes con su descripción, tablas y
@@ -497,7 +509,10 @@ que la respuesta honesta a "¿cuál uso?" depende de lo que hagas.
 | Plantillas que suben tus propios clientes | **ferroreport**, Typst | Las expresiones vienen de una lista cerrada y nada se deserializa; JasperReports compila las plantillas a Java |
 
 Lo que haría de ferroreport la primera opción en más filas está en el roadmap: un diseñador
-que haga más, más componentes de JasperReports y tiempo en producción.
+que haga más, más componentes de JasperReports y tiempo en producción. En el sitio hay una
+[comparación](https://cristianencarnacion.github.io/ferroreport/es/compare.html) más larga, con
+JasperReports, OpenPDF, OpenHTMLtoPDF, iText, Typst, Carbone, Apache POI y FastExcel y sus
+fuentes.
 
 ## Contribuir
 
@@ -545,8 +560,8 @@ códigos de barras y un formato de plantilla propio. Lo que viene, en versiones 
 - **Texto de cualquier escritura, lo que falta:** el árabe y el hebreo ya van de derecha a
   izquierda y el devanagari, el tailandés y las demás escrituras complejas ya se componen con su
   forma (ver Text en la tabla de compatibilidad del README en inglés), y los caracteres que le
-  faltan a la fuente elegida se pueden dibujar con otra (conjuntos de fuentes con `--font-set` y
-  `--font-fallback`) y el texto simple se puede separar en sílabas al final de la línea
+  faltan a la fuente elegida se pueden dibujar con otra (conjuntos de fuentes con `--font-set` o
+  de una extensión de fuentes de JasperReports en una carpeta de recursos, y `--font-fallback`) y el texto simple se puede separar en sílabas al final de la línea
   (`ferroreport.text.hyphenate`); falta un diccionario para cortar líneas en tailandés, lao,
   jemer y birmano, y separar en sílabas el texto con formato (styled y HTML). El motor de
   composición es harfrust, el port a Rust que mantiene el proyecto HarfBuzz (reemplazó a

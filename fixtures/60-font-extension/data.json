@@ -1,0 +1,6 @@
+[
+ {"city": "Santo Domingo", "greeting": "¡Buenos días! Bienvenidos a la capital.", "amount": 1250.5},
+ {"city": "Athens", "greeting": "Καλημέρα, welcome to Athens and its old town.", "amount": 980},
+ {"city": "Moscow", "greeting": "Доброе утро — a long greeting that does not fit on one line of the column, so the field stretches.", "amount": 42.25},
+ {"city": "Zürich", "greeting": "Grüezi mitenand", "amount": 15000}
+]

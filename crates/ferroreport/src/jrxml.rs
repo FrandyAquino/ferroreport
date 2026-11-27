@@ -251,6 +251,11 @@ struct StyleProps {
     valign: Option<VAlign>,
     line_spacing: Option<String>,
     line_spacing_size: Option<f32>,
+    first_line_indent: Option<i32>,
+    left_indent: Option<i32>,
+    right_indent: Option<i32>,
+    tab_stop_width: Option<i32>,
+    tab_stops: Option<Vec<crate::paragraph::TabStop>>,
     pattern: Option<String>,
     blank_when_null: Option<bool>,
     radius: Option<f32>,
@@ -285,6 +290,11 @@ impl StyleProps {
             valign,
             line_spacing,
             line_spacing_size,
+            first_line_indent,
+            left_indent,
+            right_indent,
+            tab_stop_width,
+            tab_stops,
             pattern,
             blank_when_null,
             radius
@@ -366,6 +376,39 @@ impl StyleProps {
         if let Some(v) = p.attr("lineSpacingSize").and_then(number) {
             self.line_spacing_size = Some(v);
         }
+        // Whole points, as JasperReports reads them.
+        let int = |name: &str| p.attr(name).and_then(number::<f32>).filter(|v| v.is_finite()).map(|v| v.clamp(-1e6, 1e6) as i32);
+        self.first_line_indent = int("firstLineIndent").or(self.first_line_indent);
+        self.left_indent = int("leftIndent").or(self.left_indent);
+        self.right_indent = int("rightIndent").or(self.right_indent);
+        self.tab_stop_width = int("tabStopWidth").or(self.tab_stop_width);
+        let stops: Vec<crate::paragraph::TabStop> = p
+            .children_named("tabStop")
+            .filter_map(|t| {
+                let position = t.attr("position").and_then(number::<f32>).filter(|v| v.is_finite())?.clamp(-1e6, 1e6) as i32;
+                let align = match t.attr("alignment") {
+                    Some("Center") => crate::paragraph::TabAlign::Center,
+                    Some("Right") => crate::paragraph::TabAlign::Right,
+                    _ => crate::paragraph::TabAlign::Left,
+                };
+                Some(crate::paragraph::TabStop { position, align })
+            })
+            .collect();
+        if !stops.is_empty() {
+            self.tab_stops = Some(stops);
+        }
+    }
+
+    /// The paragraph settings that change how a text is laid out across its width.
+    fn paragraph(&self) -> crate::paragraph::Paragraph {
+        let d = crate::paragraph::Paragraph::default();
+        crate::paragraph::Paragraph {
+            first_line_indent: self.first_line_indent.unwrap_or(d.first_line_indent),
+            left_indent: self.left_indent.unwrap_or(d.left_indent),
+            right_indent: self.right_indent.unwrap_or(d.right_indent),
+            tab_stop_width: self.tab_stop_width.filter(|w| *w > 0).unwrap_or(d.tab_stop_width),
+            tab_stops: self.tab_stops.clone().unwrap_or_default(),
+        }
     }
 
     /// Properties declared directly by a `<style>` element.
@@ -444,6 +487,52 @@ struct Parser {
     /// How charts are drawn (`net.sf.jasperreports.chart.render.type`), from the report's
     /// properties or a `jasperreports.properties` among the resources.
     chart_render_type: Option<String>,
+    /// Paragraph settings of the text elements that have any, by fingerprint (see
+    /// [`crate::paragraph`]).
+    paragraphs: Vec<(u64, crate::paragraph::Paragraph)>,
+    /// The application's own classes that parameters, fields and variables are declared with
+    /// (simple names): their static fields are taken as enum constants, see [`enum_constants`].
+    own_classes: Vec<String>,
+}
+
+/// The classes outside the Java and JasperReports libraries that the template declares its
+/// parameters, fields and variables with (`class="Greeting"`), by simple name.
+fn own_classes(root: &Node) -> Vec<String> {
+    fn visit(n: &Node, out: &mut Vec<String>) {
+        if matches!(n.name.as_str(), "parameter" | "field" | "variable") {
+            let class = n.attr("class").unwrap_or("").trim();
+            let library = ["java.", "javax.", "net.sf.jasperreports.", "groovy.", "org.", "com.lowagie."];
+            if !class.is_empty()
+                && !library.iter().any(|p| class.starts_with(p))
+                && JavaType::from_class_name(class) == JavaType::Object
+            {
+                let simple = class.rsplit(['.', '$']).next().unwrap_or(class);
+                if simple.chars().next().is_some_and(char::is_uppercase) && !out.iter().any(|c| c == simple) {
+                    out.push(simple.to_string());
+                }
+            }
+        }
+        n.children.iter().for_each(|c| visit(c, out));
+    }
+    let mut out = Vec::new();
+    visit(root, &mut out);
+    out
+}
+
+/// A static field of one of the template's own classes (`Greeting.bye`) is an enum constant,
+/// and a Java enum comes from JSON as its name: it is read as the text `"bye"`, so that
+/// `$P{greeting} == Greeting.bye` holds when the parameter is `"bye"`.
+fn enum_constants(expr: &mut Expr, classes: &[String]) {
+    if classes.is_empty() {
+        return;
+    }
+    expr.walk_mut(&mut |e| {
+        if let Expr::StaticField { class, name } = e {
+            if classes.iter().any(|c| **c == **class) {
+                *e = Expr::Lit(crate::value::Value::str(&**name));
+            }
+        }
+    });
 }
 
 /// The value of `key` in a Java properties file.
@@ -539,6 +628,8 @@ impl Parser {
                 })
                 .collect(),
             chart_render_type: None,
+            paragraphs: Vec::new(),
+            own_classes: own_classes(root),
         };
         const RENDER_TYPE: &str = "net.sf.jasperreports.chart.render.type";
         parser.chart_render_type =
@@ -564,7 +655,11 @@ impl Parser {
         if t.is_empty() {
             return Ok(None);
         }
-        parse_expr(t, self.groovy).map(Some).map_err(|message| {
+        let mut parsed = parse_expr(t, self.groovy);
+        if let Ok(e) = &mut parsed {
+            enum_constants(e, &self.own_classes);
+        }
+        parsed.map(Some).map_err(|message| {
             // Quote a long expression only in part.
             let expr = match t.char_indices().nth(120) {
                 Some((i, _)) => format!("{}…", &t[..i]),
@@ -608,6 +703,14 @@ impl Parser {
                     default: Some(Expr::Lit(crate::value::Value::str(value.as_str()))),
                 });
             }
+        }
+        if root.children_named("property").any(|p| {
+            p.attr("name") == Some("net.sf.jasperreports.evaluator.ignore.npe") && p.attr("value").is_some_and(|v| !parse_bool(v))
+        }) {
+            self.warnings.push(
+                "net.sf.jasperreports.evaluator.ignore.npe=false is not supported: a NullPointerException still makes its expression null"
+                    .into(),
+            );
         }
         if root.child("scriptlet").is_some() {
             self.warnings.push("<scriptlet> is not supported yet".into());
@@ -716,6 +819,16 @@ impl Parser {
         };
 
         let mut report = report;
+        // Paragraph settings have no place in the model in 1.x: they go in a hidden parameter.
+        if !self.paragraphs.is_empty() {
+            let table: serde_json::Map<String, serde_json::Value> =
+                self.paragraphs.iter().map(|(key, p)| (format!("{key:016x}"), p.to_json())).collect();
+            report.parameters.push(Parameter {
+                name: crate::text::PARAGRAPHS.to_string(),
+                class: JavaType::Object,
+                default: Some(Expr::Lit(crate::value::Value::Json(std::sync::Arc::new(serde_json::Value::Object(table))))),
+            });
+        }
         let mut datasets: Vec<Dataset> = self.datasets.drain().map(|(_, d)| d).collect();
         datasets.sort_by(|a, b| a.name.cmp(&b.name));
         report.datasets = datasets;
@@ -1963,8 +2076,9 @@ impl Parser {
                 let content = if kind == "staticText" {
                     TextContent::Static(n.child("text").map(|t| t.text.clone()).unwrap_or_default())
                 } else {
+                    let master = n.attr("evaluationTime") == Some("Master");
                     let evaluation_time = match n.attr("evaluationTime").unwrap_or("Now") {
-                        "Report" => EvaluationTime::Report,
+                        "Report" | "Master" => EvaluationTime::Report,
                         "Page" => EvaluationTime::Page,
                         "Column" => EvaluationTime::Column,
                         "Group" => EvaluationTime::Group,
@@ -1978,7 +2092,11 @@ impl Parser {
                         pattern_expr: self.child_expr(n, &["patternExpression"])?,
                         blank_when_null: props.blank_when_null.unwrap_or(false),
                         evaluation_time,
-                        evaluation_group: n.attr("evaluationGroup").map(str::to_string),
+                        evaluation_group: if master {
+                            Some(MASTER_EVALUATION.to_string())
+                        } else {
+                            n.attr("evaluationGroup").map(str::to_string)
+                        },
                     }
                 };
                 let property = |name: &str| {
@@ -2048,15 +2166,14 @@ impl Parser {
                         self.warnings.push(warning);
                     }
                 }
-                ElementKind::Text(TextElement {
-                    content,
-                    style,
-                    boxed: props.box_style(forecolor),
-                    stretch,
-                    markup,
-                    truncate,
-                    field,
-                })
+                let te = TextElement { content, style, boxed: props.box_style(forecolor), stretch, markup, truncate, field };
+                let paragraph = props.paragraph();
+                if !paragraph.is_default() {
+                    let key = crate::paragraph::fingerprint(&te);
+                    self.paragraphs.retain(|(k, _)| *k != key);
+                    self.paragraphs.push((key, paragraph));
+                }
+                ElementKind::Text(te)
             }
             "line" => ElementKind::Line {
                 direction: if n.attr("direction") == Some("BottomUp") { LineDirection::BottomUp } else { LineDirection::TopDown },
@@ -2390,6 +2507,31 @@ mod tests {
     <genericElement><reportElement x="0" y="0" width="10" height="10"/><genericElementType namespace="x" name="y"/></genericElement>
   </band></title>
 </jasperReport>"##;
+
+    #[test]
+    fn static_fields_of_the_templates_own_classes_are_enum_constants() {
+        // JasperReports' java1.5 sample: a parameter of the sample's enum Greeting.
+        let r = parse_report(
+            r#"<jasperReport name="t" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+            <parameter name="greeting" class="Greeting"/>
+            <parameter name="status" class="com.example.Order$Status"/>
+            <title height="30">
+                <element kind="staticText" x="0" y="0" width="100" height="10"><printWhenExpression><![CDATA[$P{greeting} == Greeting.bye]]></printWhenExpression><text>Bye</text></element>
+                <element kind="textField" x="0" y="10" width="100" height="10"><expression><![CDATA[Status.OPEN + " " + Integer.MAX_VALUE]]></expression></element>
+                <element kind="textField" x="0" y="20" width="100" height="10"><expression><![CDATA[Other.CONSTANT]]></expression></element>
+            </title></jasperReport>"#,
+        )
+        .unwrap();
+        let elements = &r.title.as_ref().unwrap().elements;
+        let when = format!("{:?}", elements[0].print_when);
+        assert!(when.contains("Lit(Str(\"bye\"))") && !when.contains("StaticField"), "{when}");
+        let text = |i: usize| match &elements[i].kind {
+            ElementKind::Text(TextElement { content: TextContent::Expression { expr: Some(e), .. }, .. }) => format!("{e:?}"),
+            other => panic!("{other:?}"),
+        };
+        assert!(text(1).contains("Lit(Str(\"OPEN\"))") && text(1).contains("StaticField"), "{}", text(1));
+        assert!(text(2).contains("StaticField"), "a class the template does not declare: {}", text(2));
+    }
 
     #[test]
     fn parses_v6_with_style_inheritance() {

@@ -20,6 +20,8 @@ for dir in "$root"/fixtures/*/; do
   if [ -f "$dir/fonts.txt" ]; then
     while IFS= read -r f; do p=${f#*=}; [ -n "$f" ] && [ -f "${p%%:*}" ] && args+=(--font "$f"); done < "$dir/fonts.txt"
   fi
+  # A JasperReports font extension the fixture ships (jasper-extension/), as a resource folder.
+  [ -d "$dir/jasper-extension" ] && args+=(-r "$dir/jasper-extension")
   if [ -f "$dir/fontsets.txt" ]; then
     while IFS= read -r f; do [ -n "$f" ] && args+=(--font-set "$f"); done < "$dir/fontsets.txt"
   fi

@@ -37,7 +37,20 @@ pub struct FaceData {
     cmap: HashMap<char, u16>,
     advances: Vec<u16>,
     shaping: crate::shape::ShapingCache,
+    /// A style the face's family has no face for, which PDF output simulates as JasperReports
+    /// (iText) does: bold by also stroking the outlines, italic by slanting the text.
+    pub(crate) simulated: Simulated,
 }
+
+/// Styles simulated on a face that lacks them (see [`FaceData`]).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct Simulated {
+    pub bold: bool,
+    pub italic: bool,
+}
+
+/// How far iText slants simulated italic text (`PdfChunk.ITALIC_ANGLE`).
+pub(crate) const SIMULATED_ITALIC_SKEW: f32 = 0.21256;
 
 impl FaceData {
     pub(crate) fn shaping_cache(&self) -> &crate::shape::ShapingCache {
@@ -103,7 +116,37 @@ impl FaceData {
             advances,
             data,
             shaping: Default::default(),
+            simulated: Simulated::default(),
         })
+    }
+
+    /// This face drawn in a style it does not have: `bold` and `italic` simulated.
+    fn simulating(&self, bold: bool, italic: bool) -> FaceData {
+        FaceData {
+            family: self.family.clone(),
+            postscript_name: self.postscript_name.clone(),
+            data: self.data.clone(),
+            units_per_em: self.units_per_em,
+            ascender: self.ascender,
+            descender: self.descender,
+            line_gap: self.line_gap,
+            typo_ascender: self.typo_ascender,
+            typo_descender: self.typo_descender,
+            cap_height: self.cap_height,
+            italic_angle: self.italic_angle,
+            bbox: self.bbox,
+            underline_position: self.underline_position,
+            underline_thickness: self.underline_thickness,
+            strikeout_position: self.strikeout_position,
+            strikeout_thickness: self.strikeout_thickness,
+            bold: self.bold || bold,
+            italic: self.italic || italic,
+            bmp: self.bmp.clone(),
+            cmap: self.cmap.clone(),
+            advances: self.advances.clone(),
+            shaping: Default::default(),
+            simulated: Simulated { bold, italic },
+        }
     }
 
     /// Appends the outline of `c` at `size` units per em, with its origin at `(x, y)` and y
@@ -308,6 +351,12 @@ pub struct FontSet {
     user_order: Vec<String>,
     /// Font sets by lowercase name: their families in search order, the first one primary.
     sets: HashMap<String, Vec<String>>,
+    /// Faces that simulate a style, with the face they are drawn from (whose font the PDF
+    /// embeds for both).
+    simulated_from: HashMap<FaceId, FaceId>,
+    /// Paragraph settings (indents, tab stops) of the text elements of the reports being
+    /// filled that have any, by [`crate::paragraph::fingerprint`].
+    paragraphs: HashMap<u64, Arc<crate::paragraph::Paragraph>>,
     /// Whether every font falls back to the other fonts for characters it lacks.
     fallback: bool,
     /// The language of the render's locale (`en`), for texts hyphenated in it.
@@ -516,6 +565,44 @@ impl FontSet {
         Some(runs.into_iter().map(|(a, b, k)| (a, b, families[k].clone())).collect())
     }
 
+    /// Forgets the paragraph settings of the reports filled before (a new render starts).
+    pub(crate) fn clear_paragraphs(&mut self) {
+        self.paragraphs.clear();
+    }
+
+    /// Takes the paragraph settings a report keeps in its hidden parameter
+    /// ([`crate::text::PARAGRAPHS`]).
+    pub(crate) fn add_paragraphs(&mut self, value: Option<&crate::value::Value>) {
+        let Some(crate::value::Value::Json(table)) = value else { return };
+        let Some(table) = table.as_object() else { return };
+        for (key, spec) in table {
+            if let (Ok(key), Some(p)) = (u64::from_str_radix(key, 16), crate::paragraph::Paragraph::from_json(spec)) {
+                self.paragraphs.insert(key, Arc::new(p));
+            }
+        }
+    }
+
+    /// The paragraph settings of a text element, when it has any.
+    pub(crate) fn paragraph(&self, te: &crate::model::TextElement) -> Option<Arc<crate::paragraph::Paragraph>> {
+        if self.paragraphs.is_empty() {
+            return None;
+        }
+        self.paragraphs.get(&crate::paragraph::fingerprint(te)).cloned()
+    }
+
+    /// `to`, made from `from` while filling (the rest of a text continuing on the next page),
+    /// has its paragraph settings.
+    pub(crate) fn carry_paragraph(&mut self, from: &crate::model::TextElement, to: &crate::model::TextElement) {
+        if let Some(p) = self.paragraph(from) {
+            self.paragraphs.insert(crate::paragraph::fingerprint(to), p);
+        }
+    }
+
+    /// The face whose font draws `id`: itself, or the face a simulated style is drawn from.
+    pub(crate) fn drawn_from(&self, id: FaceId) -> FaceId {
+        self.simulated_from.get(&id).copied().unwrap_or(id)
+    }
+
     pub fn face(&self, id: FaceId) -> &FaceData {
         &self.faces[id]
     }
@@ -561,8 +648,17 @@ impl FontSet {
         let id = if let Some(&id) = self.by_key.get(&key) {
             id
         } else if let Some(id) = user_regular {
-            // User family without the requested style: use its regular face.
-            id
+            // A registered family without the face asked for: its regular face, in the style
+            // asked for simulated, as JasperReports draws a font extension's family.
+            if spec.bold || spec.italic {
+                let face = self.faces[id].simulating(spec.bold, spec.italic);
+                let simulated = self.faces.len();
+                self.faces.push(Arc::new(face));
+                self.simulated_from.insert(simulated, id);
+                simulated
+            } else {
+                id
+            }
         } else {
             let family = match builtin_family(&spec.name) {
                 Some(f) => f,
@@ -578,6 +674,91 @@ impl FontSet {
         self.resolved.insert(key, id);
         id
     }
+}
+
+/// The file a JasperReports extension is declared in, at the root of the class path.
+pub(crate) const EXTENSION_PROPERTIES: &str = "jasperreports_extension.properties";
+
+/// The properties of a `jasperreports_extension.properties` that name font extension files.
+const FONT_FAMILIES_PROPERTY: &str = "net.sf.jasperreports.extension.simple.font.families.";
+
+/// Registers the font families and font sets of the JasperReports font extensions that
+/// `properties` (a `jasperreports_extension.properties`) declares, the way JasperReports finds
+/// them on its class path. `read` reads a file by its class path location (the `fonts.xml`
+/// files and the fonts they name). Families come first, then the sets that use them, so a set
+/// may name a family of another extension. Returns what could not be registered.
+pub(crate) fn load_extensions(
+    fonts: &mut FontSet,
+    properties: &[Vec<u8>],
+    read: &dyn Fn(&str) -> Option<Vec<u8>>,
+) -> Vec<String> {
+    let mut problems = Vec::new();
+    let mut files: Vec<String> = Vec::new();
+    for bytes in properties {
+        let mut entries: Vec<(String, String)> = crate::format::message::parse_properties(bytes)
+            .into_iter()
+            .filter(|(k, _)| k.starts_with(FONT_FAMILIES_PROPERTY))
+            .collect();
+        entries.sort();
+        for (_, file) in entries {
+            let file = file.trim().trim_start_matches('/').to_string();
+            if !files.contains(&file) {
+                files.push(file);
+            }
+        }
+    }
+    let mut sets = Vec::new();
+    for file in &files {
+        let Some(bytes) = read(file) else {
+            problems.push(format!("font extension `{file}` not found"));
+            continue;
+        };
+        let root = match std::str::from_utf8(&bytes)
+            .map_err(|e| e.to_string())
+            .and_then(|s| crate::xml::parse(s).map_err(|e| e.to_string()))
+        {
+            Ok(root) => root,
+            Err(e) => {
+                problems.push(format!("font extension `{file}`: {e}"));
+                continue;
+            }
+        };
+        for family in root.children_named("fontFamily") {
+            let Some(name) = family.attr("name").map(str::trim).filter(|n| !n.is_empty()) else { continue };
+            for (tag, bold, italic) in
+                [("normal", false, false), ("bold", true, false), ("italic", false, true), ("boldItalic", true, true)]
+            {
+                let Some(face) = family.child(tag) else { continue };
+                // `<normal>fonts/a.ttf</normal>`, or the TrueType one of several formats:
+                // `<normal><ttf>fonts/a.ttf</ttf><eot>…</eot></normal>`.
+                let location = face.child("ttf").map_or(face.text.trim(), |t| t.text.trim()).trim_start_matches('/');
+                if location.is_empty() {
+                    continue;
+                }
+                let registered = read(location)
+                    .ok_or_else(|| "not found".to_string())
+                    .and_then(|data| fonts.register(name, bold, italic, data).map_err(|e| e.to_string()));
+                if let Err(e) = registered {
+                    problems.push(format!("font family `{name}` ({tag}), `{location}`: {e}"));
+                }
+            }
+        }
+        for set in root.children_named("fontSet") {
+            let Some(name) = set.attr("name").map(str::trim).filter(|n| !n.is_empty()) else { continue };
+            // In the order written, which is the order JasperReports searches them in. (The
+            // set's primary family, which draws what no family has, is taken to be the first.)
+            let families: Vec<String> =
+                set.children_named("family").filter_map(|f| Some(f.attr("familyName")?.trim().to_string())).collect();
+            sets.push((name.to_string(), families));
+        }
+    }
+    for (name, families) in sets {
+        let families: Vec<&str> = families.iter().map(String::as_str).collect();
+        if let Err(e) = fonts.register_set(&name, &families) {
+            problems.push(e.to_string());
+        }
+    }
+    problems
 }
 
 #[cfg(test)]
@@ -678,6 +859,38 @@ mod tests {
         // A text the primary family has whole is one run in it.
         let runs = families(fonts.fallback_runs(&spec("Serif Fallback", true, false), "plain"), "plain");
         assert_eq!(runs, [("plain".to_string(), "DejaVu Serif".to_string())]);
+    }
+
+    #[test]
+    fn font_extensions_register_families_and_sets() {
+        let properties = b"net.sf.jasperreports.extension.registry.factory.x=net.sf.jasperreports.engine.fonts.SimpleFontExtensionsRegistryFactory\n\
+            net.sf.jasperreports.extension.simple.font.families.x=fonts/fonts.xml\n\
+            net.sf.jasperreports.extension.simple.font.families.y=/fonts/missing.xml\n";
+        let xml = r#"<fontFamilies>
+            <fontFamily name="Ext Mono"><normal>fonts/mono.ttf</normal><bold><ttf>fonts/mono-bold.ttf</ttf></bold></fontFamily>
+            <fontFamily name="Ext Broken"><normal>fonts/nowhere.ttf</normal></fontFamily>
+            <fontSet name="Ext Set"><family familyName="Ext Mono" primary="true"/><family familyName="DejaVu Sans"/></fontSet>
+        </fontFamilies>"#;
+        let read = |location: &str| -> Option<Vec<u8>> {
+            match location {
+                "fonts/fonts.xml" => Some(xml.as_bytes().to_vec()),
+                "fonts/mono.ttf" => Some(builtin_files().nth(8).unwrap().to_vec()),
+                "fonts/mono-bold.ttf" => Some(builtin_files().nth(9).unwrap().to_vec()),
+                _ => None,
+            }
+        };
+        let mut fonts = FontSet::new();
+        let problems = load_extensions(&mut fonts, &[properties.to_vec()], &read);
+        assert_eq!(problems.len(), 2, "{problems:?}");
+        assert!(problems.iter().any(|p| p.contains("fonts/missing.xml")) && problems.iter().any(|p| p.contains("Ext Broken")));
+        let regular = fonts.resolve(&spec("ext mono", false, false));
+        let bold = fonts.resolve(&spec("Ext Mono", true, false));
+        assert_eq!(fonts.face(regular).family, "Ext Mono");
+        assert!(!fonts.face(regular).bold && fonts.face(bold).bold);
+        // The set's first family draws the text it has.
+        let text = "mono ★";
+        let runs = families(fonts.fallback_runs(&spec("Ext Set", false, false), text), text);
+        assert_eq!(runs.first().map(|r| r.1.as_str()), Some("Ext Mono"));
     }
 
     #[test]

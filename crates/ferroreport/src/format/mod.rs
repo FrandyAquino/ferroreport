@@ -2,6 +2,7 @@
 
 pub mod date;
 pub mod locale;
+mod locale_names;
 pub mod message;
 pub mod number;
 

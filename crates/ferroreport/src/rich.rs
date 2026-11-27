@@ -7,6 +7,7 @@
 
 use crate::fonts::{FaceId, FontSet};
 use crate::model::{Color, FontSpec, HAlign, LineSpacing, TextElement, VAlign};
+use crate::paragraph::{Geometry, Paragraph, TabLine};
 use crate::print::{PrintItem, PrintLine, PrintText};
 use crate::text::Measure;
 use std::sync::Arc;
@@ -746,12 +747,15 @@ pub fn break_rich(st: &StyledText, fonts: &mut FontSet, max_width: f32, mode: Me
 struct LineMetrics {
     ascent: f32,
     below: f32,
+    /// The tallest descent alone, and the largest line gap (`below` is descent and leading).
+    descent: f32,
+    leading: f32,
     max_size: f32,
 }
 
 fn line_metrics(st: &StyledText, fonts: &mut FontSet, line: &RLine) -> LineMetrics {
     let (a, b) = (line.start, line.next.max(line.end));
-    let mut m = LineMetrics { ascent: 0.0, below: 0.0, max_size: 0.0 };
+    let mut m = LineMetrics { ascent: 0.0, below: 0.0, descent: 0.0, leading: 0.0, max_size: 0.0 };
     let mut any = false;
     for r in &st.runs {
         let overlaps = if a == b { r.start <= a && (a < r.end || r.end == a) } else { r.start < b && r.end > a };
@@ -768,6 +772,8 @@ fn line_metrics(st: &StyledText, fonts: &mut FontSet, line: &RLine) -> LineMetri
         let size = r.style.font.size;
         m.ascent = m.ascent.max(face.ascent(size));
         m.below = m.below.max(face.line_height(size) - face.ascent(size));
+        m.descent = m.descent.max(face.descent(size));
+        m.leading = m.leading.max(face.line_gap * size / face.units_per_em);
         m.max_size = m.max_size.max(size);
     }
     if !any {
@@ -775,7 +781,13 @@ fn line_metrics(st: &StyledText, fonts: &mut FontSet, line: &RLine) -> LineMetri
         let id = resolve(fonts, &style);
         let face = fonts.face(id);
         let size = style.font.size;
-        m = LineMetrics { ascent: face.ascent(size), below: face.line_height(size) - face.ascent(size), max_size: size };
+        m = LineMetrics {
+            ascent: face.ascent(size),
+            below: face.line_height(size) - face.ascent(size),
+            descent: face.descent(size),
+            leading: face.line_gap * size / face.units_per_em,
+            max_size: size,
+        };
     }
     m
 }
@@ -842,6 +854,85 @@ pub fn lines_that_fit(
     (k, lines.len(), rest)
 }
 
+/// The paragraph settings a text is laid out with when they change anything: its own
+/// (indents, tab stops), or the default tab stops of a text with tabs. `None`: the text is
+/// laid out as one block per line, as before tab stops and indents were supported.
+fn tab_settings(fonts: &FontSet, te: &TextElement, st: &StyledText) -> Option<Arc<Paragraph>> {
+    fonts.paragraph(te).or_else(|| st.text.contains('\t').then(|| Arc::new(Paragraph::default())))
+}
+
+/// The box `w` wide of `te`, as tab stops see it.
+fn geometry(te: &TextElement, w: f32) -> Geometry {
+    Geometry { left_padding: te.boxed.padding.left, width: w, right_padding: te.boxed.padding.right }
+}
+
+/// Breaks a text with paragraph settings into lines of tab segments, paragraph by paragraph,
+/// as JasperReports does (see [`crate::paragraph`]). Also returns the lines as [`RLine`]s,
+/// for what only needs where they start and end.
+fn break_tabbed(st: &StyledText, fonts: &mut FontSet, p: &Paragraph, geo: Geometry, mode: Measure) -> (Vec<RLine>, Vec<TabLine>) {
+    let g = glyphs(st, fonts, mode);
+    let render = if mode == Measure::Render { None } else { Some(glyphs(st, fonts, Measure::Render)) };
+    let text = &st.text;
+    // A tab is as wide as nothing: it only moves to the next stop.
+    let tabs: Vec<usize> = text.match_indices('\t').map(|(i, _)| i).collect();
+    let tab_free = |g: &Glyphs, a: usize, b: usize| -> f32 {
+        let from = tabs.partition_point(|&t| t < a);
+        let to = tabs.partition_point(|&t| t < b);
+        g.width(a, b) - tabs[from..to].iter().map(|&t| g.width(t, t + 1)).sum::<f32>()
+    };
+    let advance = |a: usize, b: usize| tab_free(&g, a, b);
+    let mut rlines = Vec::new();
+    let mut tlines = Vec::new();
+    let mut para_start = 0;
+    loop {
+        let para_end = text[para_start..].find('\n').map(|i| para_start + i).unwrap_or(text.len());
+        let indent = st.para_at(para_start).map(|p| p.indent).unwrap_or(0.0);
+        let units = break_units(text, para_start, para_end, mode);
+        let lines = crate::paragraph::break_paragraph(text, para_start..para_end, p, geo, indent, &advance, &units);
+        let count = lines.len();
+        for (i, l) in lines.into_iter().enumerate() {
+            let end = l.segments.last().map_or(l.start, |s| trim_end(text, s.start, s.end));
+            let next = if i + 1 == count { (para_end + 1).min(text.len()) } else { l.next };
+            let width = tab_free(render.as_ref().unwrap_or(&g), l.start, end);
+            rlines.push(RLine { start: l.start, end, next, width, indent });
+            tlines.push(l);
+        }
+        if para_end >= text.len() {
+            break;
+        }
+        para_start = para_end + 1;
+    }
+    (rlines, tlines)
+}
+
+/// [`lines_that_fit`] for the text of `te` in its box `w` wide, with its paragraph settings.
+pub(crate) fn lines_that_fit_in(
+    st: &StyledText,
+    fonts: &mut FontSet,
+    te: &TextElement,
+    w: f32,
+    available: f32,
+) -> (usize, usize, usize) {
+    let pad = te.boxed.padding;
+    let cw = (w - pad.left - pad.right).max(0.0);
+    let Some(p) = tab_settings(fonts, te, st) else {
+        return lines_that_fit(st, fonts, cw, te.style.line_spacing, available);
+    };
+    let (lines, _) = break_tabbed(st, fonts, &p, geometry(te, w), Measure::Fill);
+    let hs = fill_heights(st, fonts, &lines, te.style.line_spacing);
+    let mut total = 0.0;
+    let mut k = 0;
+    for h in &hs {
+        if total + h.height > available + 1e-3 {
+            break;
+        }
+        total += h.height;
+        k += 1;
+    }
+    let rest = lines.get(k).map(|l| l.start).unwrap_or(st.text.len());
+    (k, lines.len(), rest)
+}
+
 /// Lays out styled text in a box and returns what to draw, with the height the text needs.
 #[allow(clippy::too_many_arguments)]
 pub fn layout(
@@ -854,6 +945,9 @@ pub fn layout(
     h: f32,
     clip: bool,
 ) -> (PrintItem, f32) {
+    if let Some(p) = tab_settings(fonts, te, st) {
+        return layout_tabbed(fonts, te, st, &p, x, y, w, h, clip);
+    }
     let p = te.boxed.padding;
     let (cx, cy, cw, ch) = (x + p.left, y + p.top, (w - p.left - p.right).max(0.0), h - p.top - p.bottom);
     let spacing = te.style.line_spacing;
@@ -894,7 +988,8 @@ pub fn layout(
     let text_height: f32 = fill.iter().map(|l| l.height).sum();
     let size_sum: f32 = fill.iter().map(|l| l.m.max_size).sum();
     let factor = if size_sum > 0.0 { text_height / size_sum } else { 1.0 };
-    let first_leading = fill.first().map(|l| l.m.ascent).unwrap_or(0.0);
+    // The first baseline is the first line's leading (its font's line gap) and ascent below the top.
+    let first_leading = fill.first().map(|l| l.m.leading + l.m.ascent).unwrap_or(0.0);
 
     // Exporting: line breaks with iText widths, baselines spaced by factor × largest size.
     let mut lines = break_rich(&shown, fonts, cw, Measure::Render);
@@ -1041,6 +1136,189 @@ pub fn layout(
         return (PrintItem::Paragraphs(Arc::new(kinds), items), needed);
     }
     (PrintItem::Group(items), needed)
+}
+
+/// [`layout`] for a text with paragraph settings: each line in tab segments, each segment
+/// where its tab stop puts it, and the line aligned as a whole by its last segment, as
+/// JasperReports' PDF exporter draws them (`AbstractTextRenderer`, `PdfTextRenderer`).
+#[allow(clippy::too_many_arguments)]
+fn layout_tabbed(
+    fonts: &mut FontSet,
+    te: &TextElement,
+    st: &StyledText,
+    para: &Paragraph,
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+    clip: bool,
+) -> (PrintItem, f32) {
+    let p = te.boxed.padding;
+    let (cy, ch) = (y + p.top, h - p.top - p.bottom);
+    let spacing = te.style.line_spacing;
+    let geo = geometry(te, w);
+
+    // Filling: heights, how much fits.
+    let (fill_lines, _) = break_tabbed(st, fonts, para, geo, Measure::Fill);
+    let fill = fill_heights(st, fonts, &fill_lines, spacing);
+    let needed = p.top + p.bottom + fill.iter().map(|l| l.height).sum::<f32>();
+    let mut fit = fill.len();
+    if clip {
+        let mut total = 0.0;
+        fit = 0;
+        for l in &fill {
+            if total + l.height > ch + 1e-3 {
+                break;
+            }
+            total += l.height;
+            fit += 1;
+        }
+    }
+    let shown = if fit < fill_lines.len() {
+        let cut = fill_lines[fit].start;
+        let head = st.text[..cut].trim_end_matches(['\n', ' ']).len();
+        let mut s = st.clone();
+        s.text.truncate(head);
+        s.runs.retain_mut(|r| {
+            r.end = r.end.min(head);
+            r.start < r.end
+        });
+        if s.runs.is_empty() {
+            s.runs.push(Run { start: 0, end: 0, style: st.style_at(0).clone() });
+        }
+        s
+    } else {
+        st.clone()
+    };
+    let fill = &fill[..fit.min(fill.len())];
+    let text_height: f32 = fill.iter().map(|l| l.height).sum();
+
+    // Exporting: the lines broken again with the widths the PDF uses, each placed by its own
+    // height (JasperReports draws text with tab stops or indents a line at a time, not as one
+    // block spaced evenly).
+    // JasperReports breaks these lines with the widths of filling (AWT) again, then draws each
+    // segment with the PDF's widths where the filling widths put it.
+    let (mut lines, mut tab_lines) = break_tabbed(&shown, fonts, para, geo, Measure::Fill);
+    if clip {
+        let keep = fit.max(if fit == 0 { 0 } else { 1 });
+        lines.truncate(keep);
+        tab_lines.truncate(keep);
+    }
+    let voff = match te.style.valign {
+        VAlign::Top => 0.0,
+        VAlign::Middle => (ch - text_height) / 2.0,
+        VAlign::Bottom => ch - text_height,
+    };
+    let g = glyphs(&shown, fonts, Measure::Render);
+    let mut items = Vec::new();
+    let mut top = cy + voff;
+    for (k, (l, tl)) in lines.iter().zip(&tab_lines).enumerate() {
+        let m = line_metrics(&shown, fonts, l);
+        let height = line_height(&m, k == 0, spacing);
+        let baseline = top + height - m.descent;
+        top += height;
+        // A justified line of one segment that does not end its paragraph is spread over the
+        // room it had (`TextLayout.getJustifiedLayout`), its last , . ; or : hanging 40% out
+        // as iText lets it.
+        let ends_paragraph = l.next >= shown.text.len() || shown.text[..l.next].ends_with('\n');
+        let justify = te.style.halign == HAlign::Justified && tl.segments.len() == 1 && !ends_paragraph;
+        // A list item's bullet or number, right-aligned a little before its text.
+        if let (Some(marker), Some(first)) = (shown.para_at(l.start).and_then(|p| p.marker.as_ref()), tl.segments.first()) {
+            let st_ = shown.style_at(l.start).clone();
+            let id = resolve(fonts, &st_);
+            let size = st_.draw_size();
+            let mw = fonts.face(id).text_width(marker, size);
+            let mx = x + para.left_indent as f32 + first.left_x - MARKER_GAP - mw;
+            items.push(PrintItem::Text(PrintText {
+                face: id,
+                size,
+                color: st_.color,
+                underline: false,
+                strike: false,
+                lines: vec![PrintLine { text: marker.clone(), x: mx, baseline, width: mw, word_spacing: 0.0, shaped: None }],
+                standard: fonts.standard(&st_.font, marker),
+                halign: HAlign::Left,
+            }));
+        }
+        for seg in &tl.segments {
+            // What the segment shows: its text without the spaces and tab at its end.
+            let end = trim_end(&shown.text, seg.start, seg.end);
+            let shown_w = g.width(seg.start, end) - tab_width(&shown.text, &g, seg.start, end);
+            let spaces = shown.text[seg.start..end].matches(' ').count();
+            let word_spacing = if justify && spaces > 0 {
+                let hanging = match shown.text[seg.start..end].chars().last() {
+                    Some(c @ (',' | '.' | ';' | ':')) => {
+                        let st_ = shown.style_at(end - 1).clone();
+                        let id = resolve(fonts, &st_);
+                        0.4 * fonts.face(id).char_width(c, st_.draw_size())
+                    }
+                    _ => 0.0,
+                };
+                (seg.available - (shown_w - hanging)) / spaces as f32
+            } else {
+                0.0
+            };
+            let from = x + crate::paragraph::segment_x(tl, seg, para, te.style.halign);
+            // The PDF exporter aligns the segment in a column `visible` wide.
+            let mut px = match te.style.halign {
+                HAlign::Right => from + seg.visible - shown_w,
+                HAlign::Center => from + (seg.visible - shown_w) / 2.0,
+                _ => from,
+            };
+            let line_text = &shown.text[seg.start..end];
+            let complex = crate::shape::needs_shaping(line_text);
+            let rtl = complex && crate::shape::is_rtl(line_text);
+            let pieces =
+                if complex { visual_segments(&shown, seg.start, end, rtl) } else { logical_segments(&shown, seg.start, end) };
+            for (r, a, b, piece_rtl) in pieces {
+                let piece = &shown.text[a..b];
+                let id = resolve(fonts, &r.style);
+                let size = r.style.draw_size();
+                let shaped = if complex { crate::shape::line(fonts.face(id), piece, piece_rtl, size) } else { None };
+                let width = shaped.as_ref().map(|s| s.1).unwrap_or_else(|| g.width(a, b) - tab_width(&shown.text, &g, a, b))
+                    + word_spacing * piece.matches(' ').count() as f32;
+                if let Some(back) = r.style.back {
+                    let face = fonts.face(id);
+                    let (asc, desc) = face.typo_metrics(size);
+                    let top = baseline - r.style.rise() - asc;
+                    items.push(PrintItem::Rect {
+                        x: px,
+                        y: top,
+                        w: width,
+                        h: asc + desc,
+                        fill: Some(back),
+                        stroke: None,
+                        radius: 0.0,
+                        path: false,
+                    });
+                }
+                items.push(PrintItem::Text(PrintText {
+                    face: id,
+                    size,
+                    color: r.style.color,
+                    underline: r.style.font.underline,
+                    strike: r.style.font.strike,
+                    lines: vec![PrintLine {
+                        text: piece.replace('\t', ""),
+                        x: px,
+                        baseline: baseline - r.style.rise(),
+                        width,
+                        word_spacing,
+                        shaped: shaped.map(|s| s.0),
+                    }],
+                    standard: if complex { None } else { fonts.standard(&r.style.font, piece) },
+                    halign: HAlign::Left,
+                }));
+                px += width;
+            }
+        }
+    }
+    (PrintItem::Group(items), needed)
+}
+
+/// The width the tabs in `text[a..b]` were measured with (as spaces), which they do not take.
+fn tab_width(text: &str, g: &Glyphs, a: usize, b: usize) -> f32 {
+    text[a..b].match_indices('\t').map(|(i, _)| g.width(a + i, a + i + 1)).sum()
 }
 
 /// The pieces of runs on the line `start..end`, in reading order: `(run, from, to, rtl)`.

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A family with a regular face only (DejaVu Sans Condensed cut down to Latin-1, see
+     LICENSE-DejaVu): its bold and italic are simulated. -->
+<fontFamilies>
+	<fontFamily name="Fixture Plain">
+		<normal>fonts/DejaVuSansCondensed-Latin.ttf</normal>
+		<pdfEncoding>Identity-H</pdfEncoding>
+		<pdfEmbedded>true</pdfEmbedded>
+	</fontFamily>
+</fontFamilies>

@@ -9,7 +9,7 @@
 
 use crate::data::Record;
 use crate::error::{Error, Result};
-use crate::expr::{eval, truthy, EvalEnv, Expr, Scope};
+use crate::expr::{truthy, EvalEnv, Expr, Scope};
 use crate::fonts::FontSet;
 use crate::format::format_value;
 use crate::image::{ImageData, ImageStore};
@@ -164,6 +164,27 @@ fn update_var(st: &mut VarState, def: &VarDef, ev: Value) {
     }
 }
 
+/// An expression's value, as JasperReports evaluates it: what Java would throw as a
+/// `NullPointerException` (a method called on null, null in arithmetic) makes the whole
+/// expression null instead of failing the report (`net.sf.jasperreports.evaluator.ignore.npe`,
+/// true by default).
+fn eval(expr: &Expr, scope: &dyn Scope, env: &EvalEnv) -> Result<Value> {
+    match crate::expr::eval(expr, scope, env) {
+        Err(e) if crate::expr::eval::is_null_pointer(&e) => Ok(Value::Null),
+        other => other,
+    }
+}
+
+/// The value of a print-when expression, a conditional style's condition or an
+/// increment-when expression: null is false, as in JasperReports.
+fn condition(v: &Value, env: &EvalEnv) -> Result<bool> {
+    if v.is_null() {
+        Ok(false)
+    } else {
+        truthy(v, env)
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 // Scope
 
@@ -175,6 +196,9 @@ struct Ctx<'a> {
     var_index: &'a HashMap<String, usize>,
     page_number: i32,
     column_number: i32,
+    /// `MASTER_CURRENT_PAGE` and `MASTER_TOTAL_PAGES`: set only while an element with
+    /// `evaluationTime="Master"` is resolved, null everywhere else (as in JasperReports).
+    master: Option<(i32, i32)>,
 }
 
 impl Scope for Ctx<'_> {
@@ -197,6 +221,8 @@ impl Scope for Ctx<'_> {
         match name {
             "PAGE_NUMBER" => Ok(Value::Int(self.page_number)),
             "COLUMN_NUMBER" => Ok(Value::Int(self.column_number)),
+            "MASTER_CURRENT_PAGE" => Ok(self.master.map_or(Value::Null, |m| Value::Int(m.0))),
+            "MASTER_TOTAL_PAGES" => Ok(self.master.map_or(Value::Null, |m| Value::Int(m.1))),
             _ => self
                 .var_index
                 .get(name)
@@ -460,6 +486,10 @@ struct BandLayout {
     /// When the layout was cut at the available height: what still has to be printed, in the
     /// container's coordinates (not yet moved up), with expressions already evaluated.
     rest: Option<Vec<Element>>,
+    /// The rest has elements printed again (`isPrintWhenDetailOverflows`): it keeps the
+    /// container's top instead of moving up to its first element (JasperReports' `firstY` is 0
+    /// then, JRFillElementContainer.prepareElements).
+    rest_reprints: bool,
     /// Values printed by elements with isPrintRepeatedValues="false" (committed on emit).
     printed_values: Vec<(usize, String)>,
     /// Subreport return values: (variable, calculation, value), applied on emit.
@@ -477,6 +507,20 @@ fn freeze(el: &Element, text: Option<String>) -> Element {
         te.content = TextContent::Static(t);
     }
     e
+}
+
+/// [`freeze`], keeping the paragraph settings of a text (see [`crate::paragraph`]).
+fn frozen(fonts: &mut FontSet, el: &Element, text: Option<String>) -> Element {
+    let e = freeze(el, text);
+    carry_paragraph(fonts, el, &e);
+    e
+}
+
+/// `to`, the rest of the text `from` on the next page, keeps its paragraph settings.
+fn carry_paragraph(fonts: &mut FontSet, from: &Element, to: &Element) {
+    if let (ElementKind::Text(a), ElementKind::Text(b)) = (&from.kind, &to.kind) {
+        fonts.carry_paragraph(a, b);
+    }
 }
 
 /// Moves elements up so the first one starts at the top; returns the offset removed.
@@ -783,7 +827,7 @@ fn printed_text(
     let te = match text_form(fonts, te, color, text) {
         TextForm::Plain(te) => te,
         TextForm::Styled(st) => {
-            let (k, total, rest) = crate::rich::lines_that_fit(&st, fonts, cw, te.style.line_spacing, ch);
+            let (k, total, rest) = crate::rich::lines_that_fit_in(&st, fonts, te, w, ch);
             let mut out = st.text;
             if k < total {
                 out.truncate(rest);
@@ -962,6 +1006,13 @@ fn text_form<'a>(fonts: &mut FontSet, te: &'a TextElement, color: Color, text: &
         st.resolve_fonts(fonts);
         return TextForm::Styled(st);
     }
+    if text.contains('\t') || fonts.paragraph(te).is_some() {
+        // Tab stops and indents are laid out by the styled text engine, a run of one style.
+        let text = text.replace("\r\n", "\n").replace('\r', "\n");
+        let mut st = crate::rich::StyledText::plain(&text, &run_style(te, color));
+        st.resolve_fonts(fonts);
+        return TextForm::Styled(st);
+    }
     let normalized = crate::text::normalize(text);
     match fonts.fallback_runs(&te.style.font, &normalized) {
         None => TextForm::Plain(std::borrow::Cow::Borrowed(te)),
@@ -1036,6 +1087,9 @@ fn plain_text_item(
     // Justified lines spread the leftover width over their spaces. The last line of a
     // paragraph keeps the spacing of the line before it (JasperReports 6 behaviour).
     let face_ref = fonts.face(face_id);
+    // JasperReports puts the first baseline the font's line gap (leading) and its ascent below
+    // the top.
+    let leading = face_ref.line_gap * size / face_ref.units_per_em;
     let normalized = crate::text::normalize(&rendered_text);
     let starts: Vec<usize> = lines.iter().map(|l| l.start).collect();
     let print_lines_next_start = |_: &str, k: usize| starts.get(k + 1).copied();
@@ -1087,7 +1141,7 @@ fn plain_text_item(
         };
         print_lines.push(PrintLine {
             x: lx,
-            baseline: cy + voff + vm.ascent + advance * k as f32,
+            baseline: cy + voff + leading + vm.ascent + advance * k as f32,
             width,
             word_spacing,
             text: l.text,
@@ -1314,7 +1368,7 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
             Some(c) => {
                 let mut mask = 0;
                 for (i, cond) in c.conditions.iter().enumerate() {
-                    if truthy(&eval(cond, le.scope, le.env)?, le.env)? {
+                    if condition(&eval(cond, le.scope, le.env)?, le.env)? {
                         mask |= 1 << i;
                     }
                 }
@@ -1338,7 +1392,7 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
     let mut measured = Vec::with_capacity(elements.len());
     for (idx, el) in elements.iter().enumerate() {
         let visible = match &el.print_when {
-            Some(e) => truthy(&eval(e, le.scope, le.env)?, le.env)?,
+            Some(e) => condition(&eval(e, le.scope, le.env)?, le.env)?,
             None => true,
         };
         let mut m = Measured {
@@ -1461,41 +1515,16 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
         measured.push(m);
     }
 
-    // 1b. isRemoveLineWhenBlank: collapse the vertical range of blank elements when nothing
-    // else printed overlaps it, moving what is below up.
-    let mut ey: Vec<f32> = elements.iter().map(|e| e.y).collect();
+    // 1b. isRemoveLineWhenBlank: blank elements print nothing; whether their space goes too is
+    // decided once the others have stretched and moved (2b).
+    let ey: Vec<f32> = elements.iter().map(|e| e.y).collect();
     let mut design_h = design_h;
-    let mut ranges: Vec<(f32, f32)> = Vec::new();
+    let mut removable: Vec<usize> = Vec::new();
     for (i, el) in elements.iter().enumerate() {
-        if !(el.remove_line_when_blank && measured[i].blank) {
-            continue;
+        if el.remove_line_when_blank && measured[i].blank {
+            removable.push(i);
+            measured[i].visible = false;
         }
-        let (top, bottom) = (el.y, el.y + el.height);
-        let occupied = elements
-            .iter()
-            .enumerate()
-            .any(|(j, other)| j != i && !measured[j].blank && other.y < bottom - 1e-3 && other.y + other.height > top + 1e-3);
-        if !occupied {
-            ranges.push((top, bottom));
-        }
-        measured[i].visible = false;
-    }
-    ranges.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
-    let mut merged: Vec<(f32, f32)> = Vec::new();
-    for r in ranges {
-        match merged.last_mut() {
-            Some(last) if r.0 <= last.1 => last.1 = last.1.max(r.1),
-            _ => merged.push(r),
-        }
-    }
-    for (top, bottom) in &merged {
-        let gap = bottom - top;
-        for (i, el) in elements.iter().enumerate() {
-            if el.y >= *bottom - 1e-3 {
-                ey[i] -= gap;
-            }
-        }
-        design_h -= gap;
     }
 
     // 2. Float elements down by the growth of the elements above them.
@@ -1519,14 +1548,57 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
         new_y[i] = ey[i] + shift.max(0.0);
     }
 
+    // 2b. Each blank element's range collapses when nothing else printed overlaps it where it
+    // is now, after the elements above it have stretched and floated: what is below moves up,
+    // and what is above keeps that much less space to the container's bottom. This is
+    // JasperReports' JRFillElementContainer.removeBlankElements, run in the elements' order;
+    // without stretching it comes to the ranges of the design.
+    let mut collapsed_below = vec![0.0f32; elements.len()];
+    let mut removed = 0.0f32;
+    for &i in &removable {
+        let gap = elements[i].height;
+        let (top, bottom) = (new_y[i], new_y[i] + gap);
+        if gap <= 0.0 || top < -1e-3 {
+            continue;
+        }
+        let printed = |j: usize| measured[j].visible && !measured[j].blank;
+        let container_bottom = if (0..elements.len()).any(|j| measured[j].visible) {
+            (0..elements.len())
+                .filter(|&j| measured[j].visible)
+                .map(|j| new_y[j] + measured[j].new_h + (design_h - (ey[j] + elements[j].height) - collapsed_below[j]).max(0.0))
+                .fold(0.0f32, f32::max)
+        } else {
+            design_h - removed
+        };
+        if bottom > container_bottom + 1e-3 {
+            continue;
+        }
+        let occupied = (0..elements.len())
+            .any(|j| j != i && printed(j) && new_y[j] < bottom - 1e-3 && new_y[j] + measured[j].new_h > top + 1e-3);
+        if occupied {
+            continue;
+        }
+        for j in 0..elements.len() {
+            if new_y[j] + measured[j].new_h <= top + 1e-3 && j != i {
+                collapsed_below[j] += gap;
+            }
+            if new_y[j] >= bottom - 1e-3 {
+                new_y[j] -= gap;
+            }
+        }
+        removed += gap;
+    }
+
     // 3. Container height.
     // Each element keeps the distance from its bottom to the band's bottom, as in
     // JasperReports: what stretches pushes the bottom down by its own growth, whatever else
     // sits lower in the band.
     let kept = (0..elements.len())
         .filter(|&i| measured[i].visible)
-        .map(|i| new_y[i] + measured[i].new_h + (design_h - (ey[i] + elements[i].height)).max(0.0))
+        .map(|i| new_y[i] + measured[i].new_h + (design_h - (ey[i] + elements[i].height) - collapsed_below[i]).max(0.0))
         .fold(0.0f32, f32::max);
+    // The design's height, less what blank elements took away.
+    design_h = (design_h - removed).max(0.0);
     let height = design_h.max(kept).max(min_height);
     let growth = height - design_h;
 
@@ -1541,6 +1613,12 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
     for (i, el) in elements.iter().enumerate() {
         let m = &mut measured[i];
         if !m.visible {
+            // A blank element that removes its line still does where the band continues.
+            if el.remove_line_when_blank && m.blank && limit.is_some_and(|a| new_y[i] >= a - 1e-3) {
+                let mut blank = freeze(el, None);
+                blank.print_when = Some(Expr::Lit(Value::Bool(false)));
+                rest.push(blank);
+            }
             continue;
         }
         let mut h = m.new_h;
@@ -1560,11 +1638,20 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
         if let Some(a) = limit {
             if y >= a - 1e-3 {
                 // Entirely below the cut: continues on the next page.
-                rest.push(freeze(el, m.text.take()));
+                rest.push(frozen(le.fonts, el, m.text.take()));
                 continue;
             }
+            // Whether the element continues on the next page (a frame's children that did not
+            // fit, the rest of a text): it is not printed again in full there.
+            let continued = rest.len();
             if y + h > a + 1e-3 {
                 match &el.kind {
+                    // A text whose own height does not fit moves whole to the next page, as in
+                    // JasperReports; only one that fits and then stretches past the cut splits.
+                    ElementKind::Text(_) if y + el.height > a + 1e-3 => {
+                        rest.push(frozen(le.fonts, el, m.text.take()));
+                        continue;
+                    }
                     ElementKind::Text(te) if te.stretch && m.text.is_some() => {
                         let text = m.text.take().unwrap_or_default();
                         let p = te.boxed.padding;
@@ -1574,8 +1661,7 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
                             TextForm::Styled(st) if te.markup != crate::rich::Markup::None => {
                                 // Styled text continues on the next page as styled markup.
                                 let base = run_style(te, el.forecolor);
-                                let (k, total, rest_at) =
-                                    crate::rich::lines_that_fit(&st, le.fonts, cw, te.style.line_spacing, room);
+                                let (k, total, rest_at) = crate::rich::lines_that_fit_in(&st, le.fonts, te, w, room);
                                 let raw = crate::rich::parse(&text, &base, te.markup);
                                 let styled = |s: String| {
                                     let mut e = freeze(el, Some(s));
@@ -1593,8 +1679,7 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
                             }
                             TextForm::Styled(st) => {
                                 // Plain text in more than one font continues as plain text.
-                                let (k, total, rest_at) =
-                                    crate::rich::lines_that_fit(&st, le.fonts, cw, te.style.line_spacing, room);
+                                let (k, total, rest_at) = crate::rich::lines_that_fit_in(&st, le.fonts, te, w, room);
                                 let cont = match k {
                                     0 => Some(freeze(el, Some(text.clone()))),
                                     k if k < total => Some(freeze(el, Some(st.text[rest_at..].to_string()))),
@@ -1617,6 +1702,9 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
                                 (k, cont)
                             }
                         };
+                        if let Some(c) = &cont {
+                            carry_paragraph(le.fonts, el, c);
+                        }
                         rest.extend(cont);
                         if k == 0 {
                             continue;
@@ -1706,13 +1794,16 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
                     // Elements stretching with their container end at the cut.
                     _ if el.stretch_type != StretchType::NoStretch => h = a - y,
                     _ => {
-                        rest.push(freeze(el, m.text.take()));
+                        rest.push(frozen(le.fonts, el, m.text.take()));
                         continue;
                     }
                 }
             }
-            if el.print_when_detail_overflows {
-                reprint.push(freeze(el, m.text.clone()));
+            // printWhenDetailOverflows prints an element that ended on this page again where the
+            // band continues; one that continues there is not printed twice (JasperReports
+            // reprints only what is already printed whole: JRFillFrame, JRFillTextField.prepare).
+            if el.print_when_detail_overflows && rest.len() == continued {
+                reprint.push(frozen(le.fonts, el, m.text.clone()));
             }
         }
         if let Some(link) = &el.link {
@@ -1969,6 +2060,7 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
     }
     if limit.is_some() {
         if !rest.is_empty() {
+            out.rest_reprints = !reprint.is_empty();
             rest.extend(reprint);
         }
         out.rest = Some(rest);
@@ -2347,6 +2439,17 @@ struct CellScope<'a> {
     row: &'a [Value],
     column: &'a [Value],
     outer: &'a dyn Scope,
+    /// `ROW_COUNT` and `COLUMN_COUNT` of the cell: how many detail rows (columns) of the grid
+    /// come up to its first one, totals not counted (`JRFillCrosstab.computeCounts`). `None`
+    /// where JasperReports sets them to null: the header cell, row headers for the columns,
+    /// column headers for the rows, and order-by expressions.
+    counts: (Option<usize>, Option<usize>),
+}
+
+impl<'a> CellScope<'a> {
+    fn new(filled: &'a crate::crosstab::Filled, row: &'a [Value], column: &'a [Value], outer: &'a dyn Scope) -> Self {
+        CellScope { filled, row, column, outer, counts: (None, None) }
+    }
 }
 
 impl Scope for CellScope<'_> {
@@ -2408,7 +2511,16 @@ impl Scope for CellScope<'_> {
             }
             return Ok(value);
         }
-        Err(Error::eval(format!("variable `{name}` is not a measure or group of the crosstab")))
+        // The crosstab's built-in variables (`JRDesignCrosstab.BUILT_IN_VARIABLES`).
+        let count = |n: Option<usize>| n.map_or(Value::Null, |n| Value::Int(n as i32));
+        let even = |n: Option<usize>| n.map_or(Value::Null, |n| Value::Bool(n % 2 == 0));
+        match name {
+            "ROW_COUNT" => Ok(count(self.counts.0)),
+            "IS_EVEN_ROW" => Ok(even(self.counts.0)),
+            "COLUMN_COUNT" => Ok(count(self.counts.1)),
+            "IS_EVEN_COLUMN" => Ok(even(self.counts.1)),
+            _ => Err(Error::eval(format!("variable `{name}` is not a measure or group of the crosstab"))),
+        }
     }
 }
 
@@ -2621,7 +2733,7 @@ fn fill_crosstab(le: &mut LayoutEnv, ct: &CrosstabElement, el: &Element) -> Resu
             for prefix in crate::crosstab::prefixes(&sorted, i + 1) {
                 let none: &[Value] = &[];
                 let (row, column) = if row_axis { (&prefix[..], none) } else { (none, &prefix[..]) };
-                let v = eval(e, &CellScope { filled: &filled, row, column, outer: le.scope }, le.env)?;
+                let v = eval(e, &CellScope::new(&filled, row, column, le.scope), le.env)?;
                 if row_axis {
                     row_order.insert(key(&prefix), v);
                 } else {
@@ -2727,6 +2839,7 @@ fn render_crosstab(
     outer.mode = Mode::Transparent;
     outer.tag = outer.tag.or(Some(Tag::Table));
     let none: &[Value] = &[];
+    let (row_counts, column_counts) = (f.detail_counts(true), f.detail_counts(false));
     for ch in chunks {
         let top = y + ch.y;
         let hh = if ch.with_headers { f.header_height() } else { 0.0 };
@@ -2735,21 +2848,14 @@ fn render_crosstab(
         let mark = open_mark(out, &outer, Shape::Frame, None, x, top, f.part_width(ch.part), hh + rows_h);
         if ch.with_headers {
             if let (Some(c), true) = (&f.crosstab.header_cell, hw > 0.0 && hh > 0.0) {
-                place_cell(
-                    le,
-                    c,
-                    [x, top, hw, hh],
-                    (0.0, 0.0),
-                    &CellScope { filled: f, row: none, column: none, outer: le.scope },
-                    out,
-                    Tag::HeaderCell,
-                )?;
+                place_cell(le, c, [x, top, hw, hh], (0.0, 0.0), &CellScope::new(f, none, none, le.scope), out, Tag::HeaderCell)?;
             }
-            for hc in f.column_headers(ch.part) {
+            for (first, hc) in f.column_headers_from(ch.part) {
                 let Some(c) = hc.contents else { continue };
                 let g = &f.crosstab.column_groups[hc.group];
                 let dx = if hc.total { 0.0 } else { header_offset(g.header_position, hc.w, f.design_width(hc.group)) };
-                let scope = CellScope { filled: f, row: none, column: &hc.values, outer: le.scope };
+                let scope =
+                    CellScope { counts: (None, Some(column_counts[first])), ..CellScope::new(f, none, &hc.values, le.scope) };
                 place_cell(le, c, [x + hc.x, top + hc.y, hc.w, hc.h], (dx, 0.0), &scope, out, Tag::HeaderCell)?;
             }
         }
@@ -2761,7 +2867,8 @@ fn render_crosstab(
                     let Some(c) = hc.contents else { continue };
                     let g = &f.crosstab.row_groups[hc.group];
                     let dy = if hc.total { 0.0 } else { header_offset(g.header_position, hc.h, f.design_height(hc.group)) };
-                    let scope = CellScope { filled: f, row: &hc.values, column: none, outer: le.scope };
+                    let scope =
+                        CellScope { counts: (Some(row_counts[r]), None), ..CellScope::new(f, &hc.values, none, le.scope) };
                     place_cell(le, c, [x + hc.x, hc.y, hc.w, hc.h], (0.0, dy), &scope, out, Tag::RowHeaderCell)?;
                 }
             }
@@ -2770,7 +2877,10 @@ fn render_crosstab(
                 let column = &f.columns[c];
                 let w = f.column_widths[c];
                 if let Some(contents) = f.cell_contents(row, column) {
-                    let scope = CellScope { filled: f, row: &row.values, column: &column.values, outer: le.scope };
+                    let scope = CellScope {
+                        counts: (Some(row_counts[r]), Some(column_counts[c])),
+                        ..CellScope::new(f, &row.values, &column.values, le.scope)
+                    };
                     place_cell(le, contents, [cx, ry, w, f.row_heights[r]], (0.0, 0.0), &scope, out, Tag::DataCell)?;
                 }
                 cx += w;
@@ -2935,8 +3045,16 @@ pub(crate) fn resolve_params(
         let v = match &p.default {
             Some(e) => {
                 let empty = HashMap::new();
-                let ctx =
-                    Ctx { record: None, report, params: &params, vars: &[], var_index: &empty, page_number: 1, column_number: 1 };
+                let ctx = Ctx {
+                    record: None,
+                    report,
+                    params: &params,
+                    vars: &[],
+                    var_index: &empty,
+                    page_number: 1,
+                    column_number: 1,
+                    master: None,
+                };
                 eval(e, &ctx, env)?
             }
             None => Value::Null,
@@ -3074,6 +3192,7 @@ impl<'a> Filler<'a> {
             var_index: &self.var_index,
             page_number: self.page_number,
             column_number: self.column as i32 + 1,
+            master: None,
         };
         eval(e, &ctx, self.env)
     }
@@ -3107,6 +3226,7 @@ impl<'a> Filler<'a> {
             var_index: &self.var_index,
             page_number: self.page_number,
             column_number: self.column as i32 + 1,
+            master: None,
         };
         let env = self.env;
         let ev = |e: &Option<Expr>| -> Result<Value> {
@@ -3121,7 +3241,7 @@ impl<'a> Filler<'a> {
                 continue;
             }
             if let Some(w) = &ds.increment_when {
-                if !truthy(&eval(w, &ctx, env)?, env)? {
+                if !condition(&eval(w, &ctx, env)?, env)? {
                     continue;
                 }
             }
@@ -3296,9 +3416,10 @@ impl<'a> Filler<'a> {
             var_index: &self.var_index,
             page_number: self.page_number,
             column_number: self.column as i32 + 1,
+            master: None,
         };
         if let Some(pw) = &band.print_when {
-            if !truthy(&eval(pw, &ctx, self.env)?, self.env)? {
+            if !condition(&eval(pw, &ctx, self.env)?, self.env)? {
                 return Ok(None);
             }
         }
@@ -3332,6 +3453,7 @@ impl<'a> Filler<'a> {
             var_index: &self.var_index,
             page_number: self.page_number,
             column_number: self.column as i32 + 1,
+            master: None,
         };
         let mut le = LayoutEnv {
             fonts: self.fonts,
@@ -3585,6 +3707,7 @@ impl<'a> Filler<'a> {
             }
             first = None;
             let rest = part.rest.clone().unwrap_or_default();
+            let keep_top = part.rest_reprints;
             let (y, h) = (self.offset_y, part.height);
             self.emit(part, y);
             self.offset_y += h;
@@ -3595,7 +3718,7 @@ impl<'a> Filler<'a> {
             self.resolve_pending(|t| matches!(t.time, EvaluationTime::Page | EvaluationTime::Column), Values::Committed)?;
             self.new_page()?;
             elements = rest;
-            let moved = move_to_top(&mut elements);
+            let moved = if keep_top { 0.0 } else { move_to_top(&mut elements) };
             design_h = (design_h - moved).max(0.0);
         }
     }
@@ -3845,6 +3968,7 @@ impl<'a> Filler<'a> {
             }
             let part = self.layout_elems(&elements, design_h, mode, Some(space))?;
             let rest = part.rest.clone().unwrap_or_default();
+            let keep_top = part.rest_reprints;
             if part.items.is_empty() && !self.page_has_content {
                 // Nothing fits even on an empty page: print it whole rather than loop forever.
                 let (y, h) = (self.offset_y, full.height);
@@ -3869,7 +3993,7 @@ impl<'a> Filler<'a> {
                 return Ok(());
             }
             elements = rest;
-            let moved = move_to_top(&mut elements);
+            let moved = if keep_top { 0.0 } else { move_to_top(&mut elements) };
             design_h = (design_h - moved).max(0.0);
         }
     }
@@ -3919,6 +4043,7 @@ impl<'a> Filler<'a> {
         self.held = false;
         let record = self.rows.record(mode);
         let vars = self.ctx_vars(mode).to_vec();
+        let total_pages = (self.page_base + self.pages.len()) as i32;
         for p in ready {
             let (record, vars) = match &p.text.auto {
                 Some(auto) => (auto.record.as_ref(), &auto.vars),
@@ -3932,6 +4057,9 @@ impl<'a> Filler<'a> {
                 var_index: &self.var_index,
                 page_number: self.page_number,
                 column_number: self.column as i32 + 1,
+                // A subreport's pages are not the master's: its master values stay null.
+                master: (p.text.group.as_deref() == Some(MASTER_EVALUATION) && self.flow.is_none())
+                    .then(|| (p.page as i32 + 1, total_pages)),
             };
             let d = &p.text;
             let item = match &d.what {
@@ -4173,9 +4301,18 @@ impl<'a> Filler<'a> {
             Some(summary) => {
                 let layout = self.layout(summary, Values::Committed)?;
                 let h = layout.as_ref().map(|l| l.height).unwrap_or(0.0);
-                // Like JasperReports, a summary that would start beside a column other than the
-                // first goes to a new page.
-                if r.summary_new_page || self.column > 0 || self.offset_y + h > self.body_limit() + 1e-3 {
+                // A summary with splitType="Immediate" starts on this page when its first
+                // element fits (JasperReports' break height), and goes on over the next pages.
+                let break_height = summary.elements.iter().map(|e| e.y + e.height).fold(summary.height, f32::min);
+                let splits_here = summary.split_type == SplitType::Immediate
+                    && layout.is_some()
+                    && !r.summary_new_page
+                    && self.column == 0
+                    && self.offset_y + h > self.body_limit() + 1e-3
+                    && self.offset_y + break_height <= self.body_limit() + 1e-3;
+                if splits_here {
+                    self.split_summary(summary)?;
+                } else if r.summary_new_page || self.column > 0 || self.offset_y + h > self.body_limit() + 1e-3 {
                     self.page_footers(false, Values::Committed)?;
                     self.new_page()?;
                     if r.summary_with_page_header_and_footer {
@@ -4204,6 +4341,68 @@ impl<'a> Filler<'a> {
         }
         self.resolve_pending(|_| true, Values::Committed)
     }
+
+    /// Prints a summary that does not fit the rest of the page and may split there, as
+    /// JasperReports does (`fillSummaryNoLastFooterSamePage`): what fits on this page, which
+    /// keeps its page footer, then the rest on new pages, which have the page header and
+    /// footer only with `isSummaryWithPageHeaderAndFooter`.
+    fn split_summary(&mut self, summary: &Band) -> Result<()> {
+        let r = self.report;
+        let mode = Values::Committed;
+        let mut elements = summary.elements.clone();
+        let mut design_h = summary.height;
+        let mut first = true;
+        loop {
+            let limit = if first {
+                self.body_limit()
+            } else {
+                let pf =
+                    if r.summary_with_page_header_and_footer { r.page_footer.as_ref().map_or(0.0, |b| b.height) } else { 0.0 };
+                r.page_height - r.margins.bottom - pf
+            };
+            let space = limit - self.offset_y;
+            let full = self.layout_elems(&elements, design_h, mode, None)?;
+            if full.height <= space + 1e-3 {
+                let (y, h) = (self.offset_y, full.height);
+                self.emit(full, y);
+                self.offset_y += h;
+                self.page_has_content = true;
+                break;
+            }
+            let part = self.layout_elems(&elements, design_h, mode, Some(space))?;
+            let rest = part.rest.clone().unwrap_or_default();
+            if part.items.is_empty() && !self.page_has_content {
+                // Nothing fits even on an empty page: print it whole rather than loop forever.
+                let (y, h) = (self.offset_y, full.height);
+                self.emit(full, y);
+                self.offset_y += h;
+                break;
+            }
+            let y = self.offset_y;
+            self.emit(part, y);
+            self.page_has_content = true;
+            if first || r.summary_with_page_header_and_footer {
+                self.page_footers(false, mode)?;
+            }
+            self.new_page()?;
+            if r.summary_with_page_header_and_footer {
+                self.page_headers()?;
+            } else {
+                self.footers_done = true;
+            }
+            first = false;
+            if rest.is_empty() {
+                break;
+            }
+            elements = rest;
+            let moved = move_to_top(&mut elements);
+            design_h = (design_h - moved).max(0.0);
+        }
+        if first || r.summary_with_page_header_and_footer {
+            self.page_footers(true, mode)?;
+        }
+        Ok(())
+    }
 }
 
 /// Fills `report` with `records` and `params` into a print document.
@@ -4216,6 +4415,7 @@ pub fn fill(
     env: &EvalEnv,
 ) -> Result<PrintDocument> {
     images.runs = 0;
+    fonts.clear_paragraphs();
     images.skip_cells = false;
     images.deadline = None;
     let mut filler = new_filler(report, Rows::from_slice(records, report), params, fonts, images, env)?;
@@ -4234,6 +4434,7 @@ pub fn fill_slice(
     limits: Limits,
 ) -> Result<PrintDocument> {
     images.runs = 0;
+    fonts.clear_paragraphs();
     images.skip_cells = false;
     images.deadline = limits.deadline();
     let mut filler = new_filler(report, Rows::from_slice(records, report), params, fonts, images, env)?;
@@ -4253,6 +4454,7 @@ pub fn fill_rows(
     limits: Limits,
 ) -> Result<PrintDocument> {
     images.runs = 0;
+    fonts.clear_paragraphs();
     images.skip_cells = false;
     images.deadline = limits.deadline();
     let mut filler = new_filler(report, Rows::new(rows, report), params, fonts, images, env)?;
@@ -4275,6 +4477,7 @@ pub fn fill_to(
     sink: &mut dyn PageSink,
 ) -> Result<FillStats> {
     images.runs = 0;
+    fonts.clear_paragraphs();
     images.skip_cells = !sink.wants_cells();
     images.deadline = limits.deadline();
     let mut filler = new_filler(report, Rows::new(rows, report), params, fonts, images, env)?;
@@ -4449,8 +4652,16 @@ fn new_filler<'a>(
         let v = match &p.default {
             Some(e) => {
                 let empty = HashMap::new();
-                let ctx =
-                    Ctx { record: None, report, params: &params, vars: &[], var_index: &empty, page_number: 1, column_number: 1 };
+                let ctx = Ctx {
+                    record: None,
+                    report,
+                    params: &params,
+                    vars: &[],
+                    var_index: &empty,
+                    page_number: 1,
+                    column_number: 1,
+                    master: None,
+                };
                 eval(e, &ctx, env)?
             }
             None => Value::Null,
@@ -4458,6 +4669,7 @@ fn new_filler<'a>(
         params.insert(p.name.clone(), v);
     }
     fonts.set_hyphenation(params.get(crate::text::HYPHENATE));
+    fonts.add_paragraphs(params.get(crate::text::PARAGRAPHS));
 
     let committed = vec![VarState::default(); defs.len()];
     Ok(Filler {

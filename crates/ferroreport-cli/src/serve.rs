@@ -872,7 +872,7 @@ fn answer(state: &Arc<State>, req: &mut Request, stream: &mut Option<Streamed>) 
                         200,
                         serde_json::json!({
                             "name": r.name,
-                            "parameters": r.parameters.iter().map(|p| &p.name).filter(|n| *n != ferroreport::text::HYPHENATE).collect::<Vec<_>>(),
+                            "parameters": r.parameters.iter().map(|p| &p.name).filter(|n| *n != ferroreport::text::HYPHENATE && *n != ferroreport::text::PARAGRAPHS).collect::<Vec<_>>(),
                             "fields": r.fields.iter().map(|f| &f.name).collect::<Vec<_>>(),
                             "warnings": r.warnings,
                         }),

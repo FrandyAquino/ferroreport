@@ -6,15 +6,135 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 
 ## Unreleased
 
-- ODS: per-mille patterns such as `#,##0.0‰` stay formatted text, as in JasperReports, even
-  when cell type detection is enabled. This preserves `12.3‰` for `0.0123` in LibreOffice,
-  which ignores the numeric display factor needed to scale it. A quoted `‰` stays literal
-  and does not prevent a cell from being numeric.
 - Thermometer charts are drawn as JasperReports 7 draws them (JFreeChart's `ThermometerPlot`):
   the bulb and stem at their fixed size with both outlines, the mercury and its rounded top,
   the range marks where each range starts in green, orange and red, the axis with whole-number
   ticks, and the value in the bulb or beside the stem. JRXML 7 ranges (`<lowRange>` without a
   `<dataRange>`) are read, and a thermometer without `mercuryColor` takes its range's color.
+
+## 1.3.0
+
+Paragraph indents and tab stops, JasperReports font extensions, simulated bold and italic, a
+migration guide and a comparison page, the website and documentation in Spanish, and more of
+JasperReports' own samples coming out the same: 74 of the 101 that can be compared against
+7.1.1 (73 in 1.2) and 41 of 88 against 6.20.6 (34 in 1.2). No sample came out worse than in
+1.2, and the Rust API keeps 1.2's shape (`cargo semver-checks` against 1.2.0).
+
+- Website: a guide to migrating from JasperReports (`migrate.html`, in English and Spanish):
+  checking a folder with `ferroreport migrate --jasper`, what to do with scriptlets, Java
+  classes and `.jasper` files, `JasperFillManager` replaced with the Java library, data
+  sources, exports, both engines side by side, and an FAQ. A comparison with JasperReports,
+  OpenPDF, OpenHTMLtoPDF with Thymeleaf, iText 8, Typst, Carbone, Apache POI and FastExcel
+  (`compare.html`, both languages), with its sources and where ferroreport is weaker. Both are
+  in the menu, the sitemap and the documentation's contents. And `llms.txt` at the site's root:
+  what ferroreport reads and writes, where rows come from, what it does not do, install lines
+  and the README's numbers, in plain text for assistants and search tools.
+- Website and READMEs: Java installs from Maven Central
+  (`io.github.cristianencarnacion:ferroreport`), not JitPack, and the Java, JavaScript and
+  Python READMEs list every output format.
+- Package descriptions on crates.io, npm, PyPI and Maven Central name every output format
+  (PDF, XLSX, DOCX, PPTX, ODS, ODT, CSV, HTML) and say that JasperReports JRXML is read without a
+  JVM; npm and PyPI have "JasperReports alternative" among their keywords, and PyPI's
+  classifiers say the package is stable. The VS Code extension's description lists every
+  format too. They change on the registries with the next release.
+- README: the compatibility table no longer lists subdataset queries as missing (tables, lists,
+  crosstabs and charts that pass `$P{REPORT_CONNECTION}` have run their SQL query since 1.0),
+  and the database section says which callers take a database and which take rows. The status
+  line names the latest release instead of "version 1.0".
+- Crosstabs: the built-in variables `ROW_COUNT`, `COLUMN_COUNT`, `IS_EVEN_ROW` and
+  `IS_EVEN_COLUMN` work in cells, headers and their styles, with JasperReports' values (detail
+  rows and columns counted from 1, totals not counted, null where JasperReports leaves them
+  null). JasperReports' `book` and `crosstabs` samples (`OrdersReport`) use them for striped rows.
+- Expressions: `new ArrayList()`, `new LinkedList()` and `new Vector()` (empty, with an initial
+  capacity, or a copy of a list), as in a variable's initial value. JasperReports'
+  `nopagebreak` sample (`NoPageBreakReport`) now renders the same as JasperReports 7.1.1.
+- Expressions: what Java would throw as a `NullPointerException` (a method called on null, null
+  in arithmetic, in a comparison or as a condition) makes the whole expression null instead of
+  stopping the render, as JasperReports does by default (`net.sf.jasperreports.evaluator.ignore.npe`).
+  A print-when expression, a conditional style or an increment-when that gives null counts as
+  false. `fixtures/59-null-pointer` matches JasperReports 6.20.6 pixel for pixel; JasperReports'
+  `xlsfeatures` samples (`XlsFeaturesReport`, `MacroReport`) now render the same as
+  JasperReports 7.1.1. Templates that set `ignore.npe` to false get a warning: that setting is
+  not supported.
+- Text fields with `evaluationTime="Master"` and the variables `MASTER_CURRENT_PAGE` and
+  `MASTER_TOTAL_PAGES`: resolved when the report ends, with the number of the page the field is
+  on and the number of pages; the two variables are null anywhere else, as in JasperReports. In
+  a subreport they stay null (its pages are not the master's). JasperReports'
+  `tableofcontents` sample (`TablePart`) now renders the same as JasperReports 7.1.1.
+- Expressions: the `java.util.Locale` methods `getDisplayName`, `getDisplayLanguage`,
+  `getDisplayCountry`, `getLanguage` and `getCountry` on `$P{REPORT_LOCALE}` (or any locale tag
+  such as `"es_DO"`), with Java 21's names: in English, in Spanish, and for about 70 common
+  locales in their own language (`Deutsch (Deutschland)`); other languages give English names.
+  JasperReports' `i18n` sample (`I18nReport`) now renders; it differs from JasperReports 7.1.1
+  only in a date with the pattern `full,short`.
+- Expressions: a static field of one of the template's own classes, a class a parameter, field
+  or variable is declared with (`<parameter name="greeting" class="Greeting"/>`), is read as an
+  enum constant: `Greeting.bye` is the text `"bye"`, which is how an enum comes in JSON, so
+  `$P{greeting} == Greeting.bye` holds when the parameter is `"bye"`. JasperReports' `java1.5`
+  sample (`Java5Report`) now renders the same as JasperReports 7.1.1.
+- Layout: `isRemoveLineWhenBlank` decides whether a blank element's space goes once the
+  elements above it have stretched and floated, as JasperReports does, rather than from the
+  design: a blank "space remover" under stretching text now gives its space back, and one that
+  a stretched neighbour reaches keeps it. An element with `isPrintWhenDetailOverflows` that
+  continues on the next page (a frame or text split by the page break) is no longer also
+  printed again in full there, and a band that continues with such elements keeps its top, as
+  in JasperReports. JasperReports' `stretch` sample (`StretchReport`) now has 14 pages, as in
+  JasperReports 7.1.1, instead of 21; a template of that kind could also run without end.
+- Fonts: JasperReports font extensions are read from resource folders, where JasperReports
+  finds them on its class path. `render` and `check` look for a `jasperreports_extension.properties`
+  at the root of the template's folder and of each `-r` folder, and register the families
+  (`normal`, `bold`, `italic`, `boldItalic`) and font sets of the `fonts.xml` files it names, with
+  their font files; what cannot be read is a warning. In Rust, `Renderer::load_font_extensions`
+  does the same for the renderer's resources. JasperReports' `unicode` sample, which brings its
+  own Noto and Arphic fonts this way, now has its Indic scripts, Tibetan, Khmer and Chinese.
+- Text in a font with a line gap (leading; DejaVu has none) starts lower, as in
+  JasperReports: its first baseline is the gap and the ascent below the top of the text, not
+  the ascent alone. The lines after it keep their spacing.
+- Text: paragraph indents and tab stops (`<paragraph firstLineIndent leftIndent rightIndent
+  tabStopWidth>` and its `<tabStop>`s, in a style or on the element) are laid out as
+  JasperReports lays them out: each line in segments, each tab moving to the next stop (the
+  custom left, center and right stops, then the default ones every `tabStopWidth` points, 40
+  unless set), a segment that does not fit moving to the next line at the first stop, the
+  first line of each paragraph at its indent, and right-aligned and centered lines aligned as
+  a whole by their last segment; justified lines are spread over the room they had. They
+  used to be ignored, and tabs drawn as spaces. A text
+  with tabs and no paragraph settings now has the default stops too. JasperReports'
+  `paragraphs` sample now comes out the same. In 1.x the settings are kept in a hidden
+  report parameter, `ferroreport.text.paragraphs` (`text::PARAGRAPHS`), which `inspect` and
+  the server do not list.
+- Fonts: bold and italic text in a registered family that has no bold or italic face is
+  drawn, as in JasperReports, from the family's regular face with the style simulated in PDF
+  output: bold as outlines stroked as well (a thirtieth of the size wide), italic slanted by
+  iText's angle. It used to be drawn plain.
+- A summary with `splitType="Immediate"` that does not fit the rest of the page starts there,
+  as in JasperReports, when its first element fits, and goes on over the next pages (with the
+  page header and footer only with `isSummaryWithPageHeaderAndFooter`); it used to move whole
+  to a new page. Where a band splits, a text whose own height does not fit above the page's
+  end moves whole to the next page instead of leaving its first lines behind, and a blank
+  element with `isRemoveLineWhenBlank` still removes its line where the band continues.
+- Website: code blocks are in color, by language (shell, JSON, JavaScript, Python, Java, C#, PHP,
+  Rust, XML and `.ferro`), with a small script of the site's own (`site/highlight.js`) and
+  colors that keep WCAG AA contrast. Comments in the playground's editor are easier to read too.
+- Website: the home page and the documentation are also in Spanish, at `/es/` and
+  `/es/docs.html`, with an EN / ES switch in the menu of every page and the same section anchors
+  in both languages.
+- JasperReports' own samples measured again with `tools/samples.py` (`docs/samples.md`,
+  `docs/samples-7.1.1.md`): against JasperReports 7.1.1, 74 of the 101 templates that can be
+  compared come out the same (73 before), 19 differ and 8 are not rendered (the 8 that call
+  Java classes shipped with their sample); against 6.20.6, 41 of 88 are the same (34 before),
+  41 differ and 6 are not rendered (15 before). `tools/samples.py --tag 7.1.1` fetches the
+  samples from the repository's top-level `demo/` folder, where JasperReports 7 keeps them, and
+  takes a relative `--samples` folder.
+- ODS: per-mille patterns such as `#,##0.0‰` stay formatted text, as in JasperReports, even
+  when cell type detection is enabled. This preserves `12.3‰` for `0.0123` in LibreOffice,
+  which ignores the numeric display factor needed to scale it. A quoted `‰` stays literal
+  and does not prevent a cell from being numeric.
+- ODS: with `--xlsx-numbers` (`XlsxOptions::detect_cell_type`), a text whose pattern is all
+  digits (`dd/MM/yyyy`, `yyyy-MM-dd HH:mm:ss`, `H:mm`) is written as a date or time cell, so
+  Calc can sort and filter it, with a style made from the pattern. The cell holds what the
+  text shows: a pattern without a time gives the date at midnight. Patterns with month or day
+  names, AM/PM, two-digit years, 12-hour clocks or milliseconds keep the formatted text, as
+  does every date without the option.
 
 ## 1.2.0
 
