@@ -6,6 +6,10 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 
 ## Unreleased
 
+- tools/samples.py gives ferroreport the font extensions inside the JasperReports jars as resource
+  folders, as JasperReports finds them on its class path. The iconlabel sample draws its icons in
+  "JasperReports Icons", the icon font of JasperReports' core jar (not of the sample), which
+  ferroreport does not have built in; it was drawn without them.
 - Thermometer charts are drawn as JasperReports 7 draws them (JFreeChart's `ThermometerPlot`):
   the bulb and stem at their fixed size with both outlines, the mercury and its rounded top,
   the range marks where each range starts in green, orange and red, the axis with whole-number
