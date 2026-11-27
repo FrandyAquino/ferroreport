@@ -1,5 +1,5 @@
 {
- "ferroreport": "ferroreport 1.1.0",
+ "ferroreport": "ferroreport 1.3.0",
  "jasperreports": "6.20.6",
  "java": "openjdk version \"21.0.13.0.3\" 2026-10-24",
  "machine": "2 CPUs, Linux x86_64",
@@ -15,105 +15,105 @@
     "threads": 1,
     "jasper": {
      "threads": 1,
-     "reports": 912,
-     "per_second": 113.9,
-     "p50_ms": 7.9,
-     "p95_ms": 14.51,
-     "p99_ms": 17.19,
-     "peak_mib": 319.6
+     "reports": 829,
+     "per_second": 103.6,
+     "p50_ms": 8.93,
+     "p95_ms": 13.76,
+     "p99_ms": 18.93,
+     "peak_mib": 306.0
     },
     "ferroreport": {
      "threads": 1,
-     "reports": 3944,
-     "per_second": 492.9,
-     "p50_ms": 2.02,
-     "p95_ms": 2.65,
-     "p99_ms": 3.31,
-     "peak_mib": 12.1
+     "reports": 2802,
+     "per_second": 350.2,
+     "p50_ms": 2.54,
+     "p95_ms": 3.84,
+     "p99_ms": 3.99,
+     "peak_mib": 12.6
     }
    },
    {
     "threads": 2,
     "jasper": {
      "threads": 2,
-     "reports": 1121,
-     "per_second": 139.8,
-     "p50_ms": 14.46,
-     "p95_ms": 24.37,
-     "p99_ms": 30.06,
-     "peak_mib": 369.5
+     "reports": 1019,
+     "per_second": 127.2,
+     "p50_ms": 16.36,
+     "p95_ms": 25.84,
+     "p99_ms": 29.86,
+     "peak_mib": 348.8
     },
     "ferroreport": {
      "threads": 2,
-     "reports": 7789,
-     "per_second": 972.4,
-     "p50_ms": 2.02,
-     "p95_ms": 2.97,
-     "p99_ms": 3.52,
-     "peak_mib": 12.9
+     "reports": 5962,
+     "per_second": 745.1,
+     "p50_ms": 2.49,
+     "p95_ms": 3.78,
+     "p99_ms": 4.04,
+     "peak_mib": 13.4
     }
    },
    {
     "threads": 10,
     "jasper": {
      "threads": 10,
-     "reports": 1308,
-     "per_second": 161.7,
-     "p50_ms": 58.66,
-     "p95_ms": 96.66,
-     "p99_ms": 117.56,
-     "peak_mib": 466.2
+     "reports": 1028,
+     "per_second": 127.7,
+     "p50_ms": 74.7,
+     "p95_ms": 120.94,
+     "p99_ms": 141.05,
+     "peak_mib": 418.0
     },
     "ferroreport": {
      "threads": 10,
-     "reports": 7412,
-     "per_second": 923.0,
-     "p50_ms": 14.1,
-     "p95_ms": 22.14,
-     "p99_ms": 28.28,
-     "peak_mib": 20.2
+     "reports": 5111,
+     "per_second": 637.1,
+     "p50_ms": 18.75,
+     "p95_ms": 22.94,
+     "p99_ms": 30.6,
+     "peak_mib": 20.4
     }
    },
    {
     "threads": 50,
     "jasper": {
      "threads": 50,
-     "reports": 1283,
-     "per_second": 154.6,
-     "p50_ms": 257.73,
-     "p95_ms": 766.94,
-     "p99_ms": 964.31,
-     "peak_mib": 668.6
+     "reports": 1268,
+     "per_second": 152.0,
+     "p50_ms": 242.73,
+     "p95_ms": 817.01,
+     "p99_ms": 1269.15,
+     "peak_mib": 651.8
     },
     "ferroreport": {
      "threads": 50,
-     "reports": 7316,
-     "per_second": 904.8,
-     "p50_ms": 70.28,
-     "p95_ms": 132.89,
-     "p99_ms": 190.34,
-     "peak_mib": 59.2
+     "reports": 5702,
+     "per_second": 703.4,
+     "p50_ms": 86.6,
+     "p95_ms": 162.42,
+     "p99_ms": 198.56,
+     "peak_mib": 60.6
     }
    },
    {
     "threads": 100,
     "jasper": {
      "threads": 100,
-     "reports": 1418,
-     "per_second": 156.4,
-     "p50_ms": 341.55,
-     "p95_ms": 1783.35,
-     "p99_ms": 2639.41,
-     "peak_mib": 776.9
+     "reports": 1195,
+     "per_second": 137.7,
+     "p50_ms": 408.68,
+     "p95_ms": 1993.34,
+     "p99_ms": 2619.83,
+     "peak_mib": 712.3
     },
     "ferroreport": {
      "threads": 100,
-     "reports": 7772,
-     "per_second": 942.1,
-     "p50_ms": 102.37,
-     "p95_ms": 318.03,
-     "p99_ms": 470.01,
-     "peak_mib": 93.3
+     "reports": 5961,
+     "per_second": 701.0,
+     "p50_ms": 146.71,
+     "p95_ms": 346.7,
+     "p99_ms": 492.23,
+     "peak_mib": 91.9
     }
    }
   ],
@@ -122,124 +122,124 @@
     "threads": 1,
     "jasper": {
      "threads": 1,
-     "reports": 652,
-     "per_second": 81.4,
-     "p50_ms": 11.99,
-     "p95_ms": 17.08,
-     "p99_ms": 21.13,
-     "peak_mib": 366.2
+     "reports": 524,
+     "per_second": 65.5,
+     "p50_ms": 14.07,
+     "p95_ms": 21.28,
+     "p99_ms": 25.37,
+     "peak_mib": 334.6
     },
     "ferroreport": {
      "threads": 1,
-     "reports": 2289,
-     "per_second": 286.0,
-     "p50_ms": 3.58,
-     "p95_ms": 3.99,
-     "p99_ms": 5.1,
-     "peak_mib": 12.3
+     "reports": 1605,
+     "per_second": 200.6,
+     "p50_ms": 4.6,
+     "p95_ms": 6.9,
+     "p99_ms": 7.28,
+     "peak_mib": 12.8
     }
    },
    {
     "threads": 2,
     "jasper": {
      "threads": 2,
-     "reports": 871,
-     "per_second": 108.5,
-     "p50_ms": 17.4,
-     "p95_ms": 30.55,
-     "p99_ms": 35.41,
-     "peak_mib": 401.7
+     "reports": 749,
+     "per_second": 93.4,
+     "p50_ms": 19.93,
+     "p95_ms": 35.26,
+     "p99_ms": 41.46,
+     "peak_mib": 385.7
     },
     "ferroreport": {
      "threads": 2,
-     "reports": 4114,
-     "per_second": 514.1,
-     "p50_ms": 3.74,
-     "p95_ms": 5.53,
-     "p99_ms": 6.62,
-     "peak_mib": 13.3
+     "reports": 3363,
+     "per_second": 420.0,
+     "p50_ms": 4.52,
+     "p95_ms": 6.41,
+     "p99_ms": 8.1,
+     "peak_mib": 13.6
     }
    },
    {
     "threads": 10,
     "jasper": {
      "threads": 10,
-     "reports": 976,
-     "per_second": 120.7,
-     "p50_ms": 78.62,
-     "p95_ms": 128.8,
-     "p99_ms": 164.09,
-     "peak_mib": 609.8
+     "reports": 879,
+     "per_second": 108.6,
+     "p50_ms": 88.85,
+     "p95_ms": 138.02,
+     "p99_ms": 161.62,
+     "peak_mib": 523.2
     },
     "ferroreport": {
      "threads": 10,
-     "reports": 4332,
-     "per_second": 540.3,
-     "p50_ms": 19.7,
-     "p95_ms": 27.17,
-     "p99_ms": 37.65,
-     "peak_mib": 20.3
+     "reports": 3227,
+     "per_second": 402.4,
+     "p50_ms": 20.71,
+     "p95_ms": 38.75,
+     "p99_ms": 42.71,
+     "peak_mib": 20.5
     }
    },
    {
     "threads": 50,
     "jasper": {
      "threads": 50,
-     "reports": 1089,
-     "per_second": 128.8,
-     "p50_ms": 330.04,
-     "p95_ms": 833.05,
-     "p99_ms": 1084.15,
-     "peak_mib": 828.4
+     "reports": 934,
+     "per_second": 109.8,
+     "p50_ms": 401.6,
+     "p95_ms": 900.36,
+     "p99_ms": 1307.71,
+     "peak_mib": 775.8
     },
     "ferroreport": {
      "threads": 50,
-     "reports": 4533,
-     "per_second": 556.4,
-     "p50_ms": 83.74,
-     "p95_ms": 183.99,
-     "p99_ms": 291.8,
-     "peak_mib": 54.5
+     "reports": 3314,
+     "per_second": 407.8,
+     "p50_ms": 96.61,
+     "p95_ms": 233.94,
+     "p99_ms": 320.59,
+     "peak_mib": 58.2
     }
    },
    {
     "threads": 100,
     "jasper": {
      "threads": 100,
-     "reports": 1174,
-     "per_second": 126.4,
-     "p50_ms": 578.21,
-     "p95_ms": 1863.56,
-     "p99_ms": 2403.28,
-     "peak_mib": 991.7
+     "reports": 1029,
+     "per_second": 103.9,
+     "p50_ms": 732.65,
+     "p95_ms": 2225.84,
+     "p99_ms": 2920.63,
+     "peak_mib": 922.0
     },
     "ferroreport": {
      "threads": 100,
-     "reports": 4141,
-     "per_second": 503.8,
-     "p50_ms": 160.01,
-     "p95_ms": 443.36,
-     "p99_ms": 603.97,
-     "peak_mib": 84.3
+     "reports": 3195,
+     "per_second": 386.7,
+     "p50_ms": 196.98,
+     "p95_ms": 582.53,
+     "p99_ms": 956.57,
+     "peak_mib": 84.1
     }
    }
   ]
  },
  "conditions": {
   "load_average_start": [
-   0.13,
-   0.04,
-   0.01
+   0.9,
+   0.91,
+   1.38
   ],
   "nice": 0,
   "load_average_end": [
-   23.95,
-   11.63,
-   5.76
+   16.07,
+   8.13,
+   4.22
   ],
   "wait_idle": true,
   "others_cpu_limit": 0.15,
-  "others_cpu_worst": 0.044,
-  "runs_repeated": 7
+  "others_cpu_worst": 0.077,
+  "runs_repeated": 0
  }
 }
