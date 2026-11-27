@@ -402,8 +402,12 @@ ferroreport render invoice.jrxml -d rows.json \
         y ferroreport, con las mismas filas: <code>&lt;name&gt;.json</code> o <code>data.json</code> junto a la plantilla, y los
         parámetros de <code>&lt;name&gt;.params.json</code> o <code>params.json</code> (locale en_US y zona horaria UTC en los dos). Para cada una
         informa las páginas de cada motor, si cada texto y número es el mismo y está en el mismo lugar (sus exportaciones a CSV, comparadas línea
-        por línea), y cuánto tardó cada uno en llenar y escribir el PDF. <code>--keep compared/</code> guarda los dos PDF y los dos CSV de cada
-        plantilla, para verlos lado a lado. Las imágenes, estilos y subreportes se leen de la carpeta de la plantilla; ahí no se escribe nada.</p>
+        por línea), si cada página es la misma imagen, y cuánto tardó cada uno en llenar y escribir el PDF. Las imágenes se comparan cuando
+        <code>pdftoppm</code> (poppler) está en el PATH, como las compara <code>tools/compare.py</code>: a 100 DPI en gris, una página difiere
+        cuando difiere más del 0,15% de su tinta; se da la proporción de la peor página (y en el informe, como <code>worstPage</code> y
+        <code>worstPageDiff</code>). Sin <code>pdftoppm</code> no se comparan, y el informe lo dice. <code>--keep compared/</code> guarda los
+        dos PDF y los dos CSV de cada plantilla, y la imagen de diferencias de cada página que difiere (rojo: solo JasperReports, azul: solo
+        ferroreport), para verlos lado a lado. Las imágenes, estilos y subreportes se leen de la carpeta de la plantilla; ahí no se escribe nada.</p>
       <p>Sobre las plantillas de prueba de este proyecto, con JasperReports 6.20.6:</p>
 <pre data-lang="console">$ ferroreport migrate fixtures/ --jasper jasperreports-6.20.6/lib --keep compared/
 ✓ fixtures/02-invoice/report.jrxml (JRXML 6)

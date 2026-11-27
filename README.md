@@ -67,7 +67,8 @@ JRXML and accessible by default. Against JasperReports itself it is about **200Ã
   folder (does it load, what does it use, what is not supported yet, does it render), writes
   the result as Markdown or JSON and, if you ask, the converted templates. Give it your
   JasperReports jars (`--jasper lib/`) and it renders every template with both engines from
-  the same rows and compares pages, every text and number, and times. The
+  the same rows and compares pages, every text and number, every page's pixels (with
+  `pdftoppm` on the PATH) and times. The
   [migration guide](https://cristianencarnacion.github.io/ferroreport/migrate.html) goes through
   a JasperReports project step by step: scriptlets, `.jasper` files, the Java call, data
   sources and exports.

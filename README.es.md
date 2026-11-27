@@ -61,7 +61,8 @@ mitad del tamaño de un JRXML y accesible por defecto. Frente al propio JasperRe
   de una carpeta (si carga, qué usa, qué no está soportado aún, si se renderiza), escribe el
   resultado en Markdown o JSON y, si lo pides, las plantillas convertidas. Si le das los jars
   de JasperReports (`--jasper lib/`), renderiza cada plantilla con los dos motores y los mismos
-  datos, y compara páginas, cada texto y número, y tiempos. La
+  datos, y compara páginas, cada texto y número, los píxeles de cada página (con `pdftoppm` en
+  el PATH) y tiempos. La
   [guía de migración](https://cristianencarnacion.github.io/ferroreport/es/migrate.html) lleva un
   proyecto de JasperReports paso a paso: scriptlets, archivos `.jasper`, la llamada en Java,
   fuentes de datos y exportaciones.
