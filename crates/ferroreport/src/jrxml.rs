@@ -1648,7 +1648,7 @@ impl Parser {
             .and_then(parse_color);
         let dial = match kind {
             ChartKind::Meter | ChartKind::Thermometer => match plot_node {
-                Some(pn) => Some(Box::new(self.dial_plot(pn, &font)?)),
+                Some(pn) => Some(Box::new(self.dial_plot(pn, &font, kind == ChartKind::Thermometer)?)),
                 None => None,
             },
             _ => None,
@@ -1670,6 +1670,7 @@ impl Parser {
         let settings = crate::chart::Settings {
             show_open_ticks: flag(plot_node, &["isShowOpenTicks", "showOpenTicks"], false),
             show_close_ticks: flag(plot_node, &["isShowCloseTicks", "showCloseTicks"], false),
+            mercury_by_range: kind == ChartKind::Thermometer && plot_node.and_then(|p| p.attr("mercuryColor")).is_none(),
             foreground_alpha: plot.and_then(|p| p.attr("foregroundAlpha")).and_then(number::<f32>).unwrap_or(1.0),
             svg: chart
                 .and_then(|c| c.attr("renderType"))
@@ -1749,7 +1750,7 @@ impl Parser {
     }
 
     /// The plot of a meter or thermometer (`<meterPlot>`, `<thermometerPlot>`).
-    fn dial_plot(&mut self, pn: &Node, font: &FontSpec) -> Result<crate::chart::DialPlot> {
+    fn dial_plot(&mut self, pn: &Node, font: &FontSpec, thermometer: bool) -> Result<crate::chart::DialPlot> {
         use crate::chart::*;
         let range = |p: &mut Parser, n: Option<&Node>| -> Result<(Option<Expr>, Option<Expr>)> {
             match n.and_then(|n| n.child("dataRange")) {
@@ -1769,15 +1770,40 @@ impl Parser {
                 high: h,
             });
         }
-        // Thermometers: low, medium and high ranges, green, yellow and red.
-        for (name, color) in [("lowRange", 0x00FF00), ("mediumRange", 0xFFFF00), ("highRange", 0xFF0000)] {
-            if let Some(r) = pn.child(name) {
-                let (l, h) = range(self, Some(r))?;
+        // Thermometers: always the low, medium and high ranges, in that order (without
+        // expressions when the template leaves one out). JasperReports makes them JFreeChart's
+        // critical, warning and normal subranges, whose colors are fixed: red, orange
+        // (Color.ORANGE) and green.
+        // JRXML 6 wraps a range's expressions in a <dataRange>; JRXML 7 does not.
+        for (name, color) in [("lowRange", 0xFF0000), ("mediumRange", 0xFFC800), ("highRange", 0x00FF00)] {
+            let r = pn.child(name);
+            if r.is_some() || thermometer {
+                let (l, h) = match r.filter(|r| r.child("dataRange").is_none()) {
+                    Some(r) => (self.child_expr(r, &["lowExpression"])?, self.child_expr(r, &["highExpression"])?),
+                    None => range(self, r)?,
+                };
                 let c = Color { r: (color >> 16) as u8, g: (color >> 8) as u8, b: color as u8 };
                 intervals.push(Interval { label: String::new(), color: Some(c), alpha: 1.0, low: l, high: h });
             }
         }
         let display = pn.child("valueDisplay");
+        // A thermometer's value is white in SansSerif bold 16 (JFreeChart's ThermometerPlot)
+        // unless the template says otherwise; JasperReports' mask defaults to the locale's
+        // number format.
+        let value_color = display.and_then(|d| d.attr("color")).and_then(parse_color);
+        let value_color = value_color.unwrap_or(if thermometer { Color::WHITE } else { Color::BLACK });
+        let value_font = match display.and_then(|d| d.child("font")) {
+            None if thermometer => FontSpec {
+                name: "SansSerif".into(),
+                size: 16.0,
+                bold: true,
+                italic: false,
+                underline: false,
+                strike: false,
+                ..font.clone()
+            },
+            _ => font_from(display, font),
+        };
         let plot = pn.child("plot").unwrap_or(pn);
         Ok(DialPlot {
             low,
@@ -1789,15 +1815,21 @@ impl Parser {
             tick_color: pn.attr("tickColor").and_then(parse_color).unwrap_or(Color::BLACK),
             background: pn.attr("meterColor").or_else(|| plot.attr("backcolor")).and_then(parse_color),
             angle: pn.attr("meterAngle").or_else(|| pn.attr("angle")).and_then(number).unwrap_or(180.0),
-            value_color: display.and_then(|d| d.attr("color")).and_then(parse_color).unwrap_or(Color::BLACK),
+            value_color,
             value_mask: display.and_then(|d| d.attr("mask")).map(str::to_string),
-            value_font: font_from(display, font),
+            value_font,
             // JFreeChart's meter labels its ticks in a bold 10-point font unless told otherwise.
             tick_font: match pn.child("tickLabelFont") {
                 Some(t) => font_from(Some(t), font),
                 None => FontSpec { size: 10.0, bold: true, ..font.clone() },
             },
-            mercury: pn.attr("mercuryColor").and_then(parse_color).unwrap_or(Color { r: 0xFF, g: 0, b: 0 }),
+            // Without a mercuryColor a thermometer's mercury takes its range's color, and
+            // JFreeChart's light gray outside the ranges (`Settings::mercury_by_range`).
+            mercury: pn.attr("mercuryColor").and_then(parse_color).unwrap_or(if thermometer {
+                Color { r: 0xC0, g: 0xC0, b: 0xC0 }
+            } else {
+                Color { r: 0xFF, g: 0, b: 0 }
+            }),
             value_location: match pn.attr("valueLocation") {
                 Some("none") => ValueLocation::None,
                 Some("left") => ValueLocation::Left,
