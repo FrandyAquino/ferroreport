@@ -220,6 +220,14 @@ const JASPER: &[(&str, &str)] = &[
     ("WEEKNUM(DATE(2027,1,1))", "1"),
     ("WEEKSINYEAR(DATE(2026,3,5))", "53"),
     ("WEEKSINYEAR(DATE(2020,3,5))", "53"),
+    // Aligned weeks (days 1-7 are week 1) and ISO's 52 or 53 weeks, whatever the locale.
+    ("WEEKNUM(DATE(2026,1,4))", "1"),
+    ("WEEKNUM(DATE(2026,1,7))", "1"),
+    ("WEEKNUM(DATE(2026,1,8))", "2"),
+    ("WEEKNUM(DATE(2024,12,31))", "53"),
+    ("WEEKSINYEAR(DATE(2025,6,1))", "52"),
+    ("WEEKSINYEAR(DATE(2024,6,1))", "52"),
+    ("WEEKSINYEAR(DATE(2015,6,1))", "53"),
     ("EDATE(DATE(2024,2,29), 12)", "2/28/25, 12:00 AM"),
     ("EDATE(DATE(2026,3,31), -1)", "2/28/26, 12:00 AM"),
     ("DATEFORMAT(null, \"yyyy\")", "null"),
@@ -302,4 +310,34 @@ fn every_function_gives_what_jasperreports_gives() {
         }
     }
     assert!(wrong.is_empty(), "{} of {} differ:\n{}", wrong.len(), JASPER.len(), wrong.join("\n"));
+}
+
+/// What depends on the locale, as Java 21.0.13 has it: `TIME()` without a pattern
+/// (`DateTimeFormatter.ofLocalizedTime(FormatStyle.LONG)`) and the first day of
+/// `DATERANGE("WEEK")` (`Calendar.getFirstDayOfWeek()`). Week numbers do not depend on it.
+#[test]
+fn time_week_start_and_week_numbers_by_locale() {
+    // A Monday.
+    let now = chrono::NaiveDate::from_ymd_opt(2026, 11, 23).unwrap().and_hms_opt(4, 54, 18).unwrap();
+    let run = |src: &str, tag: &str| {
+        let locale = ferroreport::format::Locale::from_tag(tag);
+        let env = EvalEnv { locale, groovy: false, now };
+        let v = eval(&parse_expr(src, false).unwrap(), &Empty, &env).unwrap();
+        format_value(&v, None, locale)
+    };
+    let week_start = "DATEFORMAT(DATERANGE(\"WEEK\").getStart(), \"yyyy-MM-dd\")";
+    for (tag, time, start) in [
+        ("fr", "10:30:15 UTC", "2026-11-22"),
+        ("fr_FR", "10:30:15 UTC", "2026-11-23"),
+        ("fr_BE", "10:30:15 UTC", "2026-11-23"),
+        ("fr_CH", "10:30:15 UTC", "2026-11-23"),
+        ("fr_CA", "10 h 30 min 15 s UTC", "2026-11-22"),
+        ("es_ES", "10:30:15 UTC", "2026-11-23"),
+        ("en_US", "10:30:15\u{202F}AM UTC", "2026-11-22"),
+    ] {
+        assert_eq!(run("TIME(10, 30, 15)", tag), time, "{tag}");
+        assert_eq!(run(week_start, tag), start, "{tag}");
+        assert_eq!(run("WEEKNUM(DATE(2026,1,4))", tag), "1", "{tag}");
+        assert_eq!(run("WEEKNUM(DATE(2027,1,1))", tag), "1", "{tag}");
+    }
 }

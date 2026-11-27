@@ -33,6 +33,12 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   ticks, labels only where intervals end, the value with its units under the center, the
   needle only for a value in range, and JFreeChart's colors and fonts where the template sets
   none. The `shape` (pie, chord, circle) and a JRXML 7 `<tickLabelFont>` are read.
+- Functions: `WEEKNUM` counts aligned weeks (days 1-7 of the year are week 1) and
+  `WEEKSINYEAR` gives 53 only when the year starts on a Thursday, or a Wednesday in a leap year,
+  as JasperReports' functions do, whatever the locale. Before, both followed the locale's weeks
+  (`WEEKNUM(DATE(2026,1,4))` was 2, `WEEKSINYEAR` of 2025 was 53). In French, `TIME()` without a
+  pattern prints `10:30:15 UTC` (`10 h 30 min 15 s UTC` in Canada), and `DATERANGE("WEEK")`
+  starts on Monday in France, Belgium and Switzerland.
 
 ## 1.3.0
 
