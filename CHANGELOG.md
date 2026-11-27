@@ -10,6 +10,9 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   comparable 7.1.1 templates come out the same (74 before) and 42 of the 88 6.20.6 ones (41
   before); the subreport MasterReport sample is the same in both, and the 7.1.1 thermometer
   sample too, so 21 of the 24 7.1.1 chart samples are.
+- Speed: Word, Excel, ODS, ODT, PowerPoint, CSV and tagged PDF exports no longer break each plain
+  text into lines twice: the text a cell keeps is cut from the lines laid out for drawing (20,000
+  rows of 09-large to DOCX: 6% less time, now faster than 1.1.0). Output is byte for byte the same.
 - Thermometer charts are drawn as JasperReports 7 draws them (JFreeChart's `ThermometerPlot`):
   the bulb and stem at their fixed size with both outlines, the mercury and its rounded top,
   the range marks where each range starts in green, orange and red, the axis with whole-number
