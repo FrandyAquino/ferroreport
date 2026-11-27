@@ -406,8 +406,8 @@ impl Default for Settings {
 /// How a meter's dial is closed (JFreeChart's `DialShape`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum MeterShape {
-    /// Pie wedges from the center: JasperReports' default, and what it draws a `dial` meter
-    /// with here (JasperReports draws those with another plot, `DialPlot`).
+    /// Pie wedges from the center: JasperReports' default. Its default chart theme draws a
+    /// `dial` meter this way too (only other chart themes use JFreeChart's `DialPlot`).
     Pie,
     /// The background of a meter of more than 180 degrees closed by a straight line.
     Chord,
