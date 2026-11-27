@@ -187,7 +187,7 @@ reports.template(Path.of("reportes/ventas.jrxml"))
         <li><code>.param(nombre, valor)</code> y <code>.params(Map)</code> reciben los parámetros. <code>BigDecimal</code> conserva todos sus
           dígitos; <code>LocalDate</code>, <code>LocalDateTime</code>, <code>java.util.Date</code> y las fechas de <code>java.sql</code> se
           vuelven fechas; y <code>byte[]</code> se vuelve imagen. <code>REPORT_LOCALE</code> pasa a ser <code>.locale("es_DO")</code>: los
-          formatos de números y fechas siguen en_US, es_DO, es_MX y es_ES por ahora.</li>
+          formatos de números y fechas siguen en_US, es_DO, es_MX, es_ES y francés (fr, fr_FR, fr_BE, fr_CA, fr_CH) por ahora.</li>
         <li><code>.maxPages(n)</code> y <code>.timeout(Duration)</code> detienen un reporte que crece más de lo esperado.</li>
         <li><code>Ferroreport.local()</code> ejecuta el motor nativo como un proceso hijo por reporte: el que indique
           <code>-Dferroreport.bin</code> o <code>FERROREPORT_BIN</code>, si no <code>ferroreport</code> en el <code>PATH</code>, y si no una copia

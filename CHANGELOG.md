@@ -13,10 +13,26 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   `<dataRange>`) are read, and a thermometer without `mercuryColor` takes its range's color.
 - Build: simplify two boolean expressions, in DataMatrix encoding and JRXML element parsing, that
   Clippy on Rust 1.96 reports. Rendering is unchanged.
-- A subreport, list or table whose report prints nothing (no rows, `whenNoDataType="NoPages"`)
+- A subreport or table whose report prints nothing (no rows, `whenNoDataType="NoPages"`)
   is blank even when its report has a page footer, so `removeLineWhenBlank` removes its line
   as in JasperReports. Its page footer used to count as content. JasperReports'
   subreport/MasterReport sample now lays its cities out 30 points apart, as JasperReports does.
+- Icon labels written in the JasperReports 7 form, with `<labelTextField>` and
+  `<iconTextField>` straight inside the component, are drawn. They were left out, so the
+  component printed nothing.
+- French number and date formats, as Java 21 has them: `fr`, `fr_FR`, `fr_BE`, `fr_CA` and
+  `fr_CH` (other `fr_` tags take fr_FR's), with their separators (a narrow no-break space
+  between groups, a no-break space in Canada), currency, month and day names, AM/PM and short
+  date and time. A currency pattern in French Switzerland takes a point as its decimal
+  separator, as Java does. Before, these locales printed `en_US`'s.
+- Website: the home page is also in Portuguese (Brazil), at `/pt/`, with PT in the EN / ES
+  switch of the home pages and in their `hreflang` alternates and the sitemap; its other links
+  go to the English documentation, migration guide and comparison.
+- Meter charts are drawn as JasperReports 7 draws them (JFreeChart's `MeterPlot`): the dial
+  sized for a half circle, its background past the intervals, translucent intervals over the
+  ticks, labels only where intervals end, the value with its units under the center, the
+  needle only for a value in range, and JFreeChart's colors and fonts where the template sets
+  none. The `shape` (pie, chord, circle) and a JRXML 7 `<tickLabelFont>` are read.
 
 ## 1.3.0
 
