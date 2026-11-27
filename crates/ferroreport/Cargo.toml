@@ -1,6 +1,6 @@
 [package]
 name = "ferroreport"
-description = "Report engine: PDF, Excel, Word and CSV in milliseconds, in constant memory. Reads JasperReports JRXML templates, pixel-identical, no JVM"
+description = "Report engine and JasperReports alternative: reads JasperReports JRXML templates (6 and 7) without a JVM and writes PDF, Excel (XLSX), Word (DOCX), PowerPoint (PPTX), ODS, ODT, CSV and HTML, pixel-identical, in milliseconds and constant memory"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

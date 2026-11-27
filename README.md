@@ -21,8 +21,8 @@ JRXML and accessible by default. Against JasperReports itself it is about **200√
 [Docker](https://github.com/cristianEncarnacion/ferroreport/pkgs/container/ferroreport) ¬∑
 [Leer en espa√±ol](README.es.md)
 
-> Status: **stable, version 1.0.** All 48 comparable test templates render pixel for pixel like
-> JasperReports 6.20, including band splitting, images (SVG too), subreports, tables, lists,
+> Status: **stable since 1.0; the latest release is 1.2.0** ([what each release brought](CHANGELOG.md)).
+> All 48 comparable test templates render pixel for pixel like JasperReports 6.20, including band splitting, images (SVG too), subreports, tables, lists,
 > crosstabs, QR, PDF417, Barbecue and other barcodes, links, styled text and multi-column
 > layouts; charts are drawn as JasperReports 7 draws them (20 of its 24 chart samples come out
 > the same). All 49 that can be exported by both engines
@@ -67,7 +67,10 @@ JRXML and accessible by default. Against JasperReports itself it is about **200√
   folder (does it load, what does it use, what is not supported yet, does it render), writes
   the result as Markdown or JSON and, if you ask, the converted templates. Give it your
   JasperReports jars (`--jasper lib/`) and it renders every template with both engines from
-  the same rows and compares pages, every text and number, and times.
+  the same rows and compares pages, every text and number, and times. The
+  [migration guide](https://cristianencarnacion.github.io/ferroreport/migrate.html) goes through
+  a JasperReports project step by step: scriptlets, `.jasper` files, the Java call, data
+  sources and exports.
 - **Use it from any language.** Packages for JavaScript (Node.js, Deno, Bun, browsers), Python
   and Java, a Rust library, a CLI, and an HTTP API in a Docker image for everything else (C#,
   PHP, Go, Ruby...).
@@ -76,7 +79,8 @@ JRXML and accessible by default. Against JasperReports itself it is about **200√
 
 > **[Full documentation](https://cristianencarnacion.github.io/ferroreport/docs.html)**: every command, endpoint, function and option.
 > Available now: the [npm package](https://www.npmjs.com/package/ferroreport), the
-> [PyPI package](https://pypi.org/project/ferroreport/), the
+> [PyPI package](https://pypi.org/project/ferroreport/), the Java library on Maven Central
+> (`io.github.cristianencarnacion:ferroreport`), the
 > [crates](https://crates.io/crates/ferroreport), the
 > [release binaries](https://github.com/cristianEncarnacion/ferroreport/releases) and the Docker image.
 
@@ -239,9 +243,14 @@ The packages and the server take the same options: `pdfa`, `attachments`, `passw
 A template's own SQL query runs the way JasperReports runs it over JDBC: `$P{}` values are sent
 as bound parameters, `$P!{}` is pasted into the SQL text, and `$X{IN, column, PARAM}` (with
 `NOTIN`, `EQUAL`, `NOTEQUAL`, `LESS`, `LESS]`, `GREATER`, `[GREATER` and the `BETWEEN` forms)
-becomes the clause it stands for. Subreports, tables, lists, crosstabs and charts that pass
-`$P{REPORT_CONNECTION}` run their own query on the same database. Rows are read as the report
-needs them, so a large result is never in memory whole.
+becomes the clause it stands for. Subreports, and the subdatasets of tables, lists, crosstabs
+and charts, that pass `$P{REPORT_CONNECTION}` run their own SQL query on the same database.
+Rows are read as the report needs them, so a large result is never in memory whole. The
+database is given by the command line (`--db`), the HTTP server (`serve --db`) and the Rust
+library (`Renderer::connection`); the JavaScript, Python and Java packages take the rows from
+you instead (a Java `ResultSet` is read row by row). In Java, `Ferroreport.server(...).named(...)`
+renders a template of a server started with `--templates` and `--db`: the rows come from you
+and its subreports and subdatasets query the server's database.
 
 ```bash
 ferroreport render sales.jrxml --db postgres://reports@db:5432/erp -p params.json -o sales.pdf
@@ -495,7 +504,7 @@ another order). Every fixture renders to the same pixels from its JRXML, its JRX
 
 | Area | Supported | Not yet |
 |---|---|---|
-| Templates | JRXML 6.x schema; JRXML 7 as JasperReports 7 writes it; `.ferro` (ferroreport's own format), with `ferroreport convert` between them; subdatasets (for tables); style templates (`<template>`, `.jrtx` files, with the templates they include, found next to the report or in a resource folder) | `.jasper` files (by design), scriptlets, subdataset queries |
+| Templates | JRXML 6.x schema; JRXML 7 as JasperReports 7 writes it; `.ferro` (ferroreport's own format), with `ferroreport convert` between them; subdatasets (for tables, lists, crosstabs and charts), with their SQL query run on `$P{REPORT_CONNECTION}` (see [Rows from a database](#rows-from-a-database)); style templates (`<template>`, `.jrtx` files, with the templates they include, found next to the report or in a resource folder) | `.jasper` files (by design), scriptlets |
 | Bands | title (going on over several pages when it does not fit one, as in JasperReports), page header/footer, column header/footer, detail (multiple bands), summary, no data, background, last page footer; splitting bands across pages (`splitType` Stretch, Prevent, Immediate); multi-column layout (vertical and horizontal print order, `isStartNewColumn`, column breaks); with no rows and `AllSectionsNoDetail`, group headers and footers print once | |
 | Elements | static text, text field, line, rectangle (rounded), ellipse, frame (split across pages), image (PNG, JPEG or GIF from files, base64 or `byte[]`), subreport, crosstab (row and column groups with totals at the start or end, header positions, several measures with Sum, Count, DistinctCount, Average, Highest, Lowest and First, percentages of the grand total (`percentageOf`), buckets ordered by a total (`orderByExpression`), `$V{measure_group_ALL}` totals, crosstab parameters, data from the report or a subdataset; column parts as wide as the element and rows continuing on the next pages with repeated headers), table component (column groups, table/column/group headers and footers, hidden columns, no-data cell, headers repeated on every page), list component (vertical and horizontal), icon label, charts, barcodes (barcode4j components: QR code, DataMatrix, PDF417, Code 128, EAN-128, Code 39 with full ASCII, EAN-13, EAN-8, UPC-A, UPC-E, Interleaved 2 of 5, Codabar, POSTNET, Royal Mail and USPS Intelligent Mail; Barbecue components: every type but PostNet, rotated), hyperlinks, anchors and bookmarks, PDF form fields (`net.sf.jasperreports.export.pdf.field.*`: text, combo and list boxes, check boxes, radio buttons), page break (applied after its band) | crosstab bucket comparators, crosstabs over a group's rows, UPC/EAN add-ons, rotated barcode4j barcodes, Barbecue's PostNet (Barbecue draws it as bars of one height; barcode4j's POSTNET is drawn), maps and other custom components |
 | Text | wrapping, stretch with overflow, padding, borders, left/center/right/justified alignment, all line-spacing modes, underline, strike-through, `isBlankWhenNull`, styled, HTML and RTF markup (bold, italic, underline, strike-through, fonts, sizes, colors, highlight, superscript, subscript, line breaks; HTML lists, bulleted and numbered, nested), also across page breaks; rotation (Left, Right, UpsideDown); cutting a text that does not fit at a character and with a suffix (`net.sf.jasperreports.text.truncate.*`); right-to-left text (Arabic, Hebrew) in the Unicode Bidirectional Algorithm's order, numbers and Latin inside it included, running right to left as JasperReports decides it (a paragraph that starts with a right-to-left letter) and aligned as JasperReports aligns it; text shaped with harfrust (Arabic letters joined, Devanagari conjuncts and vowel signs, Thai marks, the font's mark positioning) and broken at the Unicode line-break opportunities, in PDF, HTML and the chart pictures of XLSX, DOCX and PPTX; copying from the PDF gives the characters as written; characters the font lacks drawn in another font, with font sets as JasperReports' font extensions define them (`--font-set`) or for every font (`--font-fallback`); hyphenation of long words at line ends when the template asks for it (`ferroreport.text.hyphenate`, ferroreport's own: JasperReports does not hyphenate), in plain text | hyphenation of styled, HTML, right-to-left and complex-script text; Thai, Lao, Khmer and Myanmar break without a dictionary (before a leading vowel, after a syllable-final sign, at spaces); combining accents on Latin letters are drawn one glyph per character, as before |
@@ -504,8 +513,8 @@ another order). Every fixture renders to the same pixels from its JRXML, its JRX
 | Images | PNG, JPEG and GIF (its first frame, with its transparent color); SVG (drawn as vectors in PDF, as pictures in Excel, Word, PowerPoint and OpenDocument); scale modes RetainShape, FillFrame, Clip, RealHeight and RealSize (the element takes the picture's size, as in JasperReports); alignment; `onErrorType` | remote URLs (by design), other formats |
 | Charts | pie, 3D pie, bar, 3D bar, stacked bar (vertical and horizontal), line, area, stacked area, XY line, XY area, XY bar, scatter, bubble, time series, candlestick, high-low, Gantt, meter, thermometer, multi-axis; titles, legends, axis labels, series colors, range limits, tick formats, pie label formats; datasets by record, group, page or report, with `evaluationTime`, and from a subdataset | chart customizers and themes. Charts are drawn as JasperReports 7.1 draws them with JFreeChart 1.5, pixel for pixel in its own samples, except meter and thermometer charts and multiple axis charts of XY charts, which follow JFreeChart's look without being the same. JasperReports 6 (JFreeChart 1.0.19) frames the legend and draws 3D charts in 3D, which ferroreport does not; chart text is written as outlines, as JasperReports writes it, so it cannot be selected |
 | Subreports | data from nested JSON (`JRMapCollectionDataSource`, `JRBeanCollectionDataSource`, `subDataSource`, `JREmptyDataSource`), subreports that run their own SQL query on `$P{REPORT_CONNECTION}` (with `--db`), parameters, return values, splitting across pages with reprinted column headers | connections built in Java (`DriverManager.getConnection(...)` in an expression) |
-| Data | groups (start new page, reprint header, min height), variables: Sum, Count, DistinctCount, Average, Lowest, Highest, First, Nothing, System, StandardDeviation, Variance; reset by report/page/column/group or never (`resetType="None"`); `incrementType` (a count that moves once per group counts groups); group expressions that read variables; evaluation time Now/Report/Page/Column/Group and `Auto` for text (each variable read at its own moment: a group's share of the grand total in one expression) | queries in languages other than SQL (HQL, XPath, MDX...: pass the rows) |
-| Expressions | Java and Groovy subset: literals, `$F/$P/$V`, arithmetic with Java promotion rules (and Groovy's: `5 / 2` is a BigDecimal 2.5), string concat, comparisons, ternary, Elvis, casts, common String/Number/BigDecimal/Date/List methods, `Math` (rounding, powers, logarithms, trigonometry), `String.format`, `new SimpleDateFormat(..).format(..)`, `new DecimalFormat(..).format(..)`, `Base64` decoding, `msg(pattern, args...)` (`java.text.MessageFormat`), `$R{key}` and `str("key")` from the report's `resourceBundle` (`.properties` files next to the template or in a resource folder, picked by locale); JasperReports' function library as Jaspersoft Studio lists it (`IF`, `AND`, `SUM`, `MAX`, `ROUND_HALF_UP`, `LEFT`, `MID`, `FIND`, `SUBSTITUTE`, `PROPER`, `DATE`, `DATEFORMAT`, `EDATE`, `WORKDAY`, `NETWORKDAYS`, `WEEKNUM`, `TIME` and the rest: 78 functions, 265 cases checked against JasperReports); `DATERANGE("MONTH-1")` and fixed ranges, with `getStart()`/`getEnd()` and in `$X{}` clauses; Groovy lists, maps and ranges (`[1, 2]`, `[a: 1]`, `1..5`), closures given to `findAll`, `collect`, `sum`, `inject`, `sort`, `groupBy` and the rest, `"${...}"` strings, `?.`, `**`, `<=>`, `in`, `as`, indexing, and string helpers (`padLeft`, `tokenize`, `capitalize`...) | arbitrary Java classes (scriptlets, static methods of your own), Groovy statements (`def`, loops, `if` blocks), regular expressions beyond a literal or `\s+` |
+| Data | groups (start new page, reprint header, min height), variables: Sum, Count, DistinctCount, Average, Lowest, Highest, First, Nothing, System, StandardDeviation, Variance; reset by report/page/column/group or never (`resetType="None"`); `incrementType` (a count that moves once per group counts groups); group expressions that read variables; evaluation time Now/Report/Page/Column/Group and `Auto` for text (each variable read at its own moment: a group's share of the grand total in one expression), and `Master` with `MASTER_CURRENT_PAGE` and `MASTER_TOTAL_PAGES` (the report's own pages: a subreport's stay null) | queries in languages other than SQL (HQL, XPath, MDX...: pass the rows) |
+| Expressions | Java and Groovy subset: literals, `$F/$P/$V`, arithmetic with Java promotion rules (and Groovy's: `5 / 2` is a BigDecimal 2.5), string concat, comparisons, ternary, Elvis, casts, common String/Number/BigDecimal/Date/List methods, `Math` (rounding, powers, logarithms, trigonometry), `String.format`, `new SimpleDateFormat(..).format(..)`, `new DecimalFormat(..).format(..)`, `Base64` decoding, `msg(pattern, args...)` (`java.text.MessageFormat`), `$R{key}` and `str("key")` from the report's `resourceBundle` (`.properties` files next to the template or in a resource folder, picked by locale); `new ArrayList()`; the `Locale` getters on `$P{REPORT_LOCALE}` (`getDisplayName`, `getDisplayLanguage`, `getCountry`...); a static field of a class the template declares a parameter or field with is an enum constant (`Greeting.bye` reads as the text `"bye"`); what Java throws as a `NullPointerException` makes the expression null, as in JasperReports; JasperReports' function library as Jaspersoft Studio lists it (`IF`, `AND`, `SUM`, `MAX`, `ROUND_HALF_UP`, `LEFT`, `MID`, `FIND`, `SUBSTITUTE`, `PROPER`, `DATE`, `DATEFORMAT`, `EDATE`, `WORKDAY`, `NETWORKDAYS`, `WEEKNUM`, `TIME` and the rest: 78 functions, 265 cases checked against JasperReports); `DATERANGE("MONTH-1")` and fixed ranges, with `getStart()`/`getEnd()` and in `$X{}` clauses; Groovy lists, maps and ranges (`[1, 2]`, `[a: 1]`, `1..5`), closures given to `findAll`, `collect`, `sum`, `inject`, `sort`, `groupBy` and the rest, `"${...}"` strings, `?.`, `**`, `<=>`, `in`, `as`, indexing, and string helpers (`padLeft`, `tokenize`, `capitalize`...) | arbitrary Java classes (scriptlets, static methods of your own), Groovy statements (`def`, loops, `if` blocks), regular expressions beyond a literal or `\s+` |
 | Formatting | `DecimalFormat` patterns (HALF_EVEN), `SimpleDateFormat` patterns; locales en_US, es_DO, es_MX, es_ES | other locales |
 | Fonts | DejaVu Sans/Serif/Mono (the `jasperreports-fonts` families) bundled; extra TTF/OTF via `--font`; font sets (`--font-set Name=Family,Family`), resolved run by run as JasperReports resolves them; text in a font no one provides is written like JasperReports writes it, in the PDF standard font of its `pdfFontName` (Helvetica by default); a character no font has is left out of the PDF, as JasperReports leaves it out | font extension jars |
 | Output | PDF, optionally tagged for screen readers (`--tagged`, or the template's `net.sf.jasperreports.export.pdf.tagged` property; `.ferro` reports are tagged by default) and then PDF/UA-1, checked with veraPDF: texts as paragraphs or headings, pictures as figures with their tooltip as description, tables and crosstabs as tables with header cells and the columns and rows each cell spans, HTML lists as lists, links as links; PDF/A-2 and PDF/A-3 (a, b, u), checked with veraPDF; files attached inside the PDF; AES-256 encryption with passwords and permissions; PAdES B-B digital signatures (`--sign-key`); links, anchors and the bookmark outline; XLSX and CSV laid out like Jasper's exporters (default settings); DOCX laid out like Jasper's Word exporter (a table per page, the cells each element covers, its fonts, colors, borders and pictures); ODS and ODT laid out like XLSX and DOCX (as Jasper's ODS and ODT exporters do); PPTX laid out like Jasper's PowerPoint exporter (a slide per page, each element a shape, text box or picture where it is on the page); HTML previews | XLS (old format), signatures with timestamps or long-term validation (PAdES B-T, B-LT), visible signature boxes, exporter properties (`net.sf.jasperreports.export.*`) other than number detection, PDF form fields, the tagged PDF, PDF/A and PDF encryption ones |
@@ -615,6 +624,8 @@ not compared with Jasper's.
 | 55-thai | Thai: stacked vowels and tone marks, line breaks in text without spaces (GNU FreeSerif) | page count¬≥ |
 | 56-font-fallback | Font sets (`fontsets.txt`; the reference run gets the same sets from a font extension in `jasper-extension/`): stars, check marks and circled digits DejaVu Serif lacks drawn in DejaVu Sans, three fonts on one line, bold, italic, justified, right-aligned and styled text, stretching fields; characters no font has, left out as JasperReports leaves them out | identical |
 | 57-hyphenation | `ferroreport.text.hyphenate` on the report (the locale's language) and on two subreports (Spanish, off): justified, right-aligned and centered text, a word longer than its line, stretching fields | page count‚Å¥ |
+| 58-crosstab-counts | Crosstab built-in variables `ROW_COUNT`, `COLUMN_COUNT`, `IS_EVEN_ROW`, `IS_EVEN_COLUMN` in cells, headers and conditional styles, with row and column totals | identical |
+| 59-null-pointer | Expressions that throw a `NullPointerException` (a method on null, null in arithmetic, comparisons and conditions) in fields, a group, variables, print-when expressions and a conditional style | identical |
 
 ¬π The reference bundle's Groovy 4.0.8 cannot run on Java 21: set `ORACLE_JAVA_GROOVY` to a
 Java 17 runtime and `tools/compare.py` uses it for Groovy templates (the others stay on Java 21,
@@ -656,12 +667,12 @@ checked.
 
 | Result | 6.20.6 | 7.1.1 |
 |---|---|---|
-| The same pages | 34 | 67 |
-| Both render it, the pages differ | 39 | 19 |
-| ferroreport refuses it or fails on it | 15 | 15 |
+| The same pages | 34 | 73 |
+| Both render it, the pages differ | 39 | 20 |
+| ferroreport refuses it or fails on it | 15 | 8 |
 | JasperReports cannot render it from rows and parameters alone (it needs the sample's Java objects, a database connection or other files), so there is nothing to compare | 52 | 70 |
 
-So 34 of the 88 6.20.6 samples that can be compared come out the same, and 67 of the 101 7.1.1
+So 34 of the 88 6.20.6 samples that can be compared come out the same, and 73 of the 101 7.1.1
 ones (JasperReports 6.20.6 runs on Java 17 there, where its Groovy works). [Every 6.20.6 template with its result and the reason](docs/samples.md), and [every
 7.1.1 one](docs/samples-7.1.1.md). Charts are drawn as JasperReports 7.1 draws them: 20 of the
 24 7.1.1 chart samples are the same (not the one with a chart customizer, the meter, the
@@ -803,7 +814,10 @@ depends on what you make.
 | Templates uploaded by your own customers | **ferroreport**, Typst | Expressions come from a fixed list and nothing is deserialized; JasperReports compiles templates to Java |
 
 What would make ferroreport the first choice in more of these rows is on the roadmap below: a
-designer that does more, more of JasperReports' components, and time in production.
+designer that does more, more of JasperReports' components, and time in production. A longer
+[comparison](https://cristianencarnacion.github.io/ferroreport/compare.html), with JasperReports,
+OpenPDF, OpenHTMLtoPDF, iText, Typst, Carbone, Apache POI and FastExcel and its sources, is on
+the website.
 
 ## Contributing
 

@@ -643,7 +643,7 @@ pub fn index(target: Value, index: Value) -> Result<Value> {
                 one => Ok(one),
             }
         }
-        (Value::Null, _) => Err(fail("NullPointerException: index of null")),
+        (Value::Null, _) => Err(fail(format!("{}index of null", super::eval::NULL_POINTER))),
         (t, _) => match items(t) {
             Some(list) => at(&list, &index),
             None => Err(fail(format!("cannot index {}", t.type_name()))),
@@ -759,7 +759,7 @@ fn repeat_text(s: &str, n: &Value) -> Result<Value> {
 /// to a whole power stays a BigDecimal, anything else is a Double.
 fn power(a: Value, b: Value) -> Result<Value> {
     if a.is_null() || b.is_null() {
-        return Err(fail("NullPointerException: ** on a null value"));
+        return Err(fail(format!("{}** on a null value", super::eval::NULL_POINTER)));
     }
     let whole_exponent = matches!(b, Value::Int(_) | Value::Long(_)) && b.as_i64().is_some_and(|e| e >= 0);
     match (&a, whole_exponent) {

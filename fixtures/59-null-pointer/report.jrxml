@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="null-pointer" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<style name="Base" isDefault="true" fontName="DejaVu Sans" fontSize="8"/>
+	<!-- A condition that throws a NullPointerException is null, and null is false. -->
+	<style name="Big" mode="Opaque" backcolor="#FFFFFF">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{qty} > 4]]></conditionExpression>
+			<style backcolor="#FFD080"/>
+		</conditionalStyle>
+	</style>
+	<field name="name" class="java.lang.String"/>
+	<field name="qty" class="java.lang.Integer"/>
+	<field name="price" class="java.math.BigDecimal"/>
+	<field name="flag" class="java.lang.Boolean"/>
+	<variable name="doubled" class="java.lang.Integer" calculation="Sum">
+		<variableExpression><![CDATA[$F{qty} * 2]]></variableExpression>
+	</variable>
+	<variable name="named" class="java.lang.Integer" calculation="Count">
+		<variableExpression><![CDATA[$F{name}.length()]]></variableExpression>
+	</variable>
+	<group name="letter">
+		<groupExpression><![CDATA[$F{name}.substring(0, 1)]]></groupExpression>
+		<groupHeader>
+			<band height="16">
+				<textField>
+					<reportElement mode="Opaque" x="0" y="2" width="555" height="12" backcolor="#E0E0E0"/>
+					<textFieldExpression><![CDATA["Letter " + $F{name}.substring(0, 1).toUpperCase()]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+	</group>
+	<title>
+		<band height="30">
+			<staticText>
+				<reportElement x="0" y="0" width="555" height="20"/>
+				<textElement><font size="14" isBold="true"/></textElement>
+				<text><![CDATA[Expressions that throw a NullPointerException]]></text>
+			</staticText>
+		</band>
+	</title>
+	<columnHeader>
+		<band height="14">
+			<staticText><reportElement x="0" y="0" width="60" height="12"/><text><![CDATA[name]]></text></staticText>
+			<staticText><reportElement x="60" y="0" width="70" height="12"/><text><![CDATA[upper]]></text></staticText>
+			<staticText><reportElement x="130" y="0" width="40" height="12"/><text><![CDATA[qty*2]]></text></staticText>
+			<staticText><reportElement x="170" y="0" width="40" height="12"/><text><![CDATA[-qty]]></text></staticText>
+			<staticText><reportElement x="210" y="0" width="50" height="12"/><text><![CDATA[qty>5]]></text></staticText>
+			<staticText><reportElement x="260" y="0" width="40" height="12"/><text><![CDATA[flag]]></text></staticText>
+			<staticText><reportElement x="300" y="0" width="70" height="12"/><text><![CDATA[price*2]]></text></staticText>
+			<staticText><reportElement x="370" y="0" width="60" height="12"/><text><![CDATA[blank]]></text></staticText>
+			<staticText><reportElement x="430" y="0" width="60" height="12"/><text><![CDATA[shown]]></text></staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="14">
+			<textField>
+				<reportElement style="Big" x="0" y="0" width="60" height="12"/>
+				<textFieldExpression><![CDATA[$F{name}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="60" y="0" width="70" height="12"/>
+				<textFieldExpression><![CDATA["Upper " + $F{name}.toUpperCase()]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="130" y="0" width="40" height="12"/>
+				<textFieldExpression><![CDATA[$F{qty} * 2]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="170" y="0" width="40" height="12"/>
+				<textFieldExpression><![CDATA[-$F{qty}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="210" y="0" width="50" height="12"/>
+				<textFieldExpression><![CDATA[$F{qty} > 5 ? "big" : "small"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="260" y="0" width="40" height="12"/>
+				<textFieldExpression><![CDATA[$F{flag} ? "yes" : "no"]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="300" y="0" width="70" height="12"/>
+				<textFieldExpression><![CDATA[$F{price}.multiply(new java.math.BigDecimal(2))]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="370" y="0" width="60" height="12"/>
+				<textFieldExpression><![CDATA["Len " + ($F{name}.length() + 1)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="430" y="0" width="30" height="12">
+					<printWhenExpression><![CDATA[$F{flag}]]></printWhenExpression>
+				</reportElement>
+				<text><![CDATA[flag]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="460" y="0" width="30" height="12">
+					<printWhenExpression><![CDATA[$F{qty} > 2]]></printWhenExpression>
+				</reportElement>
+				<text><![CDATA[qty>2]]></text>
+			</staticText>
+		</band>
+	</detail>
+	<summary>
+		<band height="30">
+			<textField>
+				<reportElement x="0" y="4" width="300" height="12"/>
+				<textFieldExpression><![CDATA["Sum of qty*2: " + $V{doubled}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="16" width="300" height="12"/>
+				<textFieldExpression><![CDATA["Rows with a name: " + $V{named}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>
