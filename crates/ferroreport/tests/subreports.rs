@@ -115,3 +115,46 @@ fn resources_can_be_given_in_memory() {
         Renderer::new().resource("sub.jrxml", SUB.as_bytes().to_vec()).render_json(&escaping, &rows, &serde_json::json!({}));
     assert!(err.is_err());
 }
+
+/// A subreport with no rows prints nothing when its report says `whenNoDataType="NoPages"`
+/// (the default), even with a page footer: with `removeLineWhenBlank` its line goes, as in
+/// JasperReports' subreport/MasterReport sample.
+#[test]
+fn a_subreport_without_rows_is_blank() {
+    let main = r#"<jasperReport name="main" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+        <field name="name" class="java.lang.String"/>
+        <detail><band height="50">
+            <element kind="textField" x="0" y="5" width="200" height="15"><expression><![CDATA[$F{name}]]></expression></element>
+            <element kind="subreport" x="0" y="25" width="300" height="20" removeLineWhenBlank="true"><expression><![CDATA["empty.jasper"]]></expression></element>
+        </band></detail>
+    </jasperReport>"#;
+    let empty = r#"<jasperReport name="empty" pageWidth="300" pageHeight="842" columnWidth="300" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+        <field name="sku" class="java.lang.String"/>
+        <title height="14"><element kind="staticText" x="0" y="0" width="100" height="14"><text>Items</text></element></title>
+        <detail><band height="12"><element kind="textField" x="0" y="0" width="200" height="12"><expression><![CDATA[$F{sku}]]></expression></element></band></detail>
+        <pageFooter height="14"><element kind="staticText" x="0" y="0" width="100" height="14"><text>Footer</text></element></pageFooter>
+    </jasperReport>"#;
+    let d = dir("blank");
+    std::fs::write(d.join("empty.jrxml"), empty).unwrap();
+    let mut r = Renderer::new().resource_dir(&d);
+    let report = ferroreport::parse(main).unwrap();
+    let rows = serde_json::json!([{"name": "A"}, {"name": "B"}, {"name": "C"}]);
+    let records = ferroreport::data::records_from_json(&report, &rows).unwrap();
+    let doc = r.fill(&report, &records, Default::default()).unwrap();
+    let mut tops = Vec::new();
+    for item in &doc.pages[0].items {
+        let item = match item {
+            ferroreport::print::PrintItem::Cell(_, inner) => inner.as_ref(),
+            other => other,
+        };
+        if let ferroreport::print::PrintItem::Text(t) = item {
+            let text: String = t.lines.iter().map(|l| l.text.as_str()).collect();
+            assert!(text != "Items" && text != "Footer", "the empty subreport printed {text}");
+            tops.push(t.lines[0].baseline);
+        }
+    }
+    // Each row is its band without the subreport's 20 points.
+    assert_eq!(tops.len(), 3);
+    assert!((tops[1] - tops[0] - 30.0).abs() < 1e-3, "{tops:?}");
+    assert!((tops[2] - tops[1] - 30.0).abs() < 1e-3, "{tops:?}");
+}
