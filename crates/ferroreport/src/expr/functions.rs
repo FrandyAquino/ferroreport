@@ -439,8 +439,11 @@ pub fn call(name: &str, args: Vec<Value>, env: &EvalEnv) -> Result<Value> {
                 Some(p) => p,
                 None if env.locale.tag == "es_DO" => "h:mm:ss\u{202F}a z".to_string(),
                 None if env.locale.tag == "es_MX" => "HH:mm:ss z".to_string(),
-                None if matches!(env.locale.tag, "fr" | "fr_FR" | "fr_BE" | "fr_CH") => "HH:mm:ss z".to_string(),
                 None if env.locale.tag == "fr_CA" => "HH 'h' mm 'min' ss 's' z".to_string(),
+                None if matches!(env.locale.tag, "fr_DJ" | "fr_DZ" | "fr_MR" | "fr_SY" | "fr_TD" | "fr_TN" | "fr_VU") => {
+                    "h:mm:ss\u{202F}a z".to_string()
+                }
+                None if env.locale.tag == "fr" || env.locale.tag.starts_with("fr_") => "HH:mm:ss z".to_string(),
                 None if env.locale.tag == "es_419" => "HH:mm:ss z".to_string(),
                 None if ["pt", "it", "de"].iter().any(|p| env.locale.tag.starts_with(p)) => "HH:mm:ss z".to_string(),
                 None if env.locale.tag.starts_with("es") => "H:mm:ss z".to_string(),
@@ -673,7 +676,12 @@ fn parse_prefix(text: &str) -> Option<NaiveDateTime> {
 /// `Calendar.getInstance(locale).getFirstDayOfWeek()` says (JasperReports' RelativeDateRange).
 fn first_day_of_week(locale: &Locale) -> u32 {
     match locale.tag {
-        "es_ES" | "fr_FR" | "fr_BE" | "fr_CH" | "it_IT" | "it_CH" | "de_DE" | "de_AT" | "de_CH" => 1,
+        "es_ES" | "it_IT" | "it_CH" | "de_DE" | "de_AT" | "de_CH" => 1,
+        // French without a country and in Canada start on Sunday, in Algeria, Djibouti and Syria
+        // on Saturday, everywhere else on Monday.
+        "fr_CA" => 0,
+        "fr_DZ" | "fr_DJ" | "fr_SY" => 6,
+        t if t.starts_with("fr_") => 1,
         _ => 0,
     }
 }

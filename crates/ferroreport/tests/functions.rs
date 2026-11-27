@@ -342,6 +342,42 @@ fn time_week_start_and_week_numbers_by_locale() {
     }
 }
 
+/// `TIME()` without a pattern and the first day of `DATERANGE("WEEK")` in the French regions
+/// (Java 21.0.13: `DateTimeFormatter.ofLocalizedTime(FormatStyle.LONG)`,
+/// `Calendar.getFirstDayOfWeek()`): a 12-hour clock in Algeria, Djibouti, Syria, Mauritania,
+/// Tunisia, Vanuatu and Chad, weeks starting on Saturday in the first three.
+#[test]
+fn french_regions_time_and_week_start() {
+    // A Monday.
+    let now = chrono::NaiveDate::from_ymd_opt(2026, 11, 23).unwrap().and_hms_opt(4, 54, 18).unwrap();
+    let h24 = ("10:30:15 UTC", "23:05:09 UTC");
+    let h12 = ("10:30:15\u{202F}AM UTC", "11:05:09\u{202F}PM UTC");
+    for (tag, (morning, evening), start) in [
+        ("fr_LU", h24, "2026-11-23"),
+        ("fr-LU", h24, "2026-11-23"),
+        ("fr_MA", h24, "2026-11-23"),
+        ("fr_SN", h24, "2026-11-23"),
+        ("fr-CI", h24, "2026-11-23"),
+        ("fr_CM", h24, "2026-11-23"),
+        ("fr_ML", h24, "2026-11-23"),
+        ("fr_MC", h24, "2026-11-23"),
+        ("fr_TD", h12, "2026-11-23"),
+        ("fr_MR", h12, "2026-11-23"),
+        ("fr_TN", h12, "2026-11-23"),
+        ("fr_VU", h12, "2026-11-23"),
+        ("fr_DZ", h12, "2026-11-21"),
+        ("fr-DJ", h12, "2026-11-21"),
+        ("fr_SY", h12, "2026-11-21"),
+    ] {
+        let locale = ferroreport::format::Locale::from_tag(tag);
+        let env = EvalEnv { locale, groovy: false, now };
+        let run = |src: &str| format_value(&eval(&parse_expr(src, false).unwrap(), &Empty, &env).unwrap(), None, locale);
+        assert_eq!(run("TIME(10, 30, 15)"), morning, "{tag}");
+        assert_eq!(run("TIME(23, 5, 9)"), evening, "{tag}");
+        assert_eq!(run("DATEFORMAT(DATERANGE(\"WEEK\").getStart(), \"yyyy-MM-dd\")"), start, "{tag}");
+    }
+}
+
 /// `TIME()` without a pattern in Spanish, as Java 21.0.13's
 /// `DateTimeFormatter.ofLocalizedTime(FormatStyle.LONG)` prints it.
 #[test]

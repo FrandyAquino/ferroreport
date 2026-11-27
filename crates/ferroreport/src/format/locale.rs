@@ -103,6 +103,89 @@ pub const FR_CA: Locale = Locale {
 /// separator (see [`Locale::monetary_decimal_separator`]).
 pub const FR_CH: Locale = Locale { tag: "fr_CH", currency_symbol: "CHF", ..FR };
 
+/// French (Luxembourg): a point between groups.
+pub const FR_LU: Locale = Locale { tag: "fr_LU", grouping_separator: '.', ..FR_FR };
+
+/// French (Morocco): a point between groups, the dirham `MAD`, its own short month names
+/// (`jan.`, `fév.`, `jui.` for June) and a.m./p.m.
+pub const FR_MA: Locale = Locale {
+    tag: "fr_MA",
+    grouping_separator: '.',
+    currency_symbol: "MAD",
+    short_months: ["jan.", "fév.", "mar.", "avr.", "mai", "jui.", "juil.", "août", "sept.", "oct.", "nov.", "déc."],
+    am_pm: ["a.m.", "p.m."],
+    ..FR
+};
+
+/// French (Senegal), and the other West African CFA franc countries below: `F CFA`, with a
+/// narrow no-break space (U+202F).
+pub const FR_SN: Locale = Locale { tag: "fr_SN", currency_symbol: "F\u{202F}CFA", ..FR };
+/// French (Côte d'Ivoire): as fr_SN.
+pub const FR_CI: Locale = Locale { tag: "fr_CI", ..FR_SN };
+/// French (Burkina Faso): as fr_SN.
+pub const FR_BF: Locale = Locale { tag: "fr_BF", ..FR_SN };
+/// French (Benin): as fr_SN.
+pub const FR_BJ: Locale = Locale { tag: "fr_BJ", ..FR_SN };
+/// French (Niger): as fr_SN.
+pub const FR_NE: Locale = Locale { tag: "fr_NE", ..FR_SN };
+/// French (Togo): as fr_SN.
+pub const FR_TG: Locale = Locale { tag: "fr_TG", ..FR_SN };
+/// French (Mali): as fr_SN, with a comma after the date in the short date and time.
+pub const FR_ML: Locale = Locale { tag: "fr_ML", ..FR_SN };
+
+/// French (Gabon), and the other Central African CFA franc countries below: `FCFA`.
+pub const FR_GA: Locale = Locale { tag: "fr_GA", currency_symbol: "FCFA", ..FR };
+/// French (Congo): as fr_GA.
+pub const FR_CG: Locale = Locale { tag: "fr_CG", ..FR_GA };
+/// French (Central African Republic): as fr_GA.
+pub const FR_CF: Locale = Locale { tag: "fr_CF", ..FR_GA };
+/// French (Equatorial Guinea): as fr_GA.
+pub const FR_GQ: Locale = Locale { tag: "fr_GQ", ..FR_GA };
+/// French (Cameroon): as fr_GA, with "matin" / "soir" for AM/PM.
+pub const FR_CM: Locale = Locale { tag: "fr_CM", am_pm: ["matin", "soir"], ..FR_GA };
+/// French (Chad): as fr_GA, with a 12-hour clock in the short date and time and in `TIME()`.
+pub const FR_TD: Locale = Locale { tag: "fr_TD", ..FR_GA };
+
+/// French (New Caledonia), and French Polynesia and Wallis and Futuna: the CFP franc `FCFP`.
+pub const FR_NC: Locale = Locale { tag: "fr_NC", currency_symbol: "FCFP", ..FR };
+/// French (French Polynesia): as fr_NC.
+pub const FR_PF: Locale = Locale { tag: "fr_PF", ..FR_NC };
+/// French (Wallis and Futuna): as fr_NC.
+pub const FR_WF: Locale = Locale { tag: "fr_WF", ..FR_NC };
+
+/// French (Burundi): the Burundian franc `FBu`.
+pub const FR_BI: Locale = Locale { tag: "fr_BI", currency_symbol: "FBu", ..FR };
+/// French (Congo-Kinshasa): the Congolese franc `FC`.
+pub const FR_CD: Locale = Locale { tag: "fr_CD", currency_symbol: "FC", ..FR };
+/// French (Guinea): the Guinean franc `FG`.
+pub const FR_GN: Locale = Locale { tag: "fr_GN", currency_symbol: "FG", ..FR };
+/// French (Haiti): the gourde `G`.
+pub const FR_HT: Locale = Locale { tag: "fr_HT", currency_symbol: "G", ..FR };
+/// French (Comoros): the Comorian franc `CF`.
+pub const FR_KM: Locale = Locale { tag: "fr_KM", currency_symbol: "CF", ..FR };
+/// French (Madagascar): the ariary `Ar`.
+pub const FR_MG: Locale = Locale { tag: "fr_MG", currency_symbol: "Ar", ..FR };
+/// French (Mauritius): the Mauritian rupee `Rs`.
+pub const FR_MU: Locale = Locale { tag: "fr_MU", currency_symbol: "Rs", ..FR };
+/// French (Rwanda): the Rwandan franc `RF`.
+pub const FR_RW: Locale = Locale { tag: "fr_RW", currency_symbol: "RF", ..FR };
+/// French (Seychelles): the Seychellois rupee `SR`.
+pub const FR_SC: Locale = Locale { tag: "fr_SC", currency_symbol: "SR", ..FR };
+
+/// French (Algeria): the dinar `DA`, a 12-hour clock in the short date and time and in `TIME()`,
+/// and weeks starting on Saturday in `DATERANGE("WEEK")`.
+pub const FR_DZ: Locale = Locale { tag: "fr_DZ", currency_symbol: "DA", ..FR };
+/// French (Djibouti): the Djiboutian franc `Fdj`, with fr_DZ's clock and weeks.
+pub const FR_DJ: Locale = Locale { tag: "fr_DJ", currency_symbol: "Fdj", ..FR };
+/// French (Syria): the Syrian pound `LS`, with fr_DZ's clock and weeks.
+pub const FR_SY: Locale = Locale { tag: "fr_SY", currency_symbol: "LS", ..FR };
+/// French (Mauritania): the ouguiya `UM`, with a 12-hour clock as in fr_DZ.
+pub const FR_MR: Locale = Locale { tag: "fr_MR", currency_symbol: "UM", ..FR };
+/// French (Tunisia): the dinar `DT`, with a 12-hour clock as in fr_DZ.
+pub const FR_TN: Locale = Locale { tag: "fr_TN", currency_symbol: "DT", ..FR };
+/// French (Vanuatu): the vatu `VT`, with a 12-hour clock as in fr_DZ.
+pub const FR_VU: Locale = Locale { tag: "fr_VU", currency_symbol: "VT", ..FR };
+
 const PT_MONTHS: [&str; 12] =
     ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const PT_SHORT_MONTHS: [&str; 12] =
@@ -250,6 +333,40 @@ impl Locale {
             "fr_BE" => &FR_BE,
             "fr_CA" => &FR_CA,
             "fr_CH" => &FR_CH,
+            "fr_LU" => &FR_LU,
+            "fr_MA" => &FR_MA,
+            "fr_SN" => &FR_SN,
+            "fr_CI" => &FR_CI,
+            "fr_BF" => &FR_BF,
+            "fr_BJ" => &FR_BJ,
+            "fr_NE" => &FR_NE,
+            "fr_TG" => &FR_TG,
+            "fr_ML" => &FR_ML,
+            "fr_GA" => &FR_GA,
+            "fr_CG" => &FR_CG,
+            "fr_CF" => &FR_CF,
+            "fr_GQ" => &FR_GQ,
+            "fr_CM" => &FR_CM,
+            "fr_TD" => &FR_TD,
+            "fr_NC" => &FR_NC,
+            "fr_PF" => &FR_PF,
+            "fr_WF" => &FR_WF,
+            "fr_BI" => &FR_BI,
+            "fr_CD" => &FR_CD,
+            "fr_GN" => &FR_GN,
+            "fr_HT" => &FR_HT,
+            "fr_KM" => &FR_KM,
+            "fr_MG" => &FR_MG,
+            "fr_MU" => &FR_MU,
+            "fr_RW" => &FR_RW,
+            "fr_SC" => &FR_SC,
+            "fr_DZ" => &FR_DZ,
+            "fr_DJ" => &FR_DJ,
+            "fr_SY" => &FR_SY,
+            "fr_MR" => &FR_MR,
+            "fr_TN" => &FR_TN,
+            "fr_VU" => &FR_VU,
+            // France's overseas departments and Monaco write numbers and dates as France does.
             _ if norm == "fr_FR" || norm.starts_with("fr_") => &FR_FR,
             "pt" => &PT,
             "pt_BR" => &PT_BR,
@@ -412,10 +529,108 @@ mod tests {
                 assert_eq!(format_value(&Value::Date(when), None, locale), expected[6], "{tag} short");
             }
         }
-        // Other French locales take France's symbols.
-        assert_eq!(Locale::from_tag("fr_LU").tag, "fr_FR");
+        // Monaco and the overseas departments take France's symbols.
+        assert_eq!(Locale::from_tag("fr_MC").tag, "fr_FR");
+        assert_eq!(Locale::from_tag("fr-RE").tag, "fr_FR");
         // A currency pattern keeps the decimal separator where it is the monetary one too.
         assert_eq!(format_value(&Value::Double(1234.5), Some("\u{A4} #,##0.00"), Locale::from_tag("es_ES")), "€ 1.234,50");
+    }
+
+    /// What Java 21.0.13 prints for the French regions that differ from France, for -1234567.5
+    /// and 5 July 2026 14:07:09 (the patterns of `french_is_javas`) and a date without a pattern.
+    #[test]
+    fn french_regions_are_javas() {
+        use crate::format::format_value;
+        use crate::value::Value;
+        let when = chrono::NaiveDate::from_ymd_opt(2026, 7, 5).unwrap().and_hms_opt(14, 7, 9).unwrap();
+        // fr_FR's strings with another currency, grouping separator, AM/PM or short date and time.
+        let french = |currency: &str, group: char, pm: &str, short: &str| -> [String; 7] {
+            let number = format!("1{group}234{group}567,50");
+            [
+                format!("-{number}"),
+                format!("-{currency} {number}"),
+                format!("-{number} {currency}"),
+                "dimanche 5 juillet 2026".to_string(),
+                "dim. 5 juil. 26".to_string(),
+                format!("2:07 {pm}"),
+                short.to_string(),
+            ]
+        };
+        let nnbsp = '\u{202F}';
+        let short = "05/07/2026 14:07";
+        // A 12-hour clock in the short date and time.
+        let short_12 = "05/07/2026 2:07\u{202F}PM";
+        let cases = [
+            ("fr_LU", french("\u{20AC}", '.', "PM", short)),
+            ("fr_MA", french("MAD", '.', "p.m.", short)),
+            // West African CFA franc.
+            ("fr_SN", french("F\u{202F}CFA", nnbsp, "PM", short)),
+            ("fr_CI", french("F\u{202F}CFA", nnbsp, "PM", short)),
+            ("fr_BF", french("F\u{202F}CFA", nnbsp, "PM", short)),
+            ("fr_BJ", french("F\u{202F}CFA", nnbsp, "PM", short)),
+            ("fr_NE", french("F\u{202F}CFA", nnbsp, "PM", short)),
+            ("fr_TG", french("F\u{202F}CFA", nnbsp, "PM", short)),
+            ("fr_ML", french("F\u{202F}CFA", nnbsp, "PM", "05/07/2026, 14:07")),
+            // Central African CFA franc.
+            ("fr_GA", french("FCFA", nnbsp, "PM", short)),
+            ("fr_CG", french("FCFA", nnbsp, "PM", short)),
+            ("fr_CF", french("FCFA", nnbsp, "PM", short)),
+            ("fr_GQ", french("FCFA", nnbsp, "PM", short)),
+            ("fr_CM", french("FCFA", nnbsp, "soir", short)),
+            ("fr_TD", french("FCFA", nnbsp, "PM", short_12)),
+            // CFP franc.
+            ("fr_NC", french("FCFP", nnbsp, "PM", short)),
+            ("fr_PF", french("FCFP", nnbsp, "PM", short)),
+            ("fr_WF", french("FCFP", nnbsp, "PM", short)),
+            ("fr_BI", french("FBu", nnbsp, "PM", short)),
+            ("fr_CD", french("FC", nnbsp, "PM", short)),
+            ("fr_GN", french("FG", nnbsp, "PM", short)),
+            ("fr_HT", french("G", nnbsp, "PM", short)),
+            ("fr_KM", french("CF", nnbsp, "PM", short)),
+            ("fr_MG", french("Ar", nnbsp, "PM", short)),
+            ("fr_MU", french("Rs", nnbsp, "PM", short)),
+            ("fr_RW", french("RF", nnbsp, "PM", short)),
+            ("fr_SC", french("SR", nnbsp, "PM", short)),
+            ("fr_DZ", french("DA", nnbsp, "PM", short_12)),
+            ("fr_DJ", french("Fdj", nnbsp, "PM", short_12)),
+            ("fr_SY", french("LS", nnbsp, "PM", short_12)),
+            ("fr_MR", french("UM", nnbsp, "PM", short_12)),
+            ("fr_TN", french("DT", nnbsp, "PM", short_12)),
+            ("fr_VU", french("VT", nnbsp, "PM", short_12)),
+        ];
+        // The strings Java printed for the first ones, written out.
+        assert_eq!(
+            cases[1].1,
+            [
+                "-1.234.567,50",
+                "-MAD 1.234.567,50",
+                "-1.234.567,50 MAD",
+                "dimanche 5 juillet 2026",
+                "dim. 5 juil. 26",
+                "2:07 p.m.",
+                "05/07/2026 14:07"
+            ]
+        );
+        assert_eq!(cases[2].1[1], "-F\u{202F}CFA 1\u{202F}234\u{202F}567,50");
+        let patterns =
+            ["#,##0.00", "\u{A4} #,##0.00", "#,##0.00 \u{A4};-#,##0.00 \u{A4}", "EEEE d MMMM yyyy", "EEE d MMM yy", "h:mm a"];
+        for (tag, expected) in &cases {
+            for alias in [tag.to_string(), tag.replace('_', "-")] {
+                let locale = Locale::from_tag(&alias);
+                assert_eq!(locale.tag, *tag);
+                for (i, pattern) in patterns.iter().enumerate() {
+                    let value = if i < 3 { Value::Double(-1234567.5) } else { Value::Date(when) };
+                    assert_eq!(format_value(&value, Some(pattern), locale), expected[i], "{tag} {pattern}");
+                }
+                assert_eq!(format_value(&Value::Date(when), None, locale), expected[6], "{tag} short");
+            }
+        }
+        // Morocco's short month names.
+        let june = Value::Date(chrono::NaiveDate::from_ymd_opt(2026, 6, 5).unwrap().and_hms_opt(0, 0, 0).unwrap());
+        let february = Value::Date(chrono::NaiveDate::from_ymd_opt(2026, 2, 5).unwrap().and_hms_opt(0, 0, 0).unwrap());
+        assert_eq!(format_value(&june, Some("MMM"), Locale::from_tag("fr_MA")), "jui.");
+        assert_eq!(format_value(&february, Some("MMM"), Locale::from_tag("fr_MA")), "fév.");
+        assert_eq!(format_value(&june, Some("MMM"), Locale::from_tag("fr_LU")), "juin");
     }
 
     /// What Java 21.0.13 prints for Spanish, for -1234567.5 and 5 July 2026 14:07:09 (the

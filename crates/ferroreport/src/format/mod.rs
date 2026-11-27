@@ -15,10 +15,12 @@ use crate::value::Value;
 /// `DateFormat.getDateTimeInstance(SHORT, SHORT)` on Java 21.
 pub fn short_date_time(locale: &Locale) -> &'static str {
     match locale.tag {
-        "fr" | "fr_FR" => "dd/MM/y HH:mm",
         "fr_BE" => "d/MM/yy HH:mm",
         "fr_CA" => "y-MM-dd HH 'h' mm",
         "fr_CH" => "dd.MM.yy HH:mm",
+        "fr_ML" => "dd/MM/y, HH:mm",
+        "fr_DJ" | "fr_DZ" | "fr_MR" | "fr_SY" | "fr_TD" | "fr_TN" | "fr_VU" => "dd/MM/y h:mm\u{202F}a",
+        t if t == "fr" || t.starts_with("fr_") => "dd/MM/y HH:mm",
         "pt" | "pt_BR" => "dd/MM/y HH:mm",
         "pt_PT" => "dd/MM/yy, HH:mm",
         "it" | "it_IT" => "dd/MM/yy, HH:mm",

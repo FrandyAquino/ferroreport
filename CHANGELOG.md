@@ -6,6 +6,14 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 
 ## Unreleased
 
+- The French regions whose formats differ from France's in Java 21.0.13 have their own locale:
+  `fr_LU` and `fr_MA` group digits with a point (`fr_MA` also has `MAD`, `jui.` for June and
+  a.m./p.m.), the CFA franc countries print `F CFA` (fr_SN, fr_CI, fr_BF, fr_BJ, fr_NE, fr_TG,
+  fr_ML) or `FCFA` (fr_GA, fr_CG, fr_CF, fr_GQ, fr_CM, fr_TD), fr_NC, fr_PF and fr_WF `FCFP`, and
+  fr_BI, fr_CD, fr_GN, fr_HT, fr_KM, fr_MG, fr_MU, fr_RW and fr_SC their own currency;
+  fr_DZ, fr_DJ, fr_SY, fr_MR, fr_TN, fr_VU and fr_TD use a 12-hour clock (short date and time,
+  `TIME()`), and `DATERANGE("WEEK")` starts on Saturday in fr_DZ, fr_DJ and fr_SY. Before, these
+  tags printed fr_FR's. Other `fr_` tags (fr_MC, fr_RE...) still take fr_FR's.
 - Thermometer charts are drawn as JasperReports 7 draws them (JFreeChart's `ThermometerPlot`):
   the bulb and stem at their fixed size with both outlines, the mercury and its rounded top,
   the range marks where each range starts in green, orange and red, the axis with whole-number
