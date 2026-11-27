@@ -6,6 +6,10 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 
 ## Unreleased
 
+- JasperReports' own samples measured again (`docs/samples*.json`, README): 76 of the 101
+  comparable 7.1.1 templates come out the same (74 before) and 42 of the 88 6.20.6 ones (41
+  before); the subreport MasterReport sample is the same in both, and the 7.1.1 thermometer
+  sample too, so 21 of the 24 7.1.1 chart samples are.
 - Thermometer charts are drawn as JasperReports 7 draws them (JFreeChart's `ThermometerPlot`):
   the bulb and stem at their fixed size with both outlines, the mercury and its rounded top,
   the range marks where each range starts in green, orange and red, the axis with whole-number
@@ -80,6 +84,10 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   for decimals and `’` between groups), currency, month and day names (Austria's "Jänner"),
   short date and time, `TIME()` without a pattern, and weeks starting on Monday in
   `DATERANGE("WEEK")`. Before, these locales printed `en_US`'s.
+- `migrate --jasper` starts JasperReports in UTC, as its time zone parameter and ferroreport's
+  defaults already are. On a machine in another zone, expressions that use the Java runtime's
+  own zone (`new SimpleDateFormat(...)`, `HOUR`, `DATEFORMAT`) came out shifted in
+  JasperReports only and were reported as differences.
 - `migrate --strict-pixels` (with `--jasper`) fails when a page of a template both engines
   render is a different picture (over 0.15% of its ink), listing each template with its worst
   page, or when the pages could not be compared (no `pdftoppm`). `--strict` and `same` do not
