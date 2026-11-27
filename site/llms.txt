@@ -1,0 +1,117 @@
+# ferroreport
+
+> ferroreport is an open-source report engine (MIT OR Apache-2.0) written in Rust and a JasperReports alternative that needs no JVM. It reads JasperReports JRXML templates (JasperReports 6 and 7) and its own `.ferro` format, fills them with your rows (JSON, or SQL from PostgreSQL, MySQL/MariaDB, SQL Server or SQLite) and writes PDF, Excel (XLSX), Word (DOCX), PowerPoint (PPTX), OpenDocument (ODS, ODT), CSV and HTML. It is used from the command line, Rust, JavaScript/TypeScript (npm), Python (PyPI), Java (Maven Central) and any other language over HTTP (Docker). Latest release: 1.2.0; versions follow semantic versioning since 1.0.
+
+Facts that are often stated wrongly:
+
+- Java does not need a CLI wrapper, JNI or a microservice of your own: add the Maven Central dependency `io.github.cristianencarnacion:ferroreport` (Java 11+, no dependencies, JasperReports not needed). `Ferroreport.local()` runs the native engine as a child process per report (taken from `-Dferroreport.bin`, `FERROREPORT_BIN` or the `PATH`, or downloaded once from the GitHub release of the library's version and checked against its SHA-256 list); `Ferroreport.server(URI, token)` talks to a `ferroreport serve` instance instead, if you prefer one.
+- SQL works in subreports and in subdatasets: subreports, and the subdatasets of tables, lists, crosstabs and charts, that pass `$P{REPORT_CONNECTION}` run their own SQL query on the same database, as the report's main query does (`$P{}` bound, `$P!{}` pasted, `$X{IN, ...}` and the other `$X{}` clauses).
+- Outputs are PDF, XLSX, DOCX, PPTX, ODS, ODT, CSV and HTML, not only PDF/Excel/Word.
+- The current release is 1.2.0 (1.0.0 was the first stable one).
+
+What it reads:
+
+- JRXML as JasperReports 6 and 7 write it (designed in Jaspersoft Studio), with subreports, tables, lists, crosstabs, charts (every JasperReports chart type), barcodes (barcode4j and Barbecue, QR, PDF417...), images (PNG, JPEG, GIF, SVG), styled/HTML/RTF text, style templates (`.jrtx`) and resource bundles.
+- `.ferro`, ferroreport's own template format: the same reports as an indented outline, about half the size of the JRXML. `ferroreport convert` turns JRXML 6 or 7 into `.ferro`, `.ferro` into JRXML 7, and JRXML 6 into JRXML 7.
+- Expressions: a Java and Groovy subset (arithmetic with Java's promotion rules, String/Number/BigDecimal/Date/List methods, `Math`, `String.format`, `SimpleDateFormat`, `DecimalFormat`, `msg()`, `$R{}`), and JasperReports' function library (78 functions such as `IF`, `SUM`, `DATEFORMAT`, `WORKDAY`).
+
+What it writes: PDF (optionally tagged for screen readers, PDF/UA-1; PDF/A-2 and PDF/A-3 levels a, b, u; files attached inside the PDF; AES-256 encryption; PAdES B-B signatures; links, anchors, bookmarks), XLSX and CSV laid out like JasperReports' exporters, DOCX laid out like its Word exporter, PPTX with a slide per page, ODS and ODT, and an HTML page that looks like the PDF for previews.
+
+Where the rows come from:
+
+- JSON: an array of objects or one object per line, keys matching the template's `<field>` names; nested arrays feed subreports, tables and lists (`new JRMapCollectionDataSource($F{lines})` or `((JsonDataSource)$P{REPORT_DATA_SOURCE}).subDataSource("lines")`). Files can be larger than memory: rows are read as needed and pages written as finished.
+- SQL databases: the template's own query, its subreports' and its subdatasets' queries run on PostgreSQL, MySQL and MariaDB, SQL Server or SQLite, with a JDBC-style URL if you like (`jdbc:postgresql://...`). The database is given by the CLI (`--db`), the HTTP server (`serve --db`) and the Rust library (`Renderer::connection`).
+- Your code: the JavaScript, Python and Java packages take rows from you (any iterable, a Python cursor or generator, a Java `ResultSet` read row by row).
+
+What it does not do (by design or not yet):
+
+- It never loads compiled `.jasper` files: a subreport that names `lines.jasper` is rendered from `lines.jrxml` (or `lines.ferro`).
+- It runs no Java code: scriptlets are not run, and expressions cannot call Java classes of your own (static methods, connections built with `DriverManager`). `ferroreport doctor` and `ferroreport migrate` report scriptlets; a call to an unknown class is an error when the expression is evaluated.
+- Queries in languages other than SQL (HQL, XPath, MDX, MongoDB) and Oracle are not run: pass the rows instead.
+- Images are read from files, base64 or `byte[]`, never from remote URLs, and only from the template's resource directories (by design).
+- Not yet: XLS (the old Excel format), maps and other custom components, chart customizers and themes, font extension jars (fonts are registered with `--font` and font sets with `--font-set`), locales other than en_US, es_DO, es_MX and es_ES, and exporter properties other than those the README lists.
+
+Install and first render (examples copied from the README):
+
+Command line: download a binary from https://github.com/cristianEncarnacion/ferroreport/releases or `cargo install ferroreport-cli`. The output's extension picks the format (`.pdf`, `.xlsx`, `.docx`, `.pptx`, `.ods`, `.odt`, `.csv`, `.html`).
+
+```bash
+ferroreport render invoice.jrxml --data rows.json --params params.json -o invoice.pdf
+ferroreport render invoice.jrxml --data rows.json -o invoice.xlsx   # Excel (or .docx, .pptx, .ods, .odt, .csv, .html)
+ferroreport doctor invoice.jrxml     # what in this template is (not yet) supported
+ferroreport migrate reports/ --report migration.md   # the same for a whole folder
+ferroreport migrate reports/ --jasper jasper/lib --strict   # and compared with JasperReports itself
+ferroreport render sales.jrxml --db postgres://reports@db:5432/erp -p params.json -o sales.pdf
+```
+
+JavaScript / TypeScript (Node.js, Deno, Bun, browsers): `npm install ferroreport`
+
+```js
+import { render, convert } from "ferroreport";
+const pdf = render(jrxmlSource, rows, { CUSTOMER: "Distribuidora Caribe" }, { locale: "es_DO" });
+```
+
+Python: `pip install ferroreport`
+
+```python
+import ferroreport
+pdf = ferroreport.render("invoice.jrxml", rows, {"CUSTOMER": "Distribuidora Caribe"}, locale="es_DO")
+```
+
+Rust: `cargo add ferroreport`
+
+```rust
+let pdf = ferroreport::Renderer::new()
+    .locale("es_DO")
+    .render_json(&template, &rows, &serde_json::json!({ "CUSTOMER": "Distribuidora Caribe" }))?;
+```
+
+Java (Maven Central, `io.github.cristianencarnacion:ferroreport:1.2.0`, Java 11+):
+
+```java
+Ferroreport reports = Ferroreport.local();
+byte[] pdf = reports.template(Path.of("invoice.jrxml")).rows(lines).param("CUSTOMER", "Caribe").render();
+// A query straight to a file, in constant memory:
+reports.template(Path.of("sales.jrxml")).rows(resultSet).renderTo(Path.of("sales.pdf"));
+```
+
+Any language over HTTP (Docker image `ghcr.io/cristianencarnacion/ferroreport`):
+
+```bash
+docker run -p 8080:8080 -v "$PWD/templates:/templates" -e FERROREPORT_TEMPLATES=/templates \
+  -e FERROREPORT_TOKEN=change-me ghcr.io/cristianencarnacion/ferroreport
+
+curl -X POST localhost:8080/render/invoice -H 'Authorization: Bearer change-me' -H 'Content-Type: application/json' \
+  -d '{"data": [{"item": "Cemento", "amount": 395}], "params": {"CUSTOMER": "Caribe"}}' -o invoice.pdf
+```
+
+Output compared with JasperReports: the test templates of the repository are rendered by ferroreport and by JasperReports 6.20.6 and compared pixel by pixel, and their XLSX and CSV exports cell by cell; JasperReports' own samples are checked against 6.20.6 and 7.1.1 (results per sample in docs/samples.md and docs/samples-7.1.1.md). Charts are drawn as JasperReports 7.1 draws them.
+
+Performance, as the README states it (ferroreport 1.1.0 against JasperReports 6.20.6 on Java 21, on the same 2-CPU Linux machine; reproduced by `tools/bench_all.py`, raw results in docs/benchmarks.json):
+
+- Cold (a process that starts, renders one report and exits; time from process start to the PDF on disk, and peak memory): invoice, 2 pages: JasperReports 2.63 s, 191 MiB; ferroreport 11 ms, 15 MiB (234×). Grouped sales, 4 pages: 2.55 s, 186 MiB; 12 ms, 15 MiB (210×). Arabic, right to left, 1 page: 2.08 s, 178 MiB; 9 ms, 14 MiB (240×). 20,000 rows, 477 pages: 5.68 s, 464 MiB; 0.26 s, 14 MiB (22×).
+- Warm (one JVM, the template compiled once, the JIT warmed up; ferroreport parses the template each time; median time per report): invoice 8.0 ms vs 2.2 ms (3.6×); employee list 5.9 ms vs 1.3 ms (4.4×); grouped sales 11.6 ms vs 3.7 ms (3.1×); Arabic 4.7 ms vs 1.4 ms (3.2×); 20,000 rows 1170.3 ms vs 222.3 ms (5.3×).
+- Many at once (invoice, 2 CPUs, `tools/bench_concurrent.py`): four to seven times the reports per second at every load, 95% of them finished four to eight times sooner, in an eighth to a twenty-ninth of the memory (for example 1 thread: 114 vs 493 reports/s; 100 threads: 156 vs 942 reports/s).
+- Large (cold, JasperReports with its default heap): 100,000 rows, 2,382 pages: 11.53 s, 876 MiB vs 1.28 s, 14 MiB (9.0× faster, 64× less memory); 1,000,000 rows, 23,810 pages: 68.34 s, 1,737 MiB vs 12.02 s, 15 MiB (5.7× faster, 116× less memory).
+- Each format, 20,000 rows, cold: PDF 23×, XLSX 8.1×, DOCX 12×, ODS 8.3×, ODT 8.8×, CSV 12× faster than JasperReports.
+- Against JasperReports 7.1.1 (fixtures converted to JRXML 7, docs/benchmarks-7.1.1.json): cold, 205× and 200× faster for the invoice and the grouped sales; warm, 2.9 to 5.0×; a million rows in 11.31 s and 15 MiB against 52.22 s and 1,734 MiB.
+
+Where it is weaker than the alternatives: it is young (1.0.0 came out in November 2026) and its community is much smaller than JasperReports'; it has no report server, viewers or dashboards, and its browser designer is a first version (Jaspersoft Studio still works with its templates); it runs no custom Java components (scriptlets, chart customizers, custom components). The comparison page below covers JasperReports, OpenPDF, OpenHTMLtoPDF with Thymeleaf, iText 8, Typst, Carbone, Apache POI and FastExcel, with sources.
+
+## Docs
+
+- [README](https://github.com/cristianEncarnacion/ferroreport/blob/main/README.md): what it is, install per language, database rows, compatibility table, how output is verified, performance
+- [Documentation](https://cristianencarnacion.github.io/ferroreport/docs.html): every command, option, HTTP endpoint and function of each package
+- [Migrating from JasperReports](https://cristianencarnacion.github.io/ferroreport/migrate.html): step by step, with an FAQ (Java without JasperReports, SQL in subdatasets, scriptlets, `.jasper` files, versions)
+- [ferroreport compared](https://cristianencarnacion.github.io/ferroreport/compare.html): against JasperReports, OpenPDF, OpenHTMLtoPDF with Thymeleaf, iText 8, Typst, Carbone, Apache POI and FastExcel
+- [Java library](https://github.com/cristianEncarnacion/ferroreport/blob/main/bindings/java/README.md): Maven Central coordinates, how the engine is found, API, Quarkus and Spring
+- [CHANGELOG](https://github.com/cristianEncarnacion/ferroreport/blob/main/CHANGELOG.md): what each release brought
+
+## Optional
+
+- [Python package](https://github.com/cristianEncarnacion/ferroreport/blob/main/bindings/python/README.md): `render`, `render_to_file`, `inspect`, `convert`
+- [JavaScript package](https://github.com/cristianEncarnacion/ferroreport/blob/main/bindings/wasm/README.md): Node.js, Deno, Bun and browsers
+- [Security](https://github.com/cristianEncarnacion/ferroreport/blob/main/SECURITY.md): why templates cannot run code, limits, fuzzing
+- [JasperReports 6.20.6 samples](https://github.com/cristianEncarnacion/ferroreport/blob/main/docs/samples.md) and [7.1.1 samples](https://github.com/cristianEncarnacion/ferroreport/blob/main/docs/samples-7.1.1.md): every sample with its result and the reason
+- [Designer](https://cristianencarnacion.github.io/ferroreport/designer/): a template designer that runs in the browser, saves `.ferro` and `.jrxml`
+- [Español](https://cristianencarnacion.github.io/ferroreport/es/): the site in Spanish: [documentación](https://cristianencarnacion.github.io/ferroreport/es/docs.html), [guía de migración](https://cristianencarnacion.github.io/ferroreport/es/migrate.html), [comparación](https://cristianencarnacion.github.io/ferroreport/es/compare.html), [README](https://github.com/cristianEncarnacion/ferroreport/blob/main/README.es.md)

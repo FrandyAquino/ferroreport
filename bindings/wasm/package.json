@@ -1,7 +1,7 @@
 {
   "name": "ferroreport",
   "version": "1.2.0",
-  "description": "Report engine for Node.js, Deno, Bun and browsers: PDF, Excel (XLSX), Word (DOCX) and CSV in milliseconds. Reads JasperReports JRXML templates with pixel-identical output, no JVM, safe with untrusted templates.",
+  "description": "Report engine and JasperReports alternative for Node.js, Deno, Bun and browsers: reads JasperReports JRXML templates without a JVM and writes PDF, Excel (XLSX), Word (DOCX), PowerPoint (PPTX), OpenDocument (ODS, ODT), CSV and HTML in milliseconds, pixel-identical to JasperReports. Safe with untrusted templates.",
   "license": "MIT OR Apache-2.0",
   "author": "Cristian Encarnacion",
   "homepage": "https://cristianencarnacion.github.io/ferroreport/",
@@ -11,7 +11,7 @@
     "directory": "bindings/wasm"
   },
   "bugs": "https://github.com/cristianEncarnacion/ferroreport/issues",
-  "keywords": ["jasperreports", "jrxml", "pdf", "excel", "xlsx", "csv", "report", "reporting", "invoice", "pdf-generation", "charts", "qrcode", "wasm", "fast"],
+  "keywords": ["jasperreports", "jasperreports alternative", "jrxml", "jrxml to pdf", "pdf", "excel", "xlsx", "docx", "pptx", "ods", "odt", "csv", "report", "reporting", "invoice", "pdf-generation", "charts", "qrcode", "wasm", "fast"],
   "main": "./node/ferroreport.js",
   "types": "./node/ferroreport.d.ts",
   "exports": {

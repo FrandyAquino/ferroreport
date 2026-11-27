@@ -1,7 +1,8 @@
 # ferroreport for Java
 
 **Reports in milliseconds from Java**: a template and your rows in; a PDF, an Excel workbook, a
-CSV or a web page out. Templates are the JasperReports `.jrxml` files you already have, rendered
+Word document, a PowerPoint presentation, an OpenDocument spreadsheet or text, a CSV or a web
+page out. Templates are the JasperReports `.jrxml` files you already have, rendered
 without JasperReports (or anything else) on your classpath: this library has no dependencies.
 
 Rows are read from a `ResultSet` or any `Iterable` as the report needs them and pages are
@@ -28,28 +29,26 @@ try (ResultSet sales = statement.executeQuery("select * from sales order by regi
 
 ## Install
 
-Until the library is on Maven Central, it is built from this repository's releases by
-[JitPack](https://jitpack.io):
+From Maven Central:
 
 ```xml
-<repositories>
-  <repository><id>jitpack.io</id><url>https://jitpack.io</url></repository>
-</repositories>
-
 <dependency>
-  <groupId>com.github.cristianEncarnacion</groupId>
+  <groupId>io.github.cristianencarnacion</groupId>
   <artifactId>ferroreport</artifactId>
-  <version>v1.2.0</version>
+  <version>1.2.0</version>
 </dependency>
 ```
 
 ```kotlin
 // Gradle
-repositories { maven("https://jitpack.io") }
-dependencies { implementation("com.github.cristianEncarnacion:ferroreport:v1.2.0") }
+dependencies { implementation("io.github.cristianencarnacion:ferroreport:1.2.0") }
 ```
 
-Java 11 or newer.
+Java 11 or newer. The library has no dependencies; JasperReports is not needed. (JitPack builds
+it from this repository's releases too, as `com.github.cristianEncarnacion:ferroreport:v1.2.0`.)
+Coming from `JasperFillManager`? The
+[migration guide](https://cristianencarnacion.github.io/ferroreport/migrate.html) shows the same
+call with this library, step by step.
 
 ## The engine
 
@@ -86,7 +85,7 @@ byte[] pdf = reports.named("invoice").rows(lines).param("CUSTOMER", "Caribe").re
 | `.rows(Iterable)`, `.rows(ResultSet)` | The rows, read one at a time. Maps of field name to value; nested Maps and Lists feed subreports and tables |
 | `.param(name, value)`, `.params(Map)` | Report parameters |
 | `.locale("es_DO")`, `.now(LocalDateTime)` | Number and date formatting; the value of `new Date()` in expressions |
-| `.format(Format.PDF \| XLSX \| CSV \| HTML)` | The output format (`renderTo(Path)` goes by the extension) |
+| `.format(Format.PDF \| XLSX \| DOCX \| PPTX \| ODS \| ODT \| CSV \| HTML)` | The output format (`renderTo(Path)` goes by the extension) |
 | `.maxPages(n)`, `.timeout(Duration)` | Stop a report that grows past what you expect (local engine; a server has its own limits) |
 | `.csvSafe(true)`, `.xlsxNumbers(true)` | Guard CSV against spreadsheet formulas in the data; numbers as numbers in Excel and ODS |
 | `.tagged(true)` | A tagged PDF, for screen readers: texts as paragraphs, pictures as figures |

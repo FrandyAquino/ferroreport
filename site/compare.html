@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JasperReports alternatives compared: ferroreport, OpenPDF, OpenHTMLtoPDF, iText, Typst, Carbone, Apache POI</title>
+<link rel="canonical" href="https://cristianencarnacion.github.io/ferroreport/compare.html">
+<link rel="alternate" hreflang="en" href="https://cristianencarnacion.github.io/ferroreport/compare.html">
+<link rel="alternate" hreflang="es" href="https://cristianencarnacion.github.io/ferroreport/es/compare.html">
+<link rel="alternate" hreflang="x-default" href="https://cristianencarnacion.github.io/ferroreport/compare.html">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://cristianencarnacion.github.io/ferroreport/compare.html">
+<meta property="og:site_name" content="ferroreport">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="es_LA">
+<meta property="og:title" content="ferroreport and the JasperReports alternatives">
+<meta property="og:description" content="ferroreport, JasperReports, OpenPDF, OpenHTMLtoPDF with Thymeleaf, iText 8, Typst, Carbone, Apache POI and FastExcel: licenses, languages, templates, outputs, and where each one fits.">
+<meta property="og:image" content="https://cristianencarnacion.github.io/ferroreport/img/invoice.png">
+<meta name="description" content="ferroreport compared with JasperReports, OpenPDF, OpenHTMLtoPDF with Thymeleaf, iText 8, Typst, Carbone, Apache POI and FastExcel: license, language, how templates are made, outputs, whether your JRXML is reused, and where ferroreport is weaker. With sources.">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "ferroreport and the JasperReports alternatives", "description": "ferroreport compared with JasperReports, OpenPDF, OpenHTMLtoPDF with Thymeleaf, iText 8, Typst, Carbone, Apache POI and FastExcel.", "inLanguage": "en", "url": "https://cristianencarnacion.github.io/ferroreport/compare.html", "about": {"@type": "SoftwareSourceCode", "name": "ferroreport", "codeRepository": "https://github.com/cristianEncarnacion/ferroreport"}, "author": {"@type": "Person", "name": "Cristian Encarnación"}}</script>
+<link rel="preload" href="fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="site.css">
+<script src="highlight.js" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="./">ferro<span>report</span></a>
+    <nav>
+      <a class="wide" href="./#playground">Playground</a>
+      <a class="wide" href="migrate.html">Migrate</a>
+      <a class="wide" href="compare.html" aria-current="page">Compare</a>
+      <a href="designer/">Designer</a>
+      <a href="docs.html">Docs</a>
+      <a href="https://github.com/cristianEncarnacion/ferroreport">GitHub</a>
+      <span class="lang" role="group" aria-label="Language">
+        <a href="compare.html" hreflang="en" lang="en" aria-label="English" aria-current="true">EN</a>
+        <a href="es/compare.html" hreflang="es" lang="es" aria-label="Español">ES</a>
+      </span>
+    </nav>
+  </header>
+
+  <div class="docs">
+    <nav class="toc" aria-label="Comparison sections">
+      <b>Comparison</b>
+      <a href="#summary">At a glance</a>
+      <a href="#jasperreports">JasperReports</a>
+      <a href="#openpdf">OpenPDF</a>
+      <a href="#openhtmltopdf">OpenHTMLtoPDF and Thymeleaf</a>
+      <a href="#itext">iText 8</a>
+      <a href="#typst">Typst</a>
+      <a href="#carbone">Carbone</a>
+      <a href="#spreadsheets">Apache POI and FastExcel</a>
+      <a href="#weaker">Where ferroreport is weaker</a>
+      <a href="#sources">Sources</a>
+      <b>More</b>
+      <a href="migrate.html">Migrating from JasperReports</a>
+      <a href="docs.html">Documentation</a>
+    </nav>
+
+    <article class="doc">
+      <h1>ferroreport and the alternatives</h1>
+      <p>ferroreport is a report engine: rows in, documents out, many of them, the same every time. It reads JasperReports' JRXML templates
+        without a JVM and writes PDF, Excel, Word, PowerPoint, OpenDocument, CSV and HTML. The tools below are the ones it is usually weighed
+        against. They do different jobs, so the right one depends on what you make; this page says where each fits, including where
+        ferroreport does not. What it says of the other projects comes from their own sites and repositories, listed under
+        <a href="#sources">Sources</a> (read in November 2026). Speed is given only for ferroreport against JasperReports, as measured in the
+        <a href="https://github.com/cristianEncarnacion/ferroreport#performance">README</a>; the others were not measured.</p>
+
+      <h2 id="summary">At a glance</h2>
+      <div class="table-scroll">
+      <table>
+        <tr><th>Tool</th><th>License</th><th>Language</th><th>Templates are</th><th>Writes</th><th>Reads your JRXML</th></tr>
+        <tr><td><b>ferroreport</b></td><td>MIT or Apache-2.0</td><td>Rust; packages for JavaScript, Python and Java, a CLI, an HTTP server</td>
+          <td>JRXML (from Jaspersoft Studio), <code>.ferro</code> text, or a browser designer</td><td>PDF, XLSX, DOCX, PPTX, ODS, ODT, CSV, HTML</td><td>Yes, as they are (JRXML 6 and 7)</td></tr>
+        <tr><td>JasperReports</td><td>LGPL-3.0</td><td>Java</td><td>JRXML, designed in Jaspersoft Studio, compiled before filling</td>
+          <td>PDF, HTML, XLSX, DOCX, PPTX, ODT, ODS, RTF, CSV, XML, text</td><td>It is the JRXML engine</td></tr>
+        <tr><td>OpenPDF</td><td>MPL-2.0 or LGPL-2.1+ (its HTML module LGPL-2.1)</td><td>Java</td><td>Java code; HTML and CSS through <code>openpdf-html</code></td><td>PDF</td><td>No</td></tr>
+        <tr><td>OpenHTMLtoPDF + Thymeleaf</td><td>LGPL-2.1 or later; Thymeleaf Apache-2.0</td><td>Java</td><td>XHTML and CSS, filled by Thymeleaf</td><td>PDF, images</td><td>No</td></tr>
+        <tr><td>iText 8</td><td>AGPL-3.0 or commercial</td><td>Java, .NET</td><td>Code; HTML and CSS with the pdfHTML add-on</td><td>PDF</td><td>No</td></tr>
+        <tr><td>Typst</td><td>Apache-2.0</td><td>Rust</td><td>Typst markup, with a scripting language</td><td>PDF, PNG, SVG; HTML experimental</td><td>No</td></tr>
+        <tr><td>Carbone</td><td>Carbone Community License (source-available); paid Enterprise Edition</td><td>Node.js</td><td>DOCX, ODT, XLSX, ODS, PPTX... made in Word or LibreOffice, with <code>{d.field}</code> tags</td>
+          <td>PDF, DOCX, XLSX, ODT, PPTX, ODS, XML, CSV (PDF through a converter such as LibreOffice)</td><td>No</td></tr>
+        <tr><td>Apache POI</td><td>Apache-2.0</td><td>Java</td><td>Code</td><td>XLS, XLSX; Word and PowerPoint files, with less coverage</td><td>No</td></tr>
+        <tr><td>FastExcel</td><td>Apache-2.0</td><td>Java</td><td>Code</td><td>XLSX</td><td>No</td></tr>
+      </table>
+      </div>
+
+      <h2 id="jasperreports">JasperReports</h2>
+      <p>The Java reporting library ferroreport follows, under LGPL-3.0: JRXML templates designed in Jaspersoft Studio, compiled and filled from
+        a data source, with exporters for PDF, HTML, Excel, Word, PowerPoint, OpenDocument, RTF, CSV, XML and text. It has a long record in
+        production, a large community, and Jaspersoft Studio and Server around it.</p>
+      <p><b>Against it, ferroreport</b> renders the same templates without a JVM and gives the same pages, pixel for pixel, on every comparable
+        test template of its repository. The README measures it about 200 times faster from a cold start (a 2-page invoice: 2.63 s and 191 MiB
+        for JasperReports 6.20.6, 11 ms and 15 MiB for ferroreport) and 3 to 5 times faster than a warm JVM (that invoice: 8.0 ms against
+        2.2 ms), and a million rows in 12.02 s and 15 MiB against 68.34 s and 1,737 MiB. Templates cannot run code: expressions come from a
+        fixed list and nothing is deserialized. <b>It does not</b> run scriptlets or Java classes of your own, load <code>.jasper</code> files,
+        or write XLS, RTF, XML or text, and it has no report server. The <a href="migrate.html">migration guide</a> covers moving a project.</p>
+
+      <h2 id="openpdf">OpenPDF</h2>
+      <p>A Java library for PDF files, under MPL-2.0 or LGPL-2.1 (or later): its core is a fork of iText made in 2016, before iText's license
+        changed, and its <code>openpdf-html</code> module, a fork of Flying Saucer under LGPL-2.1 only, renders HTML and CSS. You build the
+        document in code (paragraphs, tables, images, fonts) or as HTML. Since the 2.1 branch it needs Java 21. The JasperReports 6.20.6 and
+        7.1.1 distributions write their PDFs with a Jaspersoft build of OpenPDF.</p>
+      <p><b>Pick it</b> to build PDFs from Java code. <b>Pick ferroreport</b> when the documents are reports (bands, groups, totals,
+        "page X of Y", crosstabs, charts) that someone designs rather than codes, when you need Excel or Word from the same template, or when
+        you already have JRXML.</p>
+
+      <h2 id="openhtmltopdf">OpenHTMLtoPDF with Thymeleaf</h2>
+      <p>OpenHTMLtoPDF renders well-formed XHTML (and some HTML5) with CSS 2.1 to PDF or images, in Java, under LGPL-2.1 or later. Flexbox and
+        grid layouts are not supported. The original repository's last release is 1.0.10 (September 2021); a community fork goes on from it
+        (1.1.8, April 2024). It is often paired with Thymeleaf (Apache-2.0), a Java template engine, to put the data in the page.</p>
+      <p><b>Pick it</b> when your team writes HTML and CSS and the documents are page-like (letters, receipts, simple invoices). <b>Pick
+        ferroreport</b> for reports whose pages depend on the data: groups that start a new page, headers repeated on every page, running and
+        page totals, values known only at the end of the report, crosstabs and charts, which in HTML you program yourself; and when you want
+        spreadsheets or Word from the same template.</p>
+
+      <h2 id="itext">iText 8</h2>
+      <p>A PDF library for Java and .NET (C#) that creates PDFs and manipulates existing ones (splitting, merging, filling forms), under
+        AGPL-3.0 or a commercial license; under the AGPL, software built with it must be released under the same terms. Its pdfHTML add-on,
+        under the same dual license, converts HTML and CSS to PDF and PDF/A. iText Core 9 is now the current major version, with the same
+        licensing.</p>
+      <p><b>Pick it</b> for PDF manipulation (forms, editing, merging) with a commercial license, or in an AGPL project. <b>Pick
+        ferroreport</b> to generate reports from templates under MIT or Apache-2.0, with PDF/A, PDF/UA, encryption and signatures in the
+        open-source engine, and other formats besides PDF.</p>
+
+      <h2 id="typst">Typst</h2>
+      <p>A typesetting system written in Rust, under Apache-2.0: documents are written in Typst's markup, which has a scripting language built
+        in, and compiled to PDF, PNG or SVG; HTML export is experimental, behind a feature flag, and not meant for production yet. Its company
+        was founded in Berlin in 2023, and it has a community and a package ecosystem (Typst Universe). It sets text better than a report
+        engine does (paragraph layout, hyphenation, math).</p>
+      <p><b>Pick it</b> for documents written by people: papers, books, letters, technical documents. <b>Pick ferroreport</b> for data reports
+        (bands, groups, variables, late values, a million rows streamed in flat memory), for spreadsheets and Word documents, and to reuse
+        JRXML. In Typst you would program the report logic yourself.</p>
+
+      <h2 id="carbone">Carbone</h2>
+      <p>A report generator for Node.js whose templates are office documents (DOCX, ODT, XLSX, ODS, PPTX...) made in Word or LibreOffice, with
+        tags such as <code>{d.companyName}</code> where the JSON data goes. It writes PDF, DOCX, XLSX, ODT, PPTX, ODS, XML and CSV; PDF and
+        conversion to another format go through a converter (LibreOffice; version 5 can also use Chrome or OnlyOffice). The Community Edition is source-available under the
+        Carbone Community License, which does not allow offering it to others as a hosted document-generation service, and it is one major
+        version behind the paid Enterprise Edition.</p>
+      <p><b>Pick it</b> when business users design the templates in Word or LibreOffice. <b>Pick ferroreport</b> when templates come from
+        Jaspersoft Studio or are written as text, when you want an OSI license (MIT or Apache-2.0), PDF without an office suite installed, or
+        the band and group model of JasperReports.</p>
+
+      <h2 id="spreadsheets">Apache POI and FastExcel, for spreadsheets</h2>
+      <p>Apache POI (Apache-2.0) is the Java library for Microsoft Office formats: it reads and writes XLS and XLSX, writes very large XLSX files
+        with its streaming SXSSF API, and reads and writes Word and PowerPoint files with less coverage. FastExcel (Apache-2.0) is a Java
+        library that writes XLSX with a small memory footprint and basic styles, no charts yet, and reads the cell content of XLSX files. Both
+        build the workbook in code, cell by cell.</p>
+      <p><b>Pick them</b> for spreadsheets that are data more than layout, or to read and change existing workbooks. <b>Pick ferroreport</b>
+        when the spreadsheet is a report: the same template gives the PDF and the workbook, laid out like JasperReports' exporter (merged
+        cells, fonts, borders, images, charts as pictures) and written as it is made. ferroreport does not read workbooks and does not write
+        XLS.</p>
+
+      <h2 id="weaker">Where ferroreport is weaker</h2>
+      <ul>
+        <li><b>Maturity.</b> Its first stable release, 1.0.0, came out in November 2026, and the current one is 1.2.0. JasperReports, iText,
+          Apache POI and OpenPDF have far longer records in production.</li>
+        <li><b>Community.</b> Much smaller than JasperReports', iText's, Apache POI's or Typst's: fewer people to answer questions, fewer
+          articles, fewer integrations.</li>
+        <li><b>Custom Java components.</b> It never runs Java code: no scriptlets, no static methods of your own in expressions, no custom
+          components, maps, chart customizers or chart themes, no font extension jars. Templates that depend on them need changes
+          (<a href="migrate.html#java-code">how</a>).</li>
+        <li><b>Tooling.</b> No report server, viewers or dashboards, and its browser designer is a first version (fields, text, shapes, images,
+          styles; not yet charts, tables or groups). Jaspersoft Studio still works for its templates.</li>
+        <li><b>Coverage.</b> No XLS, RTF, XML or text output; number and date formats for en_US, es_DO, es_MX and es_ES only; SQL queries
+          only (no HQL, XPath, MDX), on PostgreSQL, MySQL and MariaDB, SQL Server and SQLite; it does not read or edit existing PDFs or
+          workbooks.</li>
+      </ul>
+      <p>What is supported and what is not yet is listed in the
+        <a href="https://github.com/cristianEncarnacion/ferroreport#compatibility">compatibility table</a>, and
+        <code>ferroreport doctor</code> gives the answer for one template.</p>
+
+      <h2 id="sources">Sources</h2>
+      <ul>
+        <li>JasperReports: <a href="https://github.com/TIBCOSoftware/jasperreports">repository</a> (license, description, export formats); the
+          exporters listed and the OpenPDF build are those of the JasperReports 6.20.6 and 7.1.1 jars this project tests against.</li>
+        <li>OpenPDF: <a href="https://github.com/LibrePDF/OpenPDF">repository</a> (licenses, modules, Java version, fork history).</li>
+        <li>OpenHTMLtoPDF: <a href="https://github.com/openhtmltopdf/openhtmltopdf">community fork</a> and
+          <a href="https://github.com/danfickle/openhtmltopdf">original repository</a> (license, CSS support, releases). Thymeleaf:
+          <a href="https://github.com/thymeleaf/thymeleaf">repository</a> (license).</li>
+        <li>iText: <a href="https://itextpdf.com/products/itext-core">iText Core</a> (versions, languages, licensing) and
+          <a href="https://github.com/itext/i7j-pdfhtml">pdfHTML repository</a> (license, HTML to PDF and PDF/A).</li>
+        <li>Typst: <a href="https://github.com/typst/typst">repository</a> (license, language),
+          <a href="https://typst.app/docs/reference/png/">export formats</a>, <a href="https://typst.app/docs/reference/html/">HTML export</a>,
+          <a href="https://typst.app/about/">about</a>.</li>
+        <li>Carbone: <a href="https://github.com/carboneio/carbone">repository</a> (templates, outputs, converters, editions) and its
+          <a href="https://github.com/carboneio/carbone/blob/master/LICENSE.md">license</a>.</li>
+        <li>Apache POI: <a href="https://poi.apache.org/components/">components</a>,
+          <a href="https://poi.apache.org/components/spreadsheet/">spreadsheets and SXSSF</a>, <a href="https://poi.apache.org/legal.html">legal</a>.</li>
+        <li>FastExcel: <a href="https://github.com/dhatim/fastexcel">repository</a> and its
+          <a href="https://github.com/dhatim/fastexcel/blob/master/LICENSE">license</a>.</li>
+        <li>ferroreport: <a href="https://github.com/cristianEncarnacion/ferroreport/blob/main/README.md">README</a> (compatibility, how output
+          is verified, performance) and <a href="https://github.com/cristianEncarnacion/ferroreport/blob/main/CHANGELOG.md">CHANGELOG</a>.</li>
+      </ul>
+    </article>
+  </div>
+
+  <footer>
+    ferroreport is independent and not affiliated with Jaspersoft or Cloud Software Group. JasperReports is a trademark of Cloud Software Group, Inc.
+    Other names are trademarks of their owners.
+    <a href="https://github.com/cristianEncarnacion/ferroreport">Source on GitHub</a>, MIT or Apache-2.0.
+  </footer>
+</div>
+</body>
+</html>
