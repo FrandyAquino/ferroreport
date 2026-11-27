@@ -1394,6 +1394,9 @@ fn v7_chart(e: &Node) -> Node {
                         .collect(),
                     ..c.clone()
                 }),
+                // JRXML 7 puts a meter's tick label font on <tickLabelFont> itself; JRXML 6 in
+                // a <font> inside it.
+                "tickLabelFont" => children.push(node("tickLabelFont", Vec::new(), vec![renamed(c, "font")])),
                 "axis" => {
                     let position =
                         c.attr("position").or_else(|| c.child("position").map(|p| p.text.trim())).unwrap_or("leftOrTop");
@@ -1407,6 +1410,35 @@ fn v7_chart(e: &Node) -> Node {
         out.push(node(&format!("{chart_type}Plot"), p.attrs.clone(), children));
     }
     node(&format!("{chart_type}Chart"), Vec::new(), out)
+}
+
+/// A meter's plot as JasperReports hands it to JFreeChart's `MeterPlot`: only what the
+/// template sets, and `MeterPlot`'s own defaults for the rest. A black dial (`meterColor`,
+/// not the plot's backcolor, which the meter does not draw), white ticks, a green needle, the
+/// value in yellow SansSerif bold 12 and the tick labels in SansSerif bold 10.
+fn meter_defaults(d: &mut crate::chart::DialPlot, pn: &Node, font: &FontSpec) {
+    let sans = |size: f32| FontSpec {
+        name: "SansSerif".into(),
+        size,
+        bold: true,
+        italic: false,
+        underline: false,
+        strike: false,
+        pdf_font: None,
+    };
+    let display = pn.child("valueDisplay");
+    d.background = pn.attr("meterColor").and_then(parse_color);
+    d.needle = pn.attr("needleColor").and_then(parse_color).unwrap_or(Color { r: 0, g: 0xFF, b: 0 });
+    d.tick_color = pn.attr("tickColor").and_then(parse_color).unwrap_or(Color::WHITE);
+    d.value_color = display.and_then(|d| d.attr("color")).and_then(parse_color).unwrap_or(Color { r: 0xFF, g: 0xFF, b: 0 });
+    d.value_font = match display.filter(|d| d.child("font").is_some()) {
+        Some(_) => font_from(display, font),
+        None => sans(12.0),
+    };
+    d.tick_font = match pn.child("tickLabelFont").filter(|t| t.child("font").is_some()) {
+        Some(t) => font_from(Some(t), font),
+        None => sans(10.0),
+    };
 }
 
 /// `<element kind="component">` (JRXML 7), when this engine can draw it.
@@ -1653,6 +1685,13 @@ impl Parser {
             },
             _ => None,
         };
+        let dial = match (dial, plot_node) {
+            (Some(mut d), Some(pn)) if kind == ChartKind::Meter => {
+                meter_defaults(&mut d, pn, &font);
+                Some(d)
+            }
+            (d, _) => d,
+        };
         let mut axes = Vec::new();
         if kind == ChartKind::MultiAxis {
             for a in plot_node.into_iter().flat_map(|p| p.children_named("axis")) {
@@ -1678,6 +1717,11 @@ impl Parser {
                 .or_else(|| self.chart_render_type.clone())
                 .as_deref()
                 == Some("svg"),
+            meter_shape: match plot_node.and_then(|p| p.attr("shape")) {
+                Some("chord") => crate::chart::MeterShape::Chord,
+                Some("circle") => crate::chart::MeterShape::Circle,
+                _ => crate::chart::MeterShape::Pie,
+            },
         };
         let element = ChartElement {
             dial,
