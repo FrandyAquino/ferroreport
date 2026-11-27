@@ -32,6 +32,17 @@ pub struct EvalEnv<'a> {
     pub now: NaiveDateTime,
 }
 
+/// How the message of a Java `NullPointerException` starts: a method called on null, null in
+/// arithmetic or a comparison, null used as a boolean. JasperReports catches those around a
+/// whole expression and gives null (`net.sf.jasperreports.evaluator.ignore.npe`, true by
+/// default); the filler does the same with [`is_null_pointer`].
+pub(crate) const NULL_POINTER: &str = "NullPointerException: ";
+
+/// Whether `e` is what Java would throw as a `NullPointerException`.
+pub(crate) fn is_null_pointer(e: &Error) -> bool {
+    matches!(e, Error::Eval(m) if m.starts_with(NULL_POINTER))
+}
+
 pub fn eval(expr: &Expr, scope: &dyn Scope, env: &EvalEnv) -> Result<Value> {
     match expr {
         Expr::Lit(v) => Ok(v.clone()),
@@ -53,6 +64,7 @@ pub fn eval(expr: &Expr, scope: &dyn Scope, env: &EvalEnv) -> Result<Value> {
                     Value::Float(f) => Ok(Value::Float(-f)),
                     Value::Double(f) => Ok(Value::Double(-f)),
                     Value::Decimal(d) => Ok(Value::Decimal(-d)),
+                    Value::Null => Err(Error::eval(format!("{NULL_POINTER}cannot negate null"))),
                     other => Err(Error::eval(format!("cannot negate {}", other.type_name()))),
                 },
             }
@@ -122,7 +134,7 @@ pub fn eval(expr: &Expr, scope: &dyn Scope, env: &EvalEnv) -> Result<Value> {
                 {
                     let v = eval(inner, scope, env)?;
                     if v.is_null() {
-                        return Err(Error::eval("NullPointerException: getClass() on null"));
+                        return Err(Error::eval(format!("{NULL_POINTER}getClass() on null")));
                     }
                     let full = java_class(&v);
                     return Ok(Value::str(if &**name == "getSimpleName" {
@@ -229,7 +241,7 @@ pub fn truthy(v: &Value, env: &EvalEnv) -> Result<bool> {
     match v {
         Value::Bool(b) => Ok(*b),
         _ if env.groovy => Ok(groovy_truth(v)),
-        Value::Null => Err(Error::eval("null used as a boolean condition")),
+        Value::Null => Err(Error::eval(format!("{NULL_POINTER}null used as a boolean condition"))),
         other => Err(Error::eval(format!("{} used as a boolean condition", other.type_name()))),
     }
 }
@@ -374,12 +386,22 @@ pub(crate) fn binary(op: BinOp, l: Value, r: Value, env: &EvalEnv) -> Result<Val
         }
         BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Rem => {
             if l.is_null() || r.is_null() {
-                return Err(Error::eval("NullPointerException: arithmetic on a null value"));
+                return Err(Error::eval(format!("{NULL_POINTER}arithmetic on a null value")));
             }
             arithmetic(op, &l, &r, env)
         }
         BinOp::Eq => Ok(Value::Bool(l.java_equals(&r))),
         BinOp::Ne => Ok(Value::Bool(!l.java_equals(&r))),
+        // Java unboxes both sides: null throws.
+        BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge if !env.groovy && (l.is_null() || r.is_null()) => {
+            let sym = match op {
+                BinOp::Lt => "<",
+                BinOp::Le => "<=",
+                BinOp::Gt => ">",
+                _ => ">=",
+            };
+            Err(Error::eval(format!("{NULL_POINTER}null compared with {sym}")))
+        }
         BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge => {
             let ord =
                 l.compare(&r).ok_or_else(|| Error::eval(format!("cannot compare {} with {}", l.type_name(), r.type_name())))?;
@@ -416,7 +438,7 @@ fn rounding(v: &Value) -> RoundingStrategy {
 
 fn method(recv: Value, name: &str, args: Vec<Value>, env: &EvalEnv) -> Result<Value> {
     if recv.is_null() {
-        return Err(Error::eval(format!("NullPointerException: cannot call {name}() on null")));
+        return Err(Error::eval(format!("{NULL_POINTER}cannot call {name}() on null")));
     }
     // Methods available on every object.
     match name {
@@ -428,6 +450,11 @@ fn method(recv: Value, name: &str, args: Vec<Value>, env: &EvalEnv) -> Result<Va
             return Ok(Value::Int(ord as i32));
         }
         _ => {}
+    }
+    if let Value::Str(s) = &recv {
+        if let Some(v) = locale_method(s, name, &args, env)? {
+            return Ok(v);
+        }
     }
     match &recv {
         Value::Str(s) => string_method(s, name, &args),
@@ -495,6 +522,29 @@ fn json_method(j: &serde_json::Value, name: &str, args: &[Value]) -> Result<Valu
         }
         _ => return Err(Error::eval(format!("unsupported method List.{name}()"))),
     })
+}
+
+/// The methods of `java.util.Locale` on a locale's tag (`$P{REPORT_LOCALE}` is one, `en_US`):
+/// None for other methods and for strings that are not a tag. Names are shown in the language
+/// of the locale given, or of the report's locale (where Java takes its own default).
+fn locale_method(tag: &str, name: &str, args: &[Value], env: &EvalEnv) -> Result<Option<Value>> {
+    use crate::format::locale::{display_country, display_language, display_name, split_tag};
+    let Some((language, country)) = split_tag(tag) else { return Ok(None) };
+    let display = match (name, args) {
+        ("getLanguage" | "getCountry", [_, ..]) => return Ok(None),
+        (_, []) => env.locale.tag.to_string(),
+        (_, [Value::Str(d)]) => d.to_string(),
+        (_, [Value::Null]) => return Err(Error::eval(format!("{NULL_POINTER}{name}(null)"))),
+        _ => return Ok(None),
+    };
+    Ok(Some(Value::str(match name {
+        "getDisplayName" => display_name(tag, &display),
+        "getDisplayLanguage" => display_language(tag, &display),
+        "getDisplayCountry" => display_country(tag, &display),
+        "getLanguage" => language,
+        "getCountry" => country,
+        _ => return Ok(None),
+    })))
 }
 
 fn string_method(s: &str, name: &str, args: &[Value]) -> Result<Value> {
@@ -782,6 +832,15 @@ fn construct(class: &str, args: Vec<Value>, env: &EvalEnv) -> Result<Value> {
             Value::Double(x) => Value::Decimal(Decimal::try_from(x).map_err(|e| Error::eval(e.to_string()))?),
             v => Value::Decimal(v.as_decimal().ok_or_else(|| Error::eval("new BigDecimal: number expected"))?),
         },
+        // An empty list (a variable's initial value, which expressions may read), or a copy.
+        "ArrayList" | "LinkedList" | "Vector" => match args.as_slice() {
+            [] => Value::List(std::sync::Arc::new(Vec::new())),
+            // `new ArrayList(int initialCapacity)`.
+            [Value::Int(_) | Value::Long(_)] if class != "LinkedList" => Value::List(std::sync::Arc::new(Vec::new())),
+            [list @ Value::List(_)] => list.clone(),
+            [Value::Json(j)] if j.is_array() => Value::Json(j.clone()),
+            _ => return Err(Error::eval(format!("{what}: expected no argument, a capacity or a collection"))),
+        },
         _ => return Err(Error::eval(format!("unsupported constructor {what}()"))),
     })
 }
@@ -881,6 +940,29 @@ mod tests {
             let result = parsed.map_err(Error::eval).and_then(|e| eval(&e, &scope, &env));
             assert!(result.is_err(), "{src} should be rejected");
         }
+    }
+
+    #[test]
+    fn locale_names() {
+        // JasperReports' i18n sample: $P{REPORT_LOCALE}.getDisplayName($P{REPORT_LOCALE}).
+        assert_eq!(run("\"en_US\".getDisplayName(\"en_US\")").to_java_string(), "English (United States)");
+        assert_eq!(run("\"de_DE\".getDisplayName(\"de_DE\")").to_java_string(), "Deutsch (Deutschland)");
+        assert_eq!(run("\"es_DO\".getDisplayLanguage()").to_java_string(), "Spanish");
+        assert_eq!(run("\"es_DO\".getDisplayCountry(\"es\")").to_java_string(), "República Dominicana");
+        assert_eq!(run("\"es-do\".getCountry()").to_java_string(), "DO");
+        assert_eq!(run("\"es_DO\".getLanguage()").to_java_string(), "es");
+        let env = EvalEnv { locale: &EN_US, groovy: false, now: chrono::NaiveDateTime::default() };
+        let not_a_tag = parse_expr("\"not a locale\".getDisplayName()", false).unwrap();
+        assert!(eval(&not_a_tag, &Map(HashMap::new()), &env).is_err());
+    }
+
+    #[test]
+    fn new_lists_are_empty() {
+        // NoPageBreakReport (JasperReports' nopagebreak sample) starts a variable with one.
+        assert_eq!(run("new java.util.ArrayList()").to_java_string(), "[]");
+        assert_eq!(run("new ArrayList(10).size()").to_java_string(), "0");
+        assert_eq!(run("new java.util.LinkedList().isEmpty()").to_java_string(), "true");
+        assert_eq!(run("new java.util.Vector()").type_name(), "List");
     }
 
     #[test]

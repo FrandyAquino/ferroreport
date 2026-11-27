@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="crosstab-counts" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<style name="Base" isDefault="true" fontName="DejaVu Sans" fontSize="8"/>
+	<style name="Head" mode="Opaque" backcolor="#F0F8FF">
+		<box><pen lineWidth="0.5" lineColor="#000000"/></box>
+	</style>
+	<style name="Total" mode="Opaque" backcolor="#BFE1FF">
+		<box><pen lineWidth="0.5" lineColor="#000000"/></box>
+	</style>
+	<!-- The crosstab's built-in variables: ROW_COUNT, COLUMN_COUNT, IS_EVEN_ROW, IS_EVEN_COLUMN. -->
+	<style name="Zebra" mode="Opaque" backcolor="#FFFFFF">
+		<box><pen lineWidth="0.5" lineColor="#000000"/></box>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$V{IS_EVEN_ROW}]]></conditionExpression>
+			<style backcolor="#E0E0E0"/>
+		</conditionalStyle>
+	</style>
+	<style name="Odd" mode="Opaque" backcolor="#F0F8FF">
+		<box><pen lineWidth="0.5" lineColor="#000000"/></box>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$V{ROW_COUNT} % 2 == 1]]></conditionExpression>
+			<style backcolor="#FFE4B5"/>
+		</conditionalStyle>
+	</style>
+	<field name="region" class="java.lang.String"/>
+	<field name="city" class="java.lang.String"/>
+	<field name="quarter" class="java.lang.String"/>
+	<field name="amount" class="java.math.BigDecimal"/>
+	<title>
+		<band height="30">
+			<staticText>
+				<reportElement x="0" y="0" width="555" height="20"/>
+				<textElement><font size="14" isBold="true"/></textElement>
+				<text><![CDATA[Row and column counts in a crosstab]]></text>
+			</staticText>
+		</band>
+	</title>
+	<summary>
+		<band height="120">
+			<crosstab>
+				<reportElement x="0" y="0" width="555" height="120"/>
+				<crosstabHeaderCell>
+					<cellContents mode="Opaque" style="Head">
+						<textField>
+							<reportElement x="0" y="0" width="170" height="20"/>
+							<textElement verticalAlignment="Middle"/>
+							<textFieldExpression><![CDATA["row " + $V{ROW_COUNT} + ", column " + $V{COLUMN_COUNT}]]></textFieldExpression>
+						</textField>
+					</cellContents>
+				</crosstabHeaderCell>
+				<rowGroup name="region" width="70" totalPosition="End">
+					<bucket class="java.lang.String">
+						<bucketExpression><![CDATA[$F{region}]]></bucketExpression>
+					</bucket>
+					<crosstabRowHeader>
+						<cellContents mode="Opaque" style="Odd">
+							<textField>
+								<reportElement x="0" y="0" width="70" height="20"/>
+								<textElement verticalAlignment="Middle"><font isBold="true"/></textElement>
+								<textFieldExpression><![CDATA[$V{region} + " " + $V{ROW_COUNT}]]></textFieldExpression>
+							</textField>
+						</cellContents>
+					</crosstabRowHeader>
+					<crosstabTotalRowHeader>
+						<cellContents mode="Opaque" style="Total">
+							<textField>
+								<reportElement x="0" y="0" width="170" height="20"/>
+								<textElement verticalAlignment="Middle"><font isBold="true"/></textElement>
+								<textFieldExpression><![CDATA["Total, row " + $V{ROW_COUNT} + " " + $V{IS_EVEN_ROW} + " " + $V{COLUMN_COUNT}]]></textFieldExpression>
+							</textField>
+						</cellContents>
+					</crosstabTotalRowHeader>
+				</rowGroup>
+				<rowGroup name="city" width="100" totalPosition="End">
+					<bucket class="java.lang.String">
+						<bucketExpression><![CDATA[$F{city}]]></bucketExpression>
+					</bucket>
+					<crosstabRowHeader>
+						<cellContents mode="Opaque" style="Zebra">
+							<textField>
+								<reportElement x="0" y="0" width="100" height="20"/>
+								<textElement verticalAlignment="Middle"/>
+								<textFieldExpression><![CDATA[$V{ROW_COUNT} + ". " + $V{city}]]></textFieldExpression>
+							</textField>
+						</cellContents>
+					</crosstabRowHeader>
+					<crosstabTotalRowHeader>
+						<cellContents mode="Opaque" style="Total">
+							<textField>
+								<reportElement x="0" y="0" width="100" height="20"/>
+								<textElement verticalAlignment="Middle"/>
+								<textFieldExpression><![CDATA["Total region " + $V{ROW_COUNT}]]></textFieldExpression>
+							</textField>
+						</cellContents>
+					</crosstabTotalRowHeader>
+				</rowGroup>
+				<columnGroup name="quarter" height="20" totalPosition="End">
+					<bucket class="java.lang.String">
+						<bucketExpression><![CDATA[$F{quarter}]]></bucketExpression>
+					</bucket>
+					<crosstabColumnHeader>
+						<cellContents mode="Opaque" style="Head">
+							<textField>
+								<reportElement x="0" y="0" width="70" height="20"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
+								<textFieldExpression><![CDATA[$V{quarter} + " " + $V{COLUMN_COUNT} + ($V{IS_EVEN_COLUMN} ? " even" : " odd") + " " + $V{ROW_COUNT}]]></textFieldExpression>
+							</textField>
+						</cellContents>
+					</crosstabColumnHeader>
+					<crosstabTotalColumnHeader>
+						<cellContents mode="Opaque" style="Total">
+							<textField>
+								<reportElement x="0" y="0" width="70" height="20"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement>
+								<textFieldExpression><![CDATA["Total " + $V{COLUMN_COUNT}]]></textFieldExpression>
+							</textField>
+						</cellContents>
+					</crosstabTotalColumnHeader>
+				</columnGroup>
+				<measure name="amountMeasure" class="java.math.BigDecimal" calculation="Sum">
+					<measureExpression><![CDATA[$F{amount}]]></measureExpression>
+				</measure>
+				<crosstabCell width="70" height="20">
+					<cellContents mode="Opaque" style="Zebra">
+						<textField>
+							<reportElement x="0" y="0" width="70" height="20"/>
+							<textElement textAlignment="Center" verticalAlignment="Middle"/>
+							<textFieldExpression><![CDATA["r" + $V{ROW_COUNT} + " c" + $V{COLUMN_COUNT} + ($V{IS_EVEN_COLUMN} ? " e" : " o")]]></textFieldExpression>
+						</textField>
+					</cellContents>
+				</crosstabCell>
+				<crosstabCell width="70" height="20" columnTotalGroup="quarter">
+					<cellContents mode="Opaque" style="Total">
+						<textField>
+							<reportElement x="0" y="0" width="70" height="20"/>
+							<textElement textAlignment="Center" verticalAlignment="Middle"/>
+							<textFieldExpression><![CDATA["r" + $V{ROW_COUNT} + " c" + $V{COLUMN_COUNT}]]></textFieldExpression>
+						</textField>
+					</cellContents>
+				</crosstabCell>
+				<crosstabCell width="70" height="20" rowTotalGroup="city">
+					<cellContents mode="Opaque" style="Total">
+						<textField>
+							<reportElement x="0" y="0" width="70" height="20"/>
+							<textElement textAlignment="Center" verticalAlignment="Middle"/>
+							<textFieldExpression><![CDATA["r" + $V{ROW_COUNT} + " c" + $V{COLUMN_COUNT}]]></textFieldExpression>
+						</textField>
+					</cellContents>
+				</crosstabCell>
+				<crosstabCell width="70" height="20" rowTotalGroup="city" columnTotalGroup="quarter">
+					<cellContents mode="Opaque" style="Total">
+						<textField>
+							<reportElement x="0" y="0" width="70" height="20"/>
+							<textElement textAlignment="Center" verticalAlignment="Middle"/>
+							<textFieldExpression><![CDATA["r" + $V{ROW_COUNT} + " c" + $V{COLUMN_COUNT}]]></textFieldExpression>
+						</textField>
+					</cellContents>
+				</crosstabCell>
+				<crosstabCell width="70" height="20" rowTotalGroup="region">
+					<cellContents mode="Opaque" style="Total">
+						<textField>
+							<reportElement x="0" y="0" width="70" height="20"/>
+							<textElement textAlignment="Center" verticalAlignment="Middle"/>
+							<textFieldExpression><![CDATA["r" + $V{ROW_COUNT} + " c" + $V{COLUMN_COUNT} + " " + $V{IS_EVEN_ROW}]]></textFieldExpression>
+						</textField>
+					</cellContents>
+				</crosstabCell>
+				<crosstabCell width="70" height="20" rowTotalGroup="region" columnTotalGroup="quarter">
+					<cellContents mode="Opaque" style="Total">
+						<textField>
+							<reportElement x="0" y="0" width="70" height="20"/>
+							<textElement textAlignment="Center" verticalAlignment="Middle"/>
+							<textFieldExpression><![CDATA["r" + $V{ROW_COUNT} + " c" + $V{COLUMN_COUNT}]]></textFieldExpression>
+						</textField>
+					</cellContents>
+				</crosstabCell>
+			</crosstab>
+		</band>
+	</summary>
+</jasperReport>

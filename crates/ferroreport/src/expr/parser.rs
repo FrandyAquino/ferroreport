@@ -89,6 +89,40 @@ pub enum Expr {
 }
 
 impl Expr {
+    /// Calls `f` on this expression and on every expression inside it, outermost first.
+    pub(crate) fn walk_mut(&mut self, f: &mut impl FnMut(&mut Expr)) {
+        f(self);
+        match self {
+            Expr::Lit(_) | Expr::Field(_) | Expr::Param(_) | Expr::Var(_) | Expr::StaticField { .. } | Expr::Local(_) => {}
+            Expr::Unary(_, e) | Expr::Cast(_, e) | Expr::As(_, e) => e.walk_mut(f),
+            Expr::Closure { body, .. } => body.walk_mut(f),
+            Expr::List(items) | Expr::GString(items) => items.iter_mut().for_each(|e| e.walk_mut(f)),
+            Expr::Map(entries) => entries.iter_mut().for_each(|(k, v)| {
+                k.walk_mut(f);
+                v.walk_mut(f);
+            }),
+            Expr::Binary(_, a, b)
+            | Expr::And(a, b)
+            | Expr::Or(a, b)
+            | Expr::Elvis(a, b)
+            | Expr::Range(a, b, _)
+            | Expr::Index(a, b) => {
+                a.walk_mut(f);
+                b.walk_mut(f);
+            }
+            Expr::Cond(a, b, c) => {
+                a.walk_mut(f);
+                b.walk_mut(f);
+                c.walk_mut(f);
+            }
+            Expr::Method { target, args, .. } => {
+                target.walk_mut(f);
+                args.iter_mut().for_each(|a| a.walk_mut(f));
+            }
+            Expr::Static { args, .. } | Expr::New { args, .. } => args.iter_mut().for_each(|a| a.walk_mut(f)),
+        }
+    }
+
     /// The names of the variables the expression reads.
     pub fn variables(&self, out: &mut Vec<Box<str>>) {
         match self {

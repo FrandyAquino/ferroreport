@@ -444,6 +444,49 @@ struct Parser {
     /// How charts are drawn (`net.sf.jasperreports.chart.render.type`), from the report's
     /// properties or a `jasperreports.properties` among the resources.
     chart_render_type: Option<String>,
+    /// The application's own classes that parameters, fields and variables are declared with
+    /// (simple names): their static fields are taken as enum constants, see [`enum_constants`].
+    own_classes: Vec<String>,
+}
+
+/// The classes outside the Java and JasperReports libraries that the template declares its
+/// parameters, fields and variables with (`class="Greeting"`), by simple name.
+fn own_classes(root: &Node) -> Vec<String> {
+    fn visit(n: &Node, out: &mut Vec<String>) {
+        if matches!(n.name.as_str(), "parameter" | "field" | "variable") {
+            let class = n.attr("class").unwrap_or("").trim();
+            let library = ["java.", "javax.", "net.sf.jasperreports.", "groovy.", "org.", "com.lowagie."];
+            if !class.is_empty()
+                && !library.iter().any(|p| class.starts_with(p))
+                && JavaType::from_class_name(class) == JavaType::Object
+            {
+                let simple = class.rsplit(['.', '$']).next().unwrap_or(class);
+                if simple.chars().next().is_some_and(char::is_uppercase) && !out.iter().any(|c| c == simple) {
+                    out.push(simple.to_string());
+                }
+            }
+        }
+        n.children.iter().for_each(|c| visit(c, out));
+    }
+    let mut out = Vec::new();
+    visit(root, &mut out);
+    out
+}
+
+/// A static field of one of the template's own classes (`Greeting.bye`) is an enum constant,
+/// and a Java enum comes from JSON as its name: it is read as the text `"bye"`, so that
+/// `$P{greeting} == Greeting.bye` holds when the parameter is `"bye"`.
+fn enum_constants(expr: &mut Expr, classes: &[String]) {
+    if classes.is_empty() {
+        return;
+    }
+    expr.walk_mut(&mut |e| {
+        if let Expr::StaticField { class, name } = e {
+            if classes.iter().any(|c| **c == **class) {
+                *e = Expr::Lit(crate::value::Value::str(&**name));
+            }
+        }
+    });
 }
 
 /// The value of `key` in a Java properties file.
@@ -539,6 +582,7 @@ impl Parser {
                 })
                 .collect(),
             chart_render_type: None,
+            own_classes: own_classes(root),
         };
         const RENDER_TYPE: &str = "net.sf.jasperreports.chart.render.type";
         parser.chart_render_type =
@@ -564,7 +608,11 @@ impl Parser {
         if t.is_empty() {
             return Ok(None);
         }
-        parse_expr(t, self.groovy).map(Some).map_err(|message| {
+        let mut parsed = parse_expr(t, self.groovy);
+        if let Ok(e) = &mut parsed {
+            enum_constants(e, &self.own_classes);
+        }
+        parsed.map(Some).map_err(|message| {
             // Quote a long expression only in part.
             let expr = match t.char_indices().nth(120) {
                 Some((i, _)) => format!("{}…", &t[..i]),
@@ -608,6 +656,14 @@ impl Parser {
                     default: Some(Expr::Lit(crate::value::Value::str(value.as_str()))),
                 });
             }
+        }
+        if root.children_named("property").any(|p| {
+            p.attr("name") == Some("net.sf.jasperreports.evaluator.ignore.npe") && p.attr("value").is_some_and(|v| !parse_bool(v))
+        }) {
+            self.warnings.push(
+                "net.sf.jasperreports.evaluator.ignore.npe=false is not supported: a NullPointerException still makes its expression null"
+                    .into(),
+            );
         }
         if root.child("scriptlet").is_some() {
             self.warnings.push("<scriptlet> is not supported yet".into());
@@ -1931,8 +1987,9 @@ impl Parser {
                 let content = if kind == "staticText" {
                     TextContent::Static(n.child("text").map(|t| t.text.clone()).unwrap_or_default())
                 } else {
+                    let master = n.attr("evaluationTime") == Some("Master");
                     let evaluation_time = match n.attr("evaluationTime").unwrap_or("Now") {
-                        "Report" => EvaluationTime::Report,
+                        "Report" | "Master" => EvaluationTime::Report,
                         "Page" => EvaluationTime::Page,
                         "Column" => EvaluationTime::Column,
                         "Group" => EvaluationTime::Group,
@@ -1946,7 +2003,11 @@ impl Parser {
                         pattern_expr: self.child_expr(n, &["patternExpression"])?,
                         blank_when_null: props.blank_when_null.unwrap_or(false),
                         evaluation_time,
-                        evaluation_group: n.attr("evaluationGroup").map(str::to_string),
+                        evaluation_group: if master {
+                            Some(MASTER_EVALUATION.to_string())
+                        } else {
+                            n.attr("evaluationGroup").map(str::to_string)
+                        },
                     }
                 };
                 let property = |name: &str| {
@@ -2358,6 +2419,31 @@ mod tests {
     <genericElement><reportElement x="0" y="0" width="10" height="10"/><genericElementType namespace="x" name="y"/></genericElement>
   </band></title>
 </jasperReport>"##;
+
+    #[test]
+    fn static_fields_of_the_templates_own_classes_are_enum_constants() {
+        // JasperReports' java1.5 sample: a parameter of the sample's enum Greeting.
+        let r = parse_report(
+            r#"<jasperReport name="t" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+            <parameter name="greeting" class="Greeting"/>
+            <parameter name="status" class="com.example.Order$Status"/>
+            <title height="30">
+                <element kind="staticText" x="0" y="0" width="100" height="10"><printWhenExpression><![CDATA[$P{greeting} == Greeting.bye]]></printWhenExpression><text>Bye</text></element>
+                <element kind="textField" x="0" y="10" width="100" height="10"><expression><![CDATA[Status.OPEN + " " + Integer.MAX_VALUE]]></expression></element>
+                <element kind="textField" x="0" y="20" width="100" height="10"><expression><![CDATA[Other.CONSTANT]]></expression></element>
+            </title></jasperReport>"#,
+        )
+        .unwrap();
+        let elements = &r.title.as_ref().unwrap().elements;
+        let when = format!("{:?}", elements[0].print_when);
+        assert!(when.contains("Lit(Str(\"bye\"))") && !when.contains("StaticField"), "{when}");
+        let text = |i: usize| match &elements[i].kind {
+            ElementKind::Text(TextElement { content: TextContent::Expression { expr: Some(e), .. }, .. }) => format!("{e:?}"),
+            other => panic!("{other:?}"),
+        };
+        assert!(text(1).contains("Lit(Str(\"OPEN\"))") && text(1).contains("StaticField"), "{}", text(1));
+        assert!(text(2).contains("StaticField"), "a class the template does not declare: {}", text(2));
+    }
 
     #[test]
     fn parses_v6_with_style_inheritance() {

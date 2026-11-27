@@ -155,6 +155,32 @@ fn page_x_of_y_does_not_hold_pages_back() {
 }
 
 #[test]
+fn master_page_numbers_are_the_pages_of_the_report() {
+    // evaluationTime="Master" (JasperReports' tableofcontents sample, TablePart): resolved when
+    // the report ends, with the number of the page the element is on and the page count.
+    // Anywhere else the two variables are null.
+    let template = r#"<jasperReport name="master" pageWidth="300" pageHeight="120" columnWidth="260" leftMargin="20" rightMargin="20" topMargin="10" bottomMargin="10">
+        <field name="n" class="java.lang.Integer"/>
+        <detail><band height="20"><element kind="textField" x="0" y="0" width="200" height="20"><expression><![CDATA["row " + $F{n}]]></expression></element></band></detail>
+        <pageFooter height="30">
+            <element kind="textField" x="0" y="0" width="200" height="15" evaluationTime="Master"><expression><![CDATA["Page " + $V{MASTER_CURRENT_PAGE} + " of " + $V{MASTER_TOTAL_PAGES}]]></expression></element>
+            <element kind="textField" x="0" y="15" width="200" height="15"><expression><![CDATA["now " + $V{MASTER_CURRENT_PAGE}]]></expression></element>
+        </pageFooter>
+    </jasperReport>"#;
+    let report = ferroreport::parse(template).unwrap();
+    let data = serde_json::to_string(&(1..=7).map(|n| serde_json::json!({ "n": n })).collect::<Vec<_>>()).unwrap();
+    let f = Loaded { dir: std::env::temp_dir(), report, data, params: serde_json::Value::Null };
+    let (csv, stats) = f.streamed(Format::Csv);
+    assert_eq!(stats.pages, 3);
+    assert_eq!(csv, f.in_memory(Format::Csv));
+    let text = String::from_utf8(csv).unwrap();
+    for want in ["Page 1 of 3", "Page 2 of 3", "Page 3 of 3", "now null"] {
+        assert!(text.contains(want), "{want} in {text}");
+    }
+    assert!(!text.contains("Page null"), "{text}");
+}
+
+#[test]
 fn limits_stop_a_render() {
     let f = load("33-page-x-of-y");
     let render = |limits: Limits| {
