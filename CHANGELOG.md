@@ -17,6 +17,8 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   is blank even when its report has a page footer, so `removeLineWhenBlank` removes its line
   as in JasperReports. Its page footer used to count as content. JasperReports'
   subreport/MasterReport sample now lays its cities out 30 points apart, as JasperReports does.
+- Tests: every template in `examples/` (the `.ferro` files and each folder's report) is
+  rendered on every push, so an example that stops rendering fails CI.
 
 ## 1.3.0
 
