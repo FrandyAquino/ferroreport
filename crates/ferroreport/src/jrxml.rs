@@ -2166,9 +2166,22 @@ impl Parser {
                     ("label", if at_end { 0.0 } else { icon_w }, w - icon_w),
                     ("icon", if at_end { w - icon_w } else { 0.0 }, icon_w),
                 ] {
-                    let node = c.child(part).and_then(|p| {
-                        p.children.iter().find(|e| e.name == "textField" || e.name == "staticText" || e.name == "element")
+                    // JRXML 6: <label> and <icon>, each holding a text field. JRXML 7: the text
+                    // fields themselves, <labelTextField> and <iconTextField>, read as the
+                    // `<element kind="textField">` they are.
+                    let v7 = c.child(&format!("{part}TextField")).map(|t| {
+                        let mut t = t.clone();
+                        t.name = "element".to_string();
+                        t.attrs.retain(|(k, _)| k != "kind");
+                        t.attrs.push(("kind".to_string(), "textField".to_string()));
+                        t
                     });
+                    let node = c
+                        .child(part)
+                        .and_then(|p| {
+                            p.children.iter().find(|e| e.name == "textField" || e.name == "staticText" || e.name == "element")
+                        })
+                        .or(v7.as_ref());
                     if let Some(node) = node {
                         let kind = node.attr("kind").unwrap_or(node.name.as_str()).to_string();
                         let mut el = self.element(node, &kind)?;
@@ -2499,6 +2512,50 @@ mod tests {
         };
         assert!(text(1).contains("Lit(Str(\"OPEN\"))") && text(1).contains("StaticField"), "{}", text(1));
         assert!(text(2).contains("StaticField"), "a class the template does not declare: {}", text(2));
+    }
+
+    /// An icon label, written the way JasperReports 6 and 7 write it: in 6 the label and the
+    /// icon are text fields inside <label> and <icon>; in 7 they are <labelTextField> and
+    /// <iconTextField>, with the element's geometry on the element itself.
+    #[test]
+    fn icon_labels_of_both_versions() {
+        let v6 = r#"<jasperReport xmlns:c="http://jasperreports.sourceforge.net/jasperreports/components" name="t" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+            <title><band height="30"><componentElement><reportElement x="0" y="5" width="200" height="10"/>
+            <c:iconLabel iconPosition="Start">
+              <c:label><textField textAdjust="StretchHeight"><reportElement x="0" y="0" width="1" height="1"/><textElement><font size="8.0"/></textElement>
+                <textFieldExpression><![CDATA["This is it!"]]></textFieldExpression></textField></c:label>
+              <c:icon><textField><reportElement x="0" y="0" width="1" height="1"/><textFieldExpression><![CDATA[""]]></textFieldExpression></textField></c:icon>
+            </c:iconLabel></componentElement></band></title></jasperReport>"#;
+        let v7 = r#"<jasperReport name="t" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+            <title height="30"><element kind="component" x="0" y="5" width="200" height="10">
+            <component kind="iconLabel" iconPosition="Start">
+              <labelTextField x="0" y="0" width="1" height="1" fontSize="8.0" textAdjust="StretchHeight">
+                <expression><![CDATA["This is it!"]]></expression><box padding="5"><pen lineWidth="1.0"/></box></labelTextField>
+              <iconTextField x="0" y="0" width="1" height="1"><expression><![CDATA[""]]></expression></iconTextField>
+            </component></element></title></jasperReport>"#;
+        for (version, source) in [("6", v6), ("7", v7)] {
+            let r = parse_report(source).unwrap();
+            let el = &r.title.as_ref().unwrap().elements[0];
+            assert_eq!((el.x, el.y, el.width, el.height), (0.0, 5.0, 200.0, 10.0), "{version}");
+            let ElementKind::Frame { children, .. } = &el.kind else { panic!("{version}: {:?}", el.kind) };
+            assert_eq!(children.len(), 2, "{version}");
+            // The label after a square icon as tall as the element, then the icon at the start.
+            let (label, icon) = (&children[0], &children[1]);
+            assert_eq!((label.x, label.width, label.height), (10.0, 190.0, 10.0), "{version}");
+            assert_eq!((icon.x, icon.width, icon.height), (0.0, 10.0, 10.0), "{version}");
+            let ElementKind::Text(t) = &label.kind else { panic!("{version}") };
+            assert_eq!(t.style.font.size, 8.0, "{version}");
+            assert!(t.stretch, "{version}");
+            assert!(format!("{:?}", t.content).contains("This is it!"), "{version}");
+            let ElementKind::Text(t) = &icon.kind else { panic!("{version}") };
+            assert_eq!(t.style.halign, HAlign::Center, "{version}");
+            assert!(format!("{:?}", t.content).contains("e001"), "{version}");
+        }
+        // The padding and pen of the label's own box (written in the 7 form above).
+        let r = parse_report(v7).unwrap();
+        let ElementKind::Frame { children, .. } = &r.title.as_ref().unwrap().elements[0].kind else { panic!() };
+        let ElementKind::Text(t) = &children[0].kind else { panic!() };
+        assert!(format!("{:?}", t.boxed).contains("5.0"), "{:?}", t.boxed);
     }
 
     #[test]

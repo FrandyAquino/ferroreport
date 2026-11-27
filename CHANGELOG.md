@@ -4,6 +4,12 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 [semantic versioning](https://semver.org); what that covers is in the README under
 [Stability](README.md#stability).
 
+## Unreleased
+
+- Icon labels written in the JasperReports 7 form, with `<labelTextField>` and
+  `<iconTextField>` straight inside the component, are drawn. They were left out, so the
+  component printed nothing.
+
 ## 1.3.0
 
 Paragraph indents and tab stops, JasperReports font extensions, simulated bold and italic, a
