@@ -80,6 +80,10 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   for decimals and `’` between groups), currency, month and day names (Austria's "Jänner"),
   short date and time, `TIME()` without a pattern, and weeks starting on Monday in
   `DATERANGE("WEEK")`. Before, these locales printed `en_US`'s.
+- `migrate --jasper` starts JasperReports in UTC, as its time zone parameter and ferroreport's
+  defaults already are. On a machine in another zone, expressions that use the Java runtime's
+  own zone (`new SimpleDateFormat(...)`, `HOUR`, `DATEFORMAT`) came out shifted in
+  JasperReports only and were reported as differences.
 
 ## 1.3.0
 
