@@ -95,7 +95,7 @@ mod tests {
         assert_eq!(format_date("EEEE d 'de' MMMM 'de' yyyy", &dt, &ES_DO).unwrap(), "jueves 5 de marzo de 2026");
         assert_eq!(format_date("yy-MM-dd HH:mm:ss", &dt, &EN_US).unwrap(), "26-03-05 14:07:09");
         assert_eq!(format_date("'Q''s' yyyy", &dt, &EN_US).unwrap(), "Q's 2026");
-        // Values printed by Java 21 for es-DO.
-        assert_eq!(format_date("EEE MMM hh:mm a", &dt, &ES_DO).unwrap(), "jue mar 02:07 p.\u{202F}m.");
+        // Values printed by Java 21.0.13 for es-DO.
+        assert_eq!(format_date("EEE MMM hh:mm a", &dt, &ES_DO).unwrap(), "jue mar 02:07 p.\u{A0}m.");
     }
 }

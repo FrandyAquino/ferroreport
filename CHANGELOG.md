@@ -58,6 +58,10 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   (`WEEKNUM(DATE(2026,1,4))` was 2, `WEEKSINYEAR` of 2025 was 53). In French, `TIME()` without a
   pattern prints `10:30:15 UTC` (`10 h 30 min 15 s UTC` in Canada), and `DATERANGE("WEEK")`
   starts on Monday in France, Belgium and Switzerland.
+- Spanish locales print what Java 21.0.13 prints: AM/PM with a no-break space (`p. m.`), the
+  short date and time of a date without a pattern for es_DO (`5/7/26, 2:07 p. m.`) and es_MX
+  (`05/07/26, 14:07`), and `TIME()` without a pattern for es_DO (`10:30:15 a. m. UTC`) and
+  es_MX (`10:30:15 UTC`).
 
 ## 1.3.0
 
