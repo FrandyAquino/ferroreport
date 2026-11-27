@@ -5,12 +5,12 @@ the same rows and parameters and compared page by page. Made by `tools/samples.p
 
 | Result | Templates | Meaning |
 |---|---|---|
-| same | 74 | every page is the same picture |
-| differs | 19 | both engines render it, the pictures differ |
+| same | 76 | every page is the same picture |
+| differs | 17 | both engines render it, the pictures differ |
 | not rendered | 8 | ferroreport refuses the template or fails on it |
 | no reference | 70 | JasperReports cannot render it from rows alone (it needs the sample's Java classes, a database connection inside the report, or other files), so there is nothing to compare with |
 
-**74 of the 101 templates that can be compared come out the same.** JasperReports runs with the
+**76 of the 101 templates that can be compared come out the same.** JasperReports runs with the
 Java runtime's logical fonts (SansSerif, Serif, Monospaced) on DejaVu, as on a stock Linux server (`tools/oracle/fonts.conf`):
 text that names no font is laid out with them and written in PDF's built-in Helvetica, Times or Courier, by both engines.
 
@@ -44,7 +44,7 @@ write, which is what `fixtures/` holds (all pixel-identical). Use `ferroreport d
 | `charts/reports/GanttChartReport.jrxml` | same | 1/1 |  |
 | `charts/reports/HighLowChartReport.jrxml` | same | 18/18 |  |
 | `charts/reports/LineChartReport.jrxml` | same | 13/13 |  |
-| `charts/reports/MeterChartReport.jrxml` | differs | 16/16 | worst page differs in 21.3% of its ink |
+| `charts/reports/MeterChartReport.jrxml` | differs | 16/16 | worst page differs in 0.4% of its ink |
 | `charts/reports/MultipleAxisChartReport.jrxml` | same | 24/24 |  |
 | `charts/reports/Pie3DChartReport.jrxml` | same | 13/13 |  |
 | `charts/reports/PieChartReport.jrxml` | same | 13/13 |  |
@@ -53,7 +53,7 @@ write, which is what `fixtures/` holds (all pixel-identical). Use `ferroreport d
 | `charts/reports/StackedBar3DChartReport.jrxml` | same | 13/13 |  |
 | `charts/reports/StackedBarChartReport.jrxml` | same | 13/13 |  |
 | `charts/reports/SubDatasetChartReport.jrxml` | same | 7/7 |  |
-| `charts/reports/ThermometerChartReport.jrxml` | differs | 16/16 | worst page differs in 9.0% of its ink |
+| `charts/reports/ThermometerChartReport.jrxml` | same | 16/16 |  |
 | `charts/reports/TimeSeriesChartReport.jrxml` | same | 19/19 |  |
 | `charts/reports/XYAreaChartReport.jrxml` | same | 19/19 |  |
 | `charts/reports/XYBarChartReport.jrxml` | same | 19/19 |  |
@@ -96,8 +96,8 @@ write, which is what `fixtures/` holds (all pixel-identical). Use `ferroreport d
 | `httpdataadapter/reports/JsonHttpDataAdapterReport.jrxml` | no reference |  | JasperReports fails on it without the sample's own program; ferroreport renders it |
 | `httpdataadapter/reports/XmlHttpDataAdapterReport.jrxml` | no reference |  | its rows come from a xPath query; ferroreport renders it |
 | `hyperlink/reports/HyperlinkReport.jrxml` | same | 3/3 |  |
-| `i18n/reports/I18nReport.jrxml` | differs | 1/1 | worst page differs in 9.3% of its ink |
-| `iconlabel/reports/IconLabelReport.jrxml` | differs | 2/2 | worst page differs in 49.1% of its ink |
+| `i18n/reports/I18nReport.jrxml` | differs | 1/1 | worst page differs in 9.4% of its ink |
+| `iconlabel/reports/IconLabelReport.jrxml` | differs | 2/2 | worst page differs in 34.0% of its ink |
 | `images/reports/ImagesReport.jrxml` | no reference |  | JasperReports fails on it without the sample's own program; ferroreport: unsupported feature: image format (only PNG, JPEG, GIF and SVG are supported) |
 | `images/reports/scale/ClipNarrowShortImagesReport.jrxml` | same | 1/1 |  |
 | `images/reports/scale/ClipNarrowTallImagesReport.jrxml` | same | 1/1 |  |
@@ -169,7 +169,7 @@ write, which is what `fixtures/` holds (all pixel-identical). Use `ferroreport d
 | `stretch/reports/StretchReport.jrxml` | differs | 14/14 | worst page differs in 12.2% of its ink |
 | `styledtext/reports/StyledTextReport.jrxml` | differs | 1/1 | worst page differs in 2.8% of its ink |
 | `subreport/reports/AddressReport.jrxml` | no reference |  | JasperReports draws nothing for it without the sample's own program; ferroreport renders it |
-| `subreport/reports/MasterReport.jrxml` | differs | 1/1 | worst page differs in 58.9% of its ink |
+| `subreport/reports/MasterReport.jrxml` | same | 1/1 |  |
 | `subreport/reports/ProductReport.jrxml` | same | 1/1 |  |
 | `table/reports/TableReport.jrxml` | differs | 2/2 | worst page differs in 3.6% of its ink |
 | `tableofcontents/reports/TableOfContentsReport.jrxml` | no reference |  | needs Java classes that are not at hand (the sample's own, or libraries it adds); ferroreport renders it |
