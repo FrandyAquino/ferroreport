@@ -6,6 +6,12 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 
 ## Unreleased
 
+- Icon labels are sized as JasperReports 7 sizes them: the icon as wide as its text, half its
+  font size from the label, which gets the rest of the width, or shrinks to its text unless
+  `labelFill` is `Horizontal` or `Both`; with `Vertical` or `Both` it is as tall as the element.
+  Both go inside the component's padding (its own `<box>` is read), the icon above or below the
+  label when it does not fit beside it, and the element is printed as tall as its content asks.
+  Before, the icon had a square as tall as the element and the label the rest.
 - tools/samples.py gives ferroreport the font extensions inside the JasperReports jars as resource
   folders, as JasperReports finds them on its class path. The iconlabel sample draws its icons in
   "JasperReports Icons", the icon font of JasperReports' core jar (not of the sample), which

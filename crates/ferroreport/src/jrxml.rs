@@ -2229,19 +2229,12 @@ impl Parser {
             "ellipse" => ElementKind::Ellipse { pen: props.graphic_pen.resolve(1.0, forecolor) },
             "frame" => ElementKind::Frame { children: self.elements(n)?, boxed: props.box_style(forecolor) },
             "componentElement" | "component" if component_node(n, "iconLabel").is_some() => {
-                // An icon next to a label, drawn as a frame of two texts: the icon in a square
-                // as tall as the element, at the start or the end, the label in the rest.
+                // A label and an icon, drawn as a frame of their two text fields (see
+                // `crate::iconlabel`): the filler measures them and places them.
                 let c = component_node(n, "iconLabel").unwrap_or(n);
-                let geometry = n.child("reportElement").unwrap_or(n);
-                let size = |a: &str| geometry.attr(a).and_then(number::<f32>).unwrap_or(0.0);
-                let (w, h) = (size("width"), size("height"));
-                let icon_w = h.min(w / 3.0);
-                let at_end = c.attr("iconPosition") == Some("End");
+                let settings = crate::iconlabel::Settings::read(&|a| c.attr(a).map(str::to_string));
                 let mut children = Vec::new();
-                for (part, x, width) in [
-                    ("label", if at_end { 0.0 } else { icon_w }, w - icon_w),
-                    ("icon", if at_end { w - icon_w } else { 0.0 }, icon_w),
-                ] {
+                for part in ["label", "icon"] {
                     // JRXML 6: <label> and <icon>, each holding a text field. JRXML 7: the text
                     // fields themselves, <labelTextField> and <iconTextField>, read as the
                     // `<element kind="textField">` they are.
@@ -2260,17 +2253,19 @@ impl Parser {
                         .or(v7.as_ref());
                     if let Some(node) = node {
                         let kind = node.attr("kind").unwrap_or(node.name.as_str()).to_string();
-                        let mut el = self.element(node, &kind)?;
-                        (el.x, el.y, el.width, el.height) = (x, 0.0, width, h);
-                        if part == "icon" {
-                            if let ElementKind::Text(te) = &mut el.kind {
-                                te.style.halign = HAlign::Center;
-                            }
-                        }
-                        children.push(el);
+                        children.push(self.element(node, &kind)?);
                     }
                 }
-                ElementKind::Frame { children, boxed: props.box_style(forecolor) }
+                if children.len() == 2 {
+                    children.push(crate::iconlabel::marker(settings));
+                }
+                // The frame's box is the component's own `<box>`, over the box of the
+                // element's style (IconLabelComponent is a box container of that style).
+                let mut own = StyleProps::default();
+                if let Some(b) = c.child("box") {
+                    own.read_box(b);
+                }
+                ElementKind::Frame { children, boxed: own.over(props).box_style(forecolor) }
             }
             "image" => {
                 // RealHeight and RealSize print as RetainShape in an element sized from the
@@ -2614,17 +2609,15 @@ mod tests {
             let el = &r.title.as_ref().unwrap().elements[0];
             assert_eq!((el.x, el.y, el.width, el.height), (0.0, 5.0, 200.0, 10.0), "{version}");
             let ElementKind::Frame { children, .. } = &el.kind else { panic!("{version}: {:?}", el.kind) };
-            assert_eq!(children.len(), 2, "{version}");
-            // The label after a square icon as tall as the element, then the icon at the start.
-            let (label, icon) = (&children[0], &children[1]);
-            assert_eq!((label.x, label.width, label.height), (10.0, 190.0, 10.0), "{version}");
-            assert_eq!((icon.x, icon.width, icon.height), (0.0, 10.0, 10.0), "{version}");
+            // The label and the icon as designed (the filler places them), and the settings.
+            let Some((settings, label, icon)) = crate::iconlabel::of(children) else { panic!("{version}: {children:?}") };
+            assert_eq!(settings, crate::iconlabel::Settings::read(&|a| (a == "iconPosition").then(|| "Start".into())));
+            assert_eq!((label.x, label.width, label.height), (0.0, 1.0, 1.0), "{version}");
             let ElementKind::Text(t) = &label.kind else { panic!("{version}") };
             assert_eq!(t.style.font.size, 8.0, "{version}");
             assert!(t.stretch, "{version}");
             assert!(format!("{:?}", t.content).contains("This is it!"), "{version}");
             let ElementKind::Text(t) = &icon.kind else { panic!("{version}") };
-            assert_eq!(t.style.halign, HAlign::Center, "{version}");
             assert!(format!("{:?}", t.content).contains("e001"), "{version}");
         }
         // The padding and pen of the label's own box (written in the 7 form above).
