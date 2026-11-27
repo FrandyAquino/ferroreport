@@ -6,6 +6,13 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 
 ## Unreleased
 
+- Thermometer charts are drawn as JasperReports 7 draws them (JFreeChart's `ThermometerPlot`):
+  the bulb and stem at their fixed size with both outlines, the mercury and its rounded top,
+  the range marks where each range starts in green, orange and red, the axis with whole-number
+  ticks, and the value in the bulb or beside the stem. JRXML 7 ranges (`<lowRange>` without a
+  `<dataRange>`) are read, and a thermometer without `mercuryColor` takes its range's color.
+- Build: simplify two boolean expressions, in DataMatrix encoding and JRXML element parsing, that
+  Clippy on Rust 1.96 reports. Rendering is unchanged.
 - A subreport, list or table whose report prints nothing (no rows, `whenNoDataType="NoPages"`)
   is blank even when its report has a page footer, so `removeLineWhenBlank` removes its line
   as in JasperReports. Its page footer used to count as content. JasperReports'

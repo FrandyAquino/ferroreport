@@ -379,7 +379,7 @@ pub fn encode(msg: &[u8], shape: Shape) -> Result<(Vec<u8>, usize), String> {
                         if buf.len() % 3 == 2 && available != 2 {
                             backtrack(&mut buf, &mut sizes, &mut pos);
                         }
-                        while buf.len() % 3 == 1 && sizes.last().is_some_and(|&s| (s <= 3 && available != 1) || s > 3) {
+                        while buf.len() % 3 == 1 && sizes.last().is_some_and(|&s| s > 3 || available != 1) {
                             backtrack(&mut buf, &mut sizes, &mut pos);
                         }
                         break;

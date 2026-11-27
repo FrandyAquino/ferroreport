@@ -694,9 +694,25 @@ pub(crate) fn standard_units() -> &'static [(f64, &'static str)] {
     })
 }
 
-/// `TickUnits.getCeilingTickUnit(size)`: the smallest unit at least `size`.
-fn ceiling_unit(size: f64) -> usize {
-    let units = standard_units();
+/// JasperReports' integer tick units (`ChartUtil.createIntegerTickUnits`, which thermometers
+/// use): 1, 2 and 5 times powers of ten up to 5E18, labeled `0` below 1,000 and `#,##0` from
+/// there.
+pub(crate) fn integer_units() -> &'static [(f64, &'static str)] {
+    use std::sync::OnceLock;
+    static UNITS: OnceLock<Vec<(f64, &'static str)>> = OnceLock::new();
+    UNITS.get_or_init(|| {
+        let mut out = Vec::new();
+        for e in 0..=18 {
+            for m in [1.0, 2.0, 5.0] {
+                out.push((m * 10f64.powi(e), if e < 3 { "0" } else { "#,##0" }));
+            }
+        }
+        out
+    })
+}
+
+/// `TickUnits.getCeilingTickUnit(size)`: the smallest of `units` at least `size`.
+fn ceiling_unit(units: &[(f64, &'static str)], size: f64) -> usize {
     units.iter().position(|u| u.0 >= size).unwrap_or(units.len() - 1)
 }
 
@@ -708,6 +724,8 @@ pub(crate) struct NumberAxis {
     /// The current tick unit: an index into the standard units, or a fixed unit.
     unit: f64,
     unit_pattern: &'static str,
+    /// The units ticks are chosen from (`setStandardTickUnits`).
+    units: &'static [(f64, &'static str)],
     /// A pattern for every label (`tickLabelMask`).
     pub format: Option<String>,
     pub font: FontSpec,
@@ -716,6 +734,8 @@ pub(crate) struct NumberAxis {
     pub label_color: Color,
     pub tick_label_color: Color,
     pub line_color: Color,
+    /// The axis line (`setAxisLineVisible`); tick marks are drawn either way.
+    pub line_visible: bool,
     pub tick_marks: bool,
     pub tick_labels: bool,
     /// Where the last `draw` left the cursor (past the tick labels and the label).
@@ -730,6 +750,7 @@ impl NumberAxis {
             upper,
             unit: 1.0,
             unit_pattern: "0",
+            units: standard_units(),
             format: None,
             label_font: font.clone(),
             font,
@@ -737,11 +758,18 @@ impl NumberAxis {
             label_color: Color::BLACK,
             tick_label_color: Color::BLACK,
             line_color: Color::BLACK,
+            line_visible: true,
             tick_marks: true,
             tick_labels: true,
             end_cursor: 0.0,
             inverted: false,
         }
+    }
+
+    /// Ticks chosen from JasperReports' integer tick units instead of its standard ones.
+    pub fn integer_units(mut self) -> NumberAxis {
+        self.units = integer_units();
+        self
     }
 
     /// `NumberAxis.autoAdjustRange` over data from `min` to `max`: 5% margins, sticking to
@@ -782,13 +810,13 @@ impl NumberAxis {
         }
         let length = self.upper - self.lower;
         if length >= 1.0e12 {
-            let i = ceiling_unit(length / 1.0e12);
+            let i = ceiling_unit(self.units, length / 1.0e12);
             self.set_unit(i);
         }
     }
 
     fn set_unit(&mut self, i: usize) {
-        let (u, p) = standard_units()[i];
+        let (u, p) = self.units[i];
         self.unit = u;
         self.unit_pattern = p;
     }
@@ -820,15 +848,15 @@ impl NumberAxis {
 
     /// `NumberAxis.selectAutoTickUnit` for `area`.
     fn select_unit(&mut self, cv: &mut Canvas, area: Rect, side: Side, locale: &crate::format::Locale) {
-        let units = standard_units();
+        let units = self.units;
         if side.vertical() {
             // estimateMaximumTickLabelHeight: insets and the font's line height.
             let m = cv.metrics(&self.font);
             let label_h = 4.0 + (m.ascent + m.descent + m.leading) as f32 as f64;
-            let i1 = ceiling_unit(self.unit);
+            let i1 = ceiling_unit(units, self.unit);
             let unit_h = self.length_to_java2d(units[i1].0, area, side);
             let guess = if unit_h > 0.0 { units[i1].0 * label_h / unit_h } else { (self.upper - self.lower) / 20.0 };
-            let mut i2 = ceiling_unit(guess);
+            let mut i2 = ceiling_unit(units, guess);
             let unit2_h = self.length_to_java2d(units[i2].0, area, side);
             if label_h > unit2_h {
                 i2 = (i2 + 1).min(units.len() - 1);
@@ -841,10 +869,10 @@ impl NumberAxis {
                 8.0 + w1.max(w2)
             };
             let w = est(self, cv, self.unit_pattern);
-            let i1 = ceiling_unit(self.unit);
+            let i1 = ceiling_unit(units, self.unit);
             let unit1_w = self.length_to_java2d(units[i1].0, area, side);
             let guess = w / unit1_w * units[i1].0;
-            let mut i2 = ceiling_unit(guess);
+            let mut i2 = ceiling_unit(units, guess);
             let unit2_w = self.length_to_java2d(units[i2].0, area, side);
             let w = est(self, cv, units[i2].1);
             if w > unit2_w {
@@ -894,6 +922,7 @@ impl NumberAxis {
         let style = AxisStyle {
             font: self.font.clone(),
             line_color: self.line_color,
+            line_visible: self.line_visible,
             tick_label_color: self.tick_label_color,
             tick_marks: self.tick_marks,
             tick_labels: self.tick_labels,
@@ -1489,6 +1518,7 @@ impl ValueAxis {
                 let style = AxisStyle {
                     font: a.font.clone(),
                     line_color: a.line_color,
+                    line_visible: true,
                     tick_label_color: a.tick_label_color,
                     tick_marks: a.tick_marks,
                     tick_labels: a.tick_labels,
@@ -1508,6 +1538,7 @@ impl ValueAxis {
 pub(crate) struct AxisStyle {
     pub font: FontSpec,
     pub line_color: Color,
+    pub line_visible: bool,
     pub tick_label_color: Color,
     pub tick_marks: bool,
     pub tick_labels: bool,
@@ -1539,6 +1570,7 @@ pub(crate) fn draw_value_axis(
     side: Side,
 ) -> f64 {
     match side {
+        _ if !s.line_visible => {}
         Side::Left | Side::Right => cv.line_square(cursor, data.y, cursor, data.max_y(), s.line_color, 0.5),
         Side::Top | Side::Bottom => cv.line_square(data.x, cursor, data.max_x(), cursor, s.line_color, 0.5),
     }
