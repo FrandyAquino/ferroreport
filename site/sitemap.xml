@@ -1,13 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-  <url><loc>https://cristianencarnacion.github.io/ferroreport/</loc><lastmod>2026-11-25</lastmod><changefreq>weekly</changefreq><priority>1.0</priority>
+  <url><loc>https://cristianencarnacion.github.io/ferroreport/</loc><lastmod>2026-11-27</lastmod><changefreq>weekly</changefreq><priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://cristianencarnacion.github.io/ferroreport/"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://cristianencarnacion.github.io/ferroreport/es/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://cristianencarnacion.github.io/ferroreport/pt/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://cristianencarnacion.github.io/ferroreport/"/>
   </url>
-  <url><loc>https://cristianencarnacion.github.io/ferroreport/es/</loc><lastmod>2026-11-25</lastmod><changefreq>weekly</changefreq><priority>1.0</priority>
+  <url><loc>https://cristianencarnacion.github.io/ferroreport/es/</loc><lastmod>2026-11-27</lastmod><changefreq>weekly</changefreq><priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://cristianencarnacion.github.io/ferroreport/"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://cristianencarnacion.github.io/ferroreport/es/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://cristianencarnacion.github.io/ferroreport/pt/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://cristianencarnacion.github.io/ferroreport/"/>
+  </url>
+  <url><loc>https://cristianencarnacion.github.io/ferroreport/pt/</loc><lastmod>2026-11-27</lastmod><changefreq>weekly</changefreq><priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://cristianencarnacion.github.io/ferroreport/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://cristianencarnacion.github.io/ferroreport/es/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://cristianencarnacion.github.io/ferroreport/pt/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://cristianencarnacion.github.io/ferroreport/"/>
   </url>
   <url><loc>https://cristianencarnacion.github.io/ferroreport/designer/</loc><lastmod>2026-11-24</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
