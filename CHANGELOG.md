@@ -17,6 +17,9 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   is blank even when its report has a page footer, so `removeLineWhenBlank` removes its line
   as in JasperReports. Its page footer used to count as content. JasperReports'
   subreport/MasterReport sample now lays its cities out 30 points apart, as JasperReports does.
+- Icon labels written in the JasperReports 7 form, with `<labelTextField>` and
+  `<iconTextField>` straight inside the component, are drawn. They were left out, so the
+  component printed nothing.
 
 ## 1.3.0
 
