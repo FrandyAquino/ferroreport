@@ -13,6 +13,10 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   `<dataRange>`) are read, and a thermometer without `mercuryColor` takes its range's color.
 - Build: simplify two boolean expressions, in DataMatrix encoding and JRXML element parsing, that
   Clippy on Rust 1.96 reports. Rendering is unchanged.
+- A subreport, list or table whose report prints nothing (no rows, `whenNoDataType="NoPages"`)
+  is blank even when its report has a page footer, so `removeLineWhenBlank` removes its line
+  as in JasperReports. Its page footer used to count as content. JasperReports'
+  subreport/MasterReport sample now lays its cities out 30 points apart, as JasperReports does.
 - Examples: a bank account statement (`examples/bank-statement/`), with a running balance,
   debit and credit columns, monthly groups with totals and a closing summary. It renders the
   same as in JasperReports 7.1.1.
