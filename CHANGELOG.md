@@ -80,6 +80,10 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   for decimals and `’` between groups), currency, month and day names (Austria's "Jänner"),
   short date and time, `TIME()` without a pattern, and weeks starting on Monday in
   `DATERANGE("WEEK")`. Before, these locales printed `en_US`'s.
+- `migrate --strict-pixels` (with `--jasper`) fails when a page of a template both engines
+  render is a different picture (over 0.15% of its ink), listing each template with its worst
+  page, or when the pages could not be compared (no `pdftoppm`). `--strict` and `same` do not
+  change.
 
 ## 1.3.0
 
