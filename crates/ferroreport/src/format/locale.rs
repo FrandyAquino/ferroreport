@@ -59,6 +59,11 @@ pub const ES_MX: Locale = Locale { tag: "es_MX", currency_symbol: "$", ..ES_DO }
 pub const ES_ES: Locale =
     Locale { tag: "es_ES", decimal_separator: ',', grouping_separator: '.', currency_symbol: "€", ..ES_DO };
 
+/// Spanish for Latin America, and the Spanish-speaking countries without their own entry here
+/// (es_AR, es_CL, es_UY...): es_DO's number symbols, with the 24-hour clock Java 21 gives them in
+/// the short date and time and in `TIME()`.
+pub const ES_419: Locale = Locale { tag: "es_419", ..ES_DO };
+
 const FR_MONTHS: [&str; 12] =
     ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 const FR_SHORT_MONTHS: [&str; 12] =
@@ -238,9 +243,9 @@ impl Locale {
         let norm = tag.replace('-', "_");
         match norm.as_str() {
             "es_DO" => &ES_DO,
-            "es_MX" | "es_US" | "es_419" => &ES_MX,
+            "es_MX" | "es_US" => &ES_MX,
             "es" | "es_ES" => &ES_ES,
-            _ if norm.starts_with("es_") => &ES_DO,
+            _ if norm == "es_419" || norm.starts_with("es_") => &ES_419,
             "fr" => &FR,
             "fr_BE" => &FR_BE,
             "fr_CA" => &FR_CA,

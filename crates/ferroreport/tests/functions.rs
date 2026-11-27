@@ -405,3 +405,24 @@ fn german_time_and_week_start() {
         assert_eq!(run("DATEFORMAT(DATERANGE(\"WEEK\").getStart(), \"yyyy-MM-dd\")"), start, "{tag}");
     }
 }
+
+/// The other Spanish tags (es_419, es_AR, es_UY, es_EC...) keep es_DO's numbers but not its
+/// 12-hour clock: Java 21.0.13 gives them `d/M/yy, HH:mm` and, for `TIME()` without a pattern,
+/// `HH:mm:ss z`.
+#[test]
+fn other_spanish_tags_keep_a_24_hour_clock() {
+    let now = chrono::NaiveDate::from_ymd_opt(2026, 11, 23).unwrap().and_hms_opt(4, 54, 18).unwrap();
+    let when = Value::Date(chrono::NaiveDate::from_ymd_opt(2026, 7, 5).unwrap().and_hms_opt(14, 7, 9).unwrap());
+    for tag in ["es_419", "es-419", "es_AR", "es-AR", "es_UY", "es_EC"] {
+        let locale = ferroreport::format::Locale::from_tag(tag);
+        let env = EvalEnv { locale, groovy: false, now };
+        let run = |src: &str| format_value(&eval(&parse_expr(src, false).unwrap(), &Empty, &env).unwrap(), None, locale);
+        assert_eq!(format_value(&when, None, locale), "5/7/26, 14:07", "{tag}");
+        assert_eq!(run("TIME(10, 30, 15)"), "10:30:15 UTC", "{tag}");
+        assert_eq!(run("TIME(23, 5, 9)"), "23:05:09 UTC", "{tag}");
+    }
+    // Numbers as before: es_DO's separators and currency.
+    let es_ar = ferroreport::format::Locale::from_tag("es_AR");
+    assert_eq!(format_value(&Value::Double(-1234567.5), Some("#,##0.00"), es_ar), "-1,234,567.50");
+    assert_eq!(format_value(&Value::Double(-1234567.5), Some("\u{A4} #,##0.00"), es_ar), "-RD$ 1,234,567.50");
+}

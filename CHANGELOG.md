@@ -61,7 +61,10 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 - Spanish locales print what Java 21.0.13 prints: AM/PM with a no-break space (`p. m.`), the
   short date and time of a date without a pattern for es_DO (`5/7/26, 2:07 p. m.`) and es_MX
   (`05/07/26, 14:07`), and `TIME()` without a pattern for es_DO (`10:30:15 a. m. UTC`) and
-  es_MX (`10:30:15 UTC`).
+  es_MX (`10:30:15 UTC`). The other Spanish tags (`es_419`, `es_AR`, `es_UY`...) keep es_DO's
+  numbers with Java's 24-hour clock (`5/7/26, 14:07`, `TIME()` `10:30:15 UTC`) and are
+  `es_419` in `REPORT_LOCALE` and the PDF's language (before `es_DO`, and `es_MX` for
+  `es_419`, whose currency sign is now `RD$` instead of `$`).
 - Portuguese number and date formats, as Java 21 has them: `pt`, `pt_BR` and `pt_PT` (other `pt_`
   tags take pt_PT's), with their separators (a no-break space between groups in Portugal),
   currency, month and day names, AM/PM ("da manhã" / "da tarde" in Portugal), short date and
