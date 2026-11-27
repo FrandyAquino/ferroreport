@@ -12,7 +12,13 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   ticks, and the value in the bulb or beside the stem. JRXML 7 ranges (`<lowRange>` without a
   `<dataRange>`) are read, and a thermometer without `mercuryColor` takes its range's color.
 - Benchmarks measured again with 1.3, against JasperReports 6.20.6 and 7.1.1 (README, website,
-  `docs/benchmarks*.json`).
+  `docs/benchmarks*.json`). The machine was slower in this run (JasperReports itself took 10 to
+  30% longer), so the times are higher than 1.1.0's. Built on the same machine and run
+  alternately, 1.3.0 is within a few percent of 1.1.0 (8% at most), except Word (DOCX) export of
+  20,000 rows, about 17% slower, and ODS and ODT of 100,000 rows, slower by design since 1.2 in
+  exchange for a fraction of the memory (67 and 40 MiB instead of 248 and 264). The peak memory
+  of the same binary moves by a few MiB with the state of the page cache (the invoice: 15 MiB in
+  that comparison, 18 MiB in the published run).
 - Build: simplify two boolean expressions, in DataMatrix encoding and JRXML element parsing, that
   Clippy on Rust 1.96 reports. Rendering is unchanged.
 - A subreport or table whose report prints nothing (no rows, `whenNoDataType="NoPages"`)

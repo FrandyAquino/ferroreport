@@ -387,6 +387,15 @@ la máquina y las versiones, en [docs/benchmarks.json](docs/benchmarks.json)). L
 comparte con otros trabajos, así que cada corrida empezó con la máquina libre y se repitió la
 que otros procesos le quitaron tiempo de CPU (`--wait-idle`).
 
+Los tiempos son más altos que los de 1.1.0 porque en esta corrida la máquina estaba más lenta:
+el mismo JasperReports tardó entre un 10 y un 30% más. Compilados en la misma máquina y
+corriendo uno tras otro, 1.3.0 tarda casi lo mismo que 1.1.0 (un 8% de diferencia como mucho), salvo la
+exportación a Word (DOCX) de 20,000 filas, cerca de un 17% más lenta (0.51 s contra 0.44 s), y
+ODS y ODT de 100,000 filas, más lentos a propósito desde 1.2 a cambio de una fracción de la
+memoria (67 MiB en vez de 248, 40 MiB en vez de 264). La memoria pico del mismo binario también
+varía unos MiB según el estado de la caché de páginas: la factura usó 15 MiB en esa comparación
+y 18 MiB en la tabla de abajo.
+
 **En frío: un proceso que arranca, genera un reporte y termina.** Lo que paga un script, una
 función serverless o un contenedor por reporte. Tiempo desde que arranca el proceso hasta el
 PDF en disco, y memoria pico (mediana de 5 a 7 corridas):
