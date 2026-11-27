@@ -13,6 +13,8 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   `<dataRange>`) are read, and a thermometer without `mercuryColor` takes its range's color.
 - Build: simplify two boolean expressions, in DataMatrix encoding and JRXML element parsing, that
   Clippy on Rust 1.96 reports. Rendering is unchanged.
+- Docs: rows from pandas, Polars and SQLAlchemy in Python (README and the Data section of the
+  documentation, in English and Spanish).
 
 ## 1.3.0
 

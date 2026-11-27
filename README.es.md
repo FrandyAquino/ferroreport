@@ -194,6 +194,22 @@ proyecto. La contraseña va en `FERROREPORT_DB_PASSWORD`, no en la URL, y convie
 de solo lectura. En `serve --db`, solo las plantillas de `--templates` usan la base; una
 plantilla enviada en la petición nunca la recibe.
 
+En Python, las filas de las librerías con las que lees los datos entran así:
+
+```python
+# pandas: pasa el DataFrame como texto JSON. to_json escribe NaN como null y las fechas en
+# ISO-8601; to_dict("records") dejaría NaN, que no es JSON válido.
+pdf = ferroreport.render("orders.jrxml", df.to_json(orient="records", date_format="iso"))
+
+# Polars: to_dicts() da valores de Python (None para nulos, datetime.date para fechas)
+pdf = ferroreport.render("orders.jrxml", df.to_dicts())
+
+# SQLAlchemy: filas como dicts; un generador se lee fila por fila
+with engine.connect() as conn:
+    result = conn.execute(text("select id, customer, placed, total from orders order by id"))
+    pdf = ferroreport.render("orders.jrxml", (dict(row) for row in result.mappings()))
+```
+
 ## Plantillas: JRXML o .ferro
 
 ferroreport lee JRXML como lo escriben JasperReports 6 y 7, y un formato propio, `.ferro`: los
