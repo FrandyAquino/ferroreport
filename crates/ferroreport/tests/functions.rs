@@ -303,3 +303,19 @@ fn every_function_gives_what_jasperreports_gives() {
     }
     assert!(wrong.is_empty(), "{} of {} differ:\n{}", wrong.len(), JASPER.len(), wrong.join("\n"));
 }
+
+/// `TIME()` without a pattern and the first day of `DATERANGE("WEEK")` in German (Java
+/// 21.0.13: `DateTimeFormatter.ofLocalizedTime(FormatStyle.LONG)`, `Calendar.getFirstDayOfWeek()`).
+#[test]
+fn german_time_and_week_start() {
+    // A Monday.
+    let now = chrono::NaiveDate::from_ymd_opt(2026, 11, 23).unwrap().and_hms_opt(4, 54, 18).unwrap();
+    for (tag, start) in [("de", "2026-11-22"), ("de_DE", "2026-11-23"), ("de_AT", "2026-11-23"), ("de_CH", "2026-11-23")] {
+        let locale = ferroreport::format::Locale::from_tag(tag);
+        let env = EvalEnv { locale, groovy: false, now };
+        let run = |src: &str| format_value(&eval(&parse_expr(src, false).unwrap(), &Empty, &env).unwrap(), None, locale);
+        assert_eq!(run("TIME(10, 30, 15)"), "10:30:15 UTC", "{tag}");
+        assert_eq!(run("TIME(23, 5, 9)"), "23:05:09 UTC", "{tag}");
+        assert_eq!(run("DATEFORMAT(DATERANGE(\"WEEK\").getStart(), \"yyyy-MM-dd\")"), start, "{tag}");
+    }
+}
