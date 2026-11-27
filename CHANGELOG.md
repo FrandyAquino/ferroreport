@@ -33,6 +33,10 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   ticks, labels only where intervals end, the value with its units under the center, the
   needle only for a value in range, and JFreeChart's colors and fonts where the template sets
   none. The `shape` (pie, chord, circle) and a JRXML 7 `<tickLabelFont>` are read.
+- Portuguese number and date formats, as Java 21 has them: `pt`, `pt_BR` and `pt_PT` (other `pt_`
+  tags take pt_PT's), with their separators (a no-break space between groups in Portugal),
+  currency, month and day names, AM/PM ("da manhã" / "da tarde" in Portugal), short date and
+  time and `TIME()` without a pattern. Before, these locales printed `en_US`'s.
 
 ## 1.3.0
 
