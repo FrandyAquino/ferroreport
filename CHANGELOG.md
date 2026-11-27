@@ -4,6 +4,13 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 [semantic versioning](https://semver.org); what that covers is in the README under
 [Stability](README.md#stability).
 
+## Unreleased
+
+- A subreport, list or table whose report prints nothing (no rows, `whenNoDataType="NoPages"`)
+  is blank even when its report has a page footer, so `removeLineWhenBlank` removes its line
+  as in JasperReports. Its page footer used to count as content. JasperReports'
+  subreport/MasterReport sample now lays its cities out 30 points apart, as JasperReports does.
+
 ## 1.3.0
 
 Paragraph indents and tab stops, JasperReports font extensions, simulated bold and italic, a

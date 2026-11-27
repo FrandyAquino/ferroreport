@@ -4559,8 +4559,10 @@ fn fill_flow_inner(
     if !marks.is_empty() && report.margins.bottom > 0.0 {
         segments.push(Segment { height: report.margins.bottom, items: Vec::new(), header: false, footer: false });
     }
-    // The page footer for the pages this content continues past (see `Segment::footer`).
-    if let Some(pf) = &report.page_footer {
+    // The page footer for the pages this content continues past (see `Segment::footer`). A
+    // report that printed nothing (no rows and `whenNoDataType="NoPages"`) has no pages to
+    // continue past: it stays empty, so a subreport of it is blank (isRemoveLineWhenBlank).
+    if let Some(pf) = report.page_footer.as_ref().filter(|_| !marks.is_empty()) {
         if let Some(l) = filler.layout(pf, Values::Committed)? {
             let items = l
                 .items
