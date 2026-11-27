@@ -2036,7 +2036,7 @@ impl Parser {
             remove_line_when_blank: attr(re, &["isRemoveLineWhenBlank", "removeLineWhenBlank"]).is_some_and(parse_bool),
             print_when_detail_overflows: attr(re, &["isPrintWhenDetailOverflows", "printWhenDetailOverflows"])
                 .is_some_and(parse_bool),
-            print_repeated_values: !attr(re, &["isPrintRepeatedValues", "printRepeatedValues"]).is_some_and(|v| !parse_bool(v)),
+            print_repeated_values: attr(re, &["isPrintRepeatedValues", "printRepeatedValues"]).is_none_or(parse_bool),
             print_in_first_whole_band: attr(re, &["isPrintInFirstWholeBand", "printInFirstWholeBand"]).is_some_and(parse_bool),
             print_when_group_changes: re.attr("printWhenGroupChanges").map(str::to_string),
             conditional,
