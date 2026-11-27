@@ -91,6 +91,9 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   defaults already are. On a machine in another zone, expressions that use the Java runtime's
   own zone (`new SimpleDateFormat(...)`, `HOUR`, `DATEFORMAT`) came out shifted in
   JasperReports only and were reported as differences.
+- Examples: a bank account statement (`examples/bank-statement/`), with a running balance,
+  debit and credit columns, monthly groups with totals and a closing summary. It renders the
+  same as in JasperReports 7.1.1.
 
 ## 1.3.0
 
