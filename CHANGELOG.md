@@ -6,6 +6,11 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 
 ## Unreleased
 
+- Icon labels place their label and icon where `hAlign` and `vAlign` say (or the
+  `hImageAlign` and `vImageAlign` of the element's style), as JasperReports 7 does: side by side
+  as one block left, centered or right, each at the top, middle or bottom; one above the other,
+  each left, centered or right, as one block up and down. JasperReports' iconlabel sample now
+  comes out the same.
 - A text narrower than its characters, broken one character a line, no longer ends with an
   empty line: a stretching text field 6 points wide with `Ab` is two lines tall, as in
   JasperReports, not three.

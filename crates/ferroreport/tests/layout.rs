@@ -162,3 +162,45 @@ fn icon_labels_are_sized_as_jasperreports_measures_them() {
     assert!(ys.windows(2).all(|w| w[0] < w[1]), "{ys:?}");
     assert!((ys[2] - ys[1] - 19.50).abs() < 0.05, "{ys:?}");
 }
+
+#[test]
+fn icon_labels_align_their_label_and_icon() {
+    // Stretched with the band by the text field at the end, so that up and down shows. Where
+    // JasperReports 7.1.1 draws each text (pdftotext -bbox, x and the bottom of the glyphs less
+    // DejaVu's descent): centered and in the middle, at the right and the bottom, and one above
+    // the other at the bottom (the icon, last, wrapped).
+    let stretched = |x, width, height, attrs, label| {
+        icon_label(x, width, height, attrs, label).replacen(
+            r#"<element kind="component""#,
+            r#"<element kind="component" stretchType="ContainerHeight""#,
+            1,
+        )
+    };
+    let template = format!(
+        r#"<jasperReport name="t" pageWidth="400" pageHeight="200" columnWidth="360" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+        <title height="20">{}{}{}<element kind="textField" x="345" y="0" width="15" height="20" fontName="DejaVu Sans" fontSize="8.0" textAdjust="StretchHeight">
+            <expression><![CDATA["1\n2\n3\n4\n5\n6\n7\n8"]]></expression></element></title></jasperReport>"#,
+        stretched(0.0, 150.0, 20.0, r#"iconPosition="End" labelFill="None" hAlign="Center" vAlign="Middle""#, "Label"),
+        stretched(160.0, 150.0, 20.0, r#"iconPosition="Start" labelFill="None" hAlign="Right" vAlign="Bottom""#, "Right"),
+        stretched(320.0, 20.0, 10.0, r#"iconPosition="End" hAlign="Center" vAlign="Bottom""#, "Ab"),
+    );
+    let all = placed_lines(&template);
+    // DejaVu's descent (0.2358 em) at 8 and 10 points.
+    let (small, big) = (1.887, 2.358);
+    let jasper = [
+        ("Label", 72.0, 60.35 - small),
+        ("Right", 300.0, 86.35 - small),
+        ("A", 346.0, 36.35 - small),
+        ("b", 346.0, 45.66 - small),
+        ("»", 346.0, 66.68 - big),
+        ("«", 346.0, 78.32 - big),
+    ];
+    for (text, x, baseline) in jasper {
+        let l = all.iter().find(|l| l.2 == text).unwrap_or_else(|| panic!("{text}: {all:?}"));
+        assert!((l.0 - x).abs() < 0.01 && (l.1 - baseline).abs() < 0.05, "{text}: {l:?}, not ({x}, {baseline})");
+    }
+    let icons: Vec<(f32, f32)> = all.iter().filter(|l| l.2 == "»«").map(|l| (l.0, l.1)).collect();
+    assert_eq!(icons.len(), 2, "{all:?}");
+    assert!((icons[0].0 - 105.0).abs() < 0.01 && (icons[0].1 - (62.68 - big)).abs() < 0.05, "{icons:?}");
+    assert!((icons[1].0 - 278.0).abs() < 0.01 && (icons[1].1 - (88.68 - big)).abs() < 0.05, "{icons:?}");
+}

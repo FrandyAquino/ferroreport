@@ -249,6 +249,9 @@ struct StyleProps {
     mode: Option<Mode>,
     halign: Option<HAlign>,
     valign: Option<VAlign>,
+    /// `hImageAlign` and `vImageAlign` of a style, as written (icon labels take them).
+    himage: Option<String>,
+    vimage: Option<String>,
     line_spacing: Option<String>,
     line_spacing_size: Option<f32>,
     first_line_indent: Option<i32>,
@@ -288,6 +291,8 @@ impl StyleProps {
             mode,
             halign,
             valign,
+            himage,
+            vimage,
             line_spacing,
             line_spacing_size,
             first_line_indent,
@@ -416,6 +421,8 @@ impl StyleProps {
         let mut s = StyleProps::default();
         s.read_font_attrs(n);
         s.read_alignment(n);
+        s.himage = attr(n, &["hImageAlign", "horizontalImageAlign"]).map(str::to_string);
+        s.vimage = attr(n, &["vImageAlign", "verticalImageAlign"]).map(str::to_string);
         s.read_colors(n);
         if let Some(v) = n.attr("pattern") {
             s.pattern = Some(v.to_string());
@@ -2232,7 +2239,16 @@ impl Parser {
                 // A label and an icon, drawn as a frame of their two text fields (see
                 // `crate::iconlabel`): the filler measures them and places them.
                 let c = component_node(n, "iconLabel").unwrap_or(n);
-                let settings = crate::iconlabel::Settings::read(&|a| c.attr(a).map(str::to_string));
+                // The alignment is the component's own (`hAlign`, or `horizontalAlignment` in
+                // JRXML 6), else its element style's image alignment.
+                let settings = crate::iconlabel::Settings::read(&|a| {
+                    let (names, style): (&[&str], _) = match a {
+                        "hAlign" => (&["hAlign", "horizontalAlignment"], &props.himage),
+                        "vAlign" => (&["vAlign", "verticalAlignment"], &props.vimage),
+                        _ => (&[a], &None),
+                    };
+                    attr(c, names).map(str::to_string).or_else(|| style.clone())
+                });
                 let mut children = Vec::new();
                 for part in ["label", "icon"] {
                     // JRXML 6: <label> and <icon>, each holding a text field. JRXML 7: the text
@@ -2591,15 +2607,17 @@ mod tests {
     #[test]
     fn icon_labels_of_both_versions() {
         let v6 = r#"<jasperReport xmlns:c="http://jasperreports.sourceforge.net/jasperreports/components" name="t" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
-            <title><band height="30"><componentElement><reportElement x="0" y="5" width="200" height="10"/>
-            <c:iconLabel iconPosition="Start">
+            <style name="s" vImageAlign="Middle"/>
+            <title><band height="30"><componentElement><reportElement x="0" y="5" width="200" height="10" style="s"/>
+            <c:iconLabel iconPosition="Start" horizontalAlignment="Right">
               <c:label><textField textAdjust="StretchHeight"><reportElement x="0" y="0" width="1" height="1"/><textElement><font size="8.0"/></textElement>
                 <textFieldExpression><![CDATA["This is it!"]]></textFieldExpression></textField></c:label>
               <c:icon><textField><reportElement x="0" y="0" width="1" height="1"/><textFieldExpression><![CDATA[""]]></textFieldExpression></textField></c:icon>
             </c:iconLabel></componentElement></band></title></jasperReport>"#;
         let v7 = r#"<jasperReport name="t" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
-            <title height="30"><element kind="component" x="0" y="5" width="200" height="10">
-            <component kind="iconLabel" iconPosition="Start">
+            <style name="s" vImageAlign="Middle"/>
+            <title height="30"><element kind="component" x="0" y="5" width="200" height="10" style="s">
+            <component kind="iconLabel" iconPosition="Start" hAlign="Right">
               <labelTextField x="0" y="0" width="1" height="1" fontSize="8.0" textAdjust="StretchHeight">
                 <expression><![CDATA["This is it!"]]></expression><box padding="5"><pen lineWidth="1.0"/></box></labelTextField>
               <iconTextField x="0" y="0" width="1" height="1"><expression><![CDATA[""]]></expression></iconTextField>
@@ -2609,9 +2627,16 @@ mod tests {
             let el = &r.title.as_ref().unwrap().elements[0];
             assert_eq!((el.x, el.y, el.width, el.height), (0.0, 5.0, 200.0, 10.0), "{version}");
             let ElementKind::Frame { children, .. } = &el.kind else { panic!("{version}: {:?}", el.kind) };
-            // The label and the icon as designed (the filler places them), and the settings.
+            // The label and the icon as designed (the filler places them), and the settings: the
+            // vertical alignment from the vImageAlign of the element's style.
             let Some((settings, label, icon)) = crate::iconlabel::of(children) else { panic!("{version}: {children:?}") };
-            assert_eq!(settings, crate::iconlabel::Settings::read(&|a| (a == "iconPosition").then(|| "Start".into())));
+            let written = |a: &str| match a {
+                "iconPosition" => Some("Start".to_string()),
+                "hAlign" => Some("Right".to_string()),
+                "vAlign" => Some("Middle".to_string()),
+                _ => None,
+            };
+            assert_eq!(settings, crate::iconlabel::Settings::read(&written), "{version}");
             assert_eq!((label.x, label.width, label.height), (0.0, 1.0, 1.0), "{version}");
             let ElementKind::Text(t) = &label.kind else { panic!("{version}") };
             assert_eq!(t.style.font.size, 8.0, "{version}");

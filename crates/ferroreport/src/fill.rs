@@ -1130,16 +1130,18 @@ fn prepare_icon_label(
     Ok(crate::iconlabel::prepare(el.width, el.height, boxed.padding, f32::INFINITY, &fields, &mut measure))
 }
 
-/// The label and the icon of an icon label placed in its frame, finally `height` tall.
+/// The label and the icon of an icon label placed in its frame, `width` wide and finally
+/// `height` tall.
 fn icon_label_children(
     settings: crate::iconlabel::Settings,
     prepared: &crate::iconlabel::Prepared,
     boxed: &BoxStyle,
     label: &Element,
     icon: &Element,
+    width: f32,
     height: f32,
 ) -> Vec<Element> {
-    let placed = crate::iconlabel::place(settings, prepared, boxed.padding, height);
+    let placed = crate::iconlabel::place(settings, prepared, width, boxed.padding, height);
     let put = |e: &Element, [x, y, w, h]: [f32; 4]| {
         let mut e = e.clone();
         // Inside the frame's padding (exporters offset a frame's elements by it); the fields
@@ -1574,7 +1576,7 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
                     // that height.
                     let prepared = prepare_icon_label(le, el, boxed, label, icon)?;
                     m.new_h = el.height.max(prepared.height);
-                    let fields = icon_label_children(settings, &prepared, boxed, label, icon, prepared.height);
+                    let fields = icon_label_children(settings, &prepared, boxed, label, icon, el.width, prepared.height);
                     let inner = layout_elements(le, &fields, prepared.height, None)?;
                     printed_values.extend(inner.printed_values.iter().cloned());
                     returns.extend(inner.returns.iter().cloned());
@@ -2080,7 +2082,7 @@ fn layout_elements(le: &mut LayoutEnv, original: &[Element], design_h: f32, avai
                 // component after giving it its final height.
                 if let (Some((settings, prepared)), Some((_, label, icon))) = (&m.icon_label, crate::iconlabel::of(children)) {
                     if (h - prepared.height).abs() > 1e-3 {
-                        let fields = icon_label_children(*settings, prepared, boxed, label, icon, h);
+                        let fields = icon_label_children(*settings, prepared, boxed, label, icon, w, h);
                         m.children = Some(layout_elements(le, &fields, h, None)?);
                     }
                 }

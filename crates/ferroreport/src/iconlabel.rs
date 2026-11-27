@@ -21,9 +21,16 @@
 //!   label and the icon then take the taller of their two heights.
 //! - `iconPosition`: `Start` puts the icon before the label (left of it, or above), anything
 //!   else (`End`, the default) after it.
+//! - `hAlign` and `vAlign` (`Left` and `Top` by default, or the `hImageAlign` and
+//!   `vImageAlign` of the element's style) place the label and the icon inside the padding: side
+//!   by side, the two as one block across and each on its own up and down; one above the other,
+//!   each on its own across and the two as one block up and down. Centering drops the fraction
+//!   of a point (Java's integer division). Up and down count from the component's final height,
+//!   so they only show in an element stretched past what it asked for (by its container), or in
+//!   one above the other.
 
 use crate::expr::Expr;
-use crate::model::{BoxStyle, Color, Element, ElementKind, Mode, Padding, PositionType, StretchType};
+use crate::model::{BoxStyle, Color, Element, ElementKind, HAlign, Mode, Padding, PositionType, StretchType, VAlign};
 use crate::value::Value;
 
 /// Where the icon goes (`iconPosition`).
@@ -53,10 +60,14 @@ impl LabelFill {
 }
 
 /// The settings of an icon label.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct Settings {
     pub icon_position: IconPosition,
     pub label_fill: LabelFill,
+    /// Where the label and the icon go inside the padding (`hAlign`, `vAlign`): left, center or
+    /// right; top, middle or bottom.
+    pub halign: HAlign,
+    pub valign: VAlign,
 }
 
 impl Settings {
@@ -73,11 +84,24 @@ impl Settings {
                 Some("Both") => LabelFill::Both,
                 _ => LabelFill::None,
             },
+            halign: match attr("hAlign").as_deref() {
+                Some("Center") => HAlign::Center,
+                Some("Right") => HAlign::Right,
+                _ => HAlign::Left,
+            },
+            valign: match attr("vAlign").as_deref() {
+                Some("Middle") => VAlign::Middle,
+                Some("Bottom") => VAlign::Bottom,
+                _ => VAlign::Top,
+            },
         }
     }
 
     fn write(self) -> String {
-        format!("iconPosition={:?} labelFill={:?}", self.icon_position, self.label_fill)
+        format!(
+            "iconPosition={:?} labelFill={:?} hAlign={:?} vAlign={:?}",
+            self.icon_position, self.label_fill, self.halign, self.valign
+        )
     }
 
     fn parse(s: &str) -> Settings {
@@ -250,9 +274,13 @@ pub(crate) struct Placed {
 /// Places the label and the icon of an icon label `width` wide and finally `height` tall (its
 /// height after stretching, which JasperReports gives the component before filling it), with
 /// the `padding` of its box: `IconLabelComponentFill.fillHorizontal` and `fillVertical`.
-pub(crate) fn place(s: Settings, p: &Prepared, padding: Padding, height: f32) -> Placed {
+pub(crate) fn place(s: Settings, p: &Prepared, width: f32, padding: Padding, height: f32) -> Placed {
     let start = s.icon_position == IconPosition::Start;
+    let inner_width = width - p.left - p.right;
     let inner_height = height - padding.top - padding.bottom;
+    // What is left around a block `size` long in `room`, halved and rounded down as Java's
+    // integer division does (every length here is a whole number of points).
+    let half = |room: f32, size: f32| ((room - size) / 2.0).trunc();
     let (label, icon) = if !p.vertical {
         let mut lw = p.label_width;
         if !s.label_fill.horizontal() {
@@ -265,8 +293,21 @@ pub(crate) fn place(s: Settings, p: &Prepared, padding: Padding, height: f32) ->
         }
         let iw = (p.icon.text_width + p.icon_padding).ceil();
         let common = lh.max(p.icon.height);
-        let (lx, ix) = if start { (iw + p.middle, 0.0) } else { (0.0, lw + p.middle) };
-        ([lx, 0.0, lw, common], [ix, 0.0, iw, common])
+        // Across, the label, the middle padding and the icon as one block.
+        let block = lw + p.middle + iw;
+        let first = match s.halign {
+            HAlign::Center => half(inner_width, block),
+            HAlign::Right => inner_width - block,
+            _ => 0.0,
+        };
+        let (lx, ix) = if start { (first + iw + p.middle, first) } else { (first, first + lw + p.middle) };
+        // Up and down, each on its own (both are as tall).
+        let y = match s.valign {
+            VAlign::Middle => half(inner_height, common),
+            VAlign::Bottom => inner_height - common,
+            VAlign::Top => 0.0,
+        };
+        ([lx, y, lw, common], [ix, y, iw, common])
     } else {
         let (lw, iw) = (p.label_width, p.icon_width);
         let mut lh = p.label.height;
@@ -274,8 +315,21 @@ pub(crate) fn place(s: Settings, p: &Prepared, padding: Padding, height: f32) ->
             lh = lh.max(inner_height - (p.icon.height + p.middle));
         }
         let ih = p.icon.height;
-        let (ly, iy) = if start { (ih + p.middle, 0.0) } else { (0.0, lh + p.middle) };
-        ([0.0, ly, lw, lh], [0.0, iy, iw, ih])
+        // Across, each on its own.
+        let x = |w: f32| match s.halign {
+            HAlign::Center => half(inner_width, w),
+            HAlign::Right => inner_width - w,
+            _ => 0.0,
+        };
+        // Up and down, the label, the middle padding and the icon as one block.
+        let block = lh + p.middle + ih;
+        let first = match s.valign {
+            VAlign::Middle => half(inner_height, block),
+            VAlign::Bottom => inner_height - block,
+            VAlign::Top => 0.0,
+        };
+        let (ly, iy) = if start { (first + ih + p.middle, first) } else { (first, first + lh + p.middle) };
+        ([x(lw), ly, lw, lh], [x(iw), iy, iw, ih])
     };
     Placed { label, icon: p.icon_visible.then_some(icon) }
 }
@@ -298,12 +352,16 @@ mod tests {
     }
 
     fn settings(icon_position: IconPosition, label_fill: LabelFill) -> Settings {
-        Settings { icon_position, label_fill }
+        aligned(icon_position, label_fill, HAlign::Left, VAlign::Top)
+    }
+
+    fn aligned(icon_position: IconPosition, label_fill: LabelFill, halign: HAlign, valign: VAlign) -> Settings {
+        Settings { icon_position, label_fill, halign, valign }
     }
 
     #[test]
     fn the_settings_go_with_the_frame() {
-        let s = settings(IconPosition::Start, LabelFill::Both);
+        let s = aligned(IconPosition::Start, LabelFill::Both, HAlign::Center, VAlign::Bottom);
         assert_eq!(Settings::parse(&s.write()), s);
         let defaults = Settings::read(&|_| None);
         assert_eq!(defaults, settings(IconPosition::End, LabelFill::None));
@@ -320,15 +378,15 @@ mod tests {
         assert_eq!(p.height, 54.0);
 
         // labelFill="None": the label shrinks to its text (40 + 10 + 3), the icon follows it.
-        let placed = place(settings(IconPosition::End, LabelFill::None), &p, PADDING, 54.0);
+        let placed = place(settings(IconPosition::End, LabelFill::None), &p, 200.0, PADDING, 54.0);
         assert_eq!(placed.label, [0.0, 0.0, 53.0, 34.0]);
         assert_eq!(placed.icon, Some([59.0, 0.0, 57.0, 34.0]));
         // labelFill="Horizontal": the label keeps its 118, after the icon at the start.
-        let placed = place(settings(IconPosition::Start, LabelFill::Horizontal), &p, PADDING, 54.0);
+        let placed = place(settings(IconPosition::Start, LabelFill::Horizontal), &p, 200.0, PADDING, 54.0);
         assert_eq!(placed.label, [63.0, 0.0, 118.0, 34.0]);
         assert_eq!(placed.icon, Some([0.0, 0.0, 57.0, 34.0]));
         // labelFill="Vertical" in an element stretched to 100: both as tall as its inside.
-        let placed = place(settings(IconPosition::End, LabelFill::Vertical), &p, PADDING, 100.0);
+        let placed = place(settings(IconPosition::End, LabelFill::Vertical), &p, 200.0, PADDING, 100.0);
         assert_eq!(placed.label, [0.0, 0.0, 53.0, 80.0]);
         assert_eq!(placed.icon, Some([59.0, 0.0, 57.0, 80.0]));
     }
@@ -340,10 +398,10 @@ mod tests {
         assert!(p.vertical && p.icon_visible);
         assert_eq!((p.label_width, p.icon_width, p.middle), (40.0, 40.0, 6.0));
         assert_eq!(p.height, 20.0 + 6.0 + 34.0 + 20.0);
-        let placed = place(settings(IconPosition::End, LabelFill::None), &p, PADDING, p.height);
+        let placed = place(settings(IconPosition::End, LabelFill::None), &p, 60.0, PADDING, p.height);
         assert_eq!(placed.label, [0.0, 0.0, 40.0, 20.0]);
         assert_eq!(placed.icon, Some([0.0, 26.0, 40.0, 34.0]));
-        let placed = place(settings(IconPosition::Start, LabelFill::None), &p, PADDING, p.height);
+        let placed = place(settings(IconPosition::Start, LabelFill::None), &p, 60.0, PADDING, p.height);
         assert_eq!(placed.label, [0.0, 40.0, 40.0, 20.0]);
         assert_eq!(placed.icon, Some([0.0, 0.0, 40.0, 34.0]));
         // A label that does not stretch leaves the icon the element's own height: none here.
@@ -351,7 +409,40 @@ mod tests {
         let p = prepare(60.0, 10.0, PADDING, f32::INFINITY, &fixed, &mut measure);
         assert!(p.vertical && !p.icon_visible);
         assert_eq!(p.height, 40.0);
-        assert_eq!(place(settings(IconPosition::End, LabelFill::None), &p, PADDING, 40.0).icon, None);
+        assert_eq!(place(settings(IconPosition::End, LabelFill::None), &p, 60.0, PADDING, 40.0).icon, None);
+    }
+
+    #[test]
+    fn side_by_side_they_align_as_one_block_across_and_each_up_and_down() {
+        let p = prepare(200.0, 10.0, PADDING, f32::INFINITY, &FIELDS, &mut measure);
+        let at = |pos, fill, h, v, height| {
+            let placed = place(aligned(pos, fill, h, v), &p, 200.0, PADDING, height);
+            (placed.label[0], placed.label[1], placed.icon.map(|i| (i[0], i[1])))
+        };
+        use IconPosition::*;
+        // The label (53), the middle (6) and the icon (57): 116 of the 180 inside the padding.
+        assert_eq!(at(End, LabelFill::None, HAlign::Center, VAlign::Top, 54.0), (32.0, 0.0, Some((91.0, 0.0))));
+        assert_eq!(at(End, LabelFill::None, HAlign::Right, VAlign::Top, 54.0), (64.0, 0.0, Some((123.0, 0.0))));
+        assert_eq!(at(Start, LabelFill::None, HAlign::Right, VAlign::Top, 54.0), (127.0, 0.0, Some((64.0, 0.0))));
+        // A block a point wider than the room: centering rounds -0.5 to 0, as Java does.
+        assert_eq!(at(End, LabelFill::Horizontal, HAlign::Center, VAlign::Top, 54.0), (0.0, 0.0, Some((124.0, 0.0))));
+        // 34 tall in 80: 23 down in the middle, 46 at the bottom.
+        assert_eq!(at(End, LabelFill::None, HAlign::Left, VAlign::Middle, 100.0), (0.0, 23.0, Some((59.0, 23.0))));
+        assert_eq!(at(End, LabelFill::None, HAlign::Left, VAlign::Bottom, 100.0), (0.0, 46.0, Some((59.0, 46.0))));
+    }
+
+    #[test]
+    fn one_above_the_other_they_align_as_one_block_up_and_down() {
+        // The label (20), the middle (6) and the icon (34): 60 of the 80 inside the padding.
+        let p = prepare(60.0, 10.0, PADDING, f32::INFINITY, &FIELDS, &mut measure);
+        let at = |pos, v| {
+            let placed = place(aligned(pos, LabelFill::None, HAlign::Center, v), &p, 60.0, PADDING, 100.0);
+            (placed.label[1], placed.icon.map(|i| i[1]))
+        };
+        assert_eq!(at(IconPosition::End, VAlign::Middle), (10.0, Some(36.0)));
+        assert_eq!(at(IconPosition::Start, VAlign::Middle), (50.0, Some(10.0)));
+        assert_eq!(at(IconPosition::End, VAlign::Bottom), (20.0, Some(46.0)));
+        assert_eq!(at(IconPosition::Start, VAlign::Bottom), (60.0, Some(20.0)));
     }
 
     #[test]
