@@ -104,6 +104,13 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 - Website: the home page and the documentation are also in Spanish, at `/es/` and
   `/es/docs.html`, with an EN / ES switch in the menu of every page and the same section anchors
   in both languages.
+- JasperReports' own samples measured again with `tools/samples.py` (`docs/samples.md`,
+  `docs/samples-7.1.1.md`): against JasperReports 7.1.1, 74 of the 101 templates that can be
+  compared come out the same (73 before), 19 differ and 8 are not rendered (the 8 that call
+  Java classes shipped with their sample); against 6.20.6, 41 of 88 are the same (34 before),
+  41 differ and 6 are not rendered (15 before). `tools/samples.py --tag 7.1.1` fetches the
+  samples from the repository's top-level `demo/` folder, where JasperReports 7 keeps them, and
+  takes a relative `--samples` folder.
 - ODS: per-mille patterns such as `#,##0.0‰` stay formatted text, as in JasperReports, even
   when cell type detection is enabled. This preserves `12.3‰` for `0.0123` in LibreOffice,
   which ignores the numeric display factor needed to scale it. A quoted `‰` stays literal

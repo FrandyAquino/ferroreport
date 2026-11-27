@@ -672,12 +672,12 @@ checked.
 
 | Result | 6.20.6 | 7.1.1 |
 |---|---|---|
-| The same pages | 34 | 73 |
-| Both render it, the pages differ | 39 | 20 |
-| ferroreport refuses it or fails on it | 15 | 8 |
+| The same pages | 41 | 74 |
+| Both render it, the pages differ | 41 | 19 |
+| ferroreport refuses it or fails on it | 6 | 8 |
 | JasperReports cannot render it from rows and parameters alone (it needs the sample's Java objects, a database connection or other files), so there is nothing to compare | 52 | 70 |
 
-So 34 of the 88 6.20.6 samples that can be compared come out the same, and 73 of the 101 7.1.1
+So 41 of the 88 6.20.6 samples that can be compared come out the same, and 74 of the 101 7.1.1
 ones (JasperReports 6.20.6 runs on Java 17 there, where its Groovy works). [Every 6.20.6 template with its result and the reason](docs/samples.md), and [every
 7.1.1 one](docs/samples-7.1.1.md). Charts are drawn as JasperReports 7.1 draws them: 20 of the
 24 7.1.1 chart samples are the same (not the one with a chart customizer, the meter, the
