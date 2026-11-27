@@ -20,6 +20,11 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
 - Icon labels written in the JasperReports 7 form, with `<labelTextField>` and
   `<iconTextField>` straight inside the component, are drawn. They were left out, so the
   component printed nothing.
+- French number and date formats, as Java 21 has them: `fr`, `fr_FR`, `fr_BE`, `fr_CA` and
+  `fr_CH` (other `fr_` tags take fr_FR's), with their separators (a narrow no-break space
+  between groups, a no-break space in Canada), currency, month and day names, AM/PM and short
+  date and time. A currency pattern in French Switzerland takes a point as its decimal
+  separator, as Java does. Before, these locales printed `en_US`'s.
 
 ## 1.3.0
 

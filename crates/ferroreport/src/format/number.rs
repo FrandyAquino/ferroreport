@@ -12,6 +12,8 @@ struct Affix {
     text: String,
     percent: bool,
     permille: bool,
+    /// It has a currency sign (`¤`): the number takes the monetary decimal separator.
+    currency: bool,
 }
 
 /// A compiled `DecimalFormat` pattern.
@@ -29,7 +31,7 @@ pub struct NumberPattern {
 }
 
 fn parse_affix(s: &str, locale: &Locale) -> Affix {
-    let mut out = Affix { text: String::new(), percent: false, permille: false };
+    let mut out = Affix { text: String::new(), percent: false, permille: false, currency: false };
     let mut chars = s.chars().peekable();
     while let Some(c) = chars.next() {
         match c {
@@ -54,7 +56,10 @@ fn parse_affix(s: &str, locale: &Locale) -> Affix {
                 out.permille = true;
                 out.text.push('\u{2030}');
             }
-            '\u{00A4}' => out.text.push_str(locale.currency_symbol),
+            '\u{00A4}' => {
+                out.currency = true;
+                out.text.push_str(locale.currency_symbol);
+            }
             _ => out.text.push(c),
         }
     }
@@ -184,7 +189,11 @@ impl NumberPattern {
             body.push_str(&int_str);
         }
         if !frac.is_empty() || self.decimal_always_shown {
-            body.push(locale.decimal_separator);
+            // Java's DecimalFormat takes it when the pattern has a `¤` anywhere.
+            let currency = [Some(&self.pos_prefix), Some(&self.pos_suffix), self.neg_prefix.as_ref(), self.neg_suffix.as_ref()]
+                .into_iter()
+                .any(|a| a.is_some_and(|a| a.currency));
+            body.push(if currency { locale.monetary_decimal_separator() } else { locale.decimal_separator });
             body.push_str(&frac);
         }
         let negative = negative && !is_zero;

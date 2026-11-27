@@ -14,10 +14,13 @@ use crate::value::Value;
 /// Formats a value for display in a text field, applying `pattern` when given.
 /// `DateFormat.getDateTimeInstance(SHORT, SHORT)` on Java 21.
 pub fn short_date_time(locale: &Locale) -> &'static str {
-    if locale.tag.starts_with("es") {
-        "d/M/yy, H:mm"
-    } else {
-        "M/d/yy, h:mm\u{202F}a"
+    match locale.tag {
+        "fr" | "fr_FR" => "dd/MM/y HH:mm",
+        "fr_BE" => "d/MM/yy HH:mm",
+        "fr_CA" => "y-MM-dd HH 'h' mm",
+        "fr_CH" => "dd.MM.yy HH:mm",
+        t if t.starts_with("es") => "d/M/yy, H:mm",
+        _ => "M/d/yy, h:mm\u{202F}a",
     }
 }
 
