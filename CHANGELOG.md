@@ -66,6 +66,11 @@ Every release of ferroreport, newest first. From 1.0.0 on, versions follow
   tags take pt_PT's), with their separators (a no-break space between groups in Portugal),
   currency, month and day names, AM/PM ("da manhã" / "da tarde" in Portugal), short date and
   time and `TIME()` without a pattern. Before, these locales printed `en_US`'s.
+- Italian number and date formats, as Java 21 has them: `it`, `it_IT` and `it_CH` (other `it_`
+  tags take it_IT's), with their separators (in Switzerland a point for decimals and `’` between
+  groups), currency, month and day names, short date and time, `TIME()` without a pattern, and
+  weeks starting on Monday in `DATERANGE("WEEK")` for Italy and Switzerland. Before, these
+  locales printed `en_US`'s.
 
 ## 1.3.0
 

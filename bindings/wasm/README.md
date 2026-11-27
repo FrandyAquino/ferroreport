@@ -49,7 +49,7 @@ const url = URL.createObjectURL(new Blob([pdf], { type: "application/pdf" }));
   - `template`: the JRXML source text.
   - `data`: array of row objects (or JSON text). Nested arrays feed subreports.
   - `params`: object with parameter values (or JSON text).
-  - `options.locale`: `en_US`, `es_DO`, `es_MX`, `es_ES`, `fr`, `fr_FR`, `fr_BE`, `fr_CA`, `fr_CH`, `pt`, `pt_BR`, `pt_PT`, ...
+  - `options.locale`: `en_US`, `es_DO`, `es_MX`, `es_ES`, `fr`, `fr_FR`, `fr_BE`, `fr_CA`, `fr_CH`, `pt`, `pt_BR`, `pt_PT`, `it`, `it_IT`, `it_CH`, ...
   - `options.resources`: `{ [path]: Uint8Array | string }` images (PNG, JPEG) and subreport
     templates (a subreport named `lines.jasper` is read from `lines.jrxml`).
   - `options.now`: value of `new Date()` in expressions (`Date` or ISO string).
