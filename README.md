@@ -273,21 +273,7 @@ as JasperReports given those rows. In Rust, implement `ferroreport::sql::Connect
 own pool and call `Renderer::connection` and `Renderer::render_query_to`.
 
 Queries in other languages (HQL, XPath, MDX, MongoDB...) and other databases (Oracle) are not
-run: hand the engine the rows your application reads, as they come. In Python:
-
-```python
-# pandas: hand over the DataFrame as JSON text. to_json writes NaN as null and dates as
-# ISO-8601; to_dict("records") would keep NaN, which is not valid JSON.
-pdf = ferroreport.render("orders.jrxml", df.to_json(orient="records", date_format="iso"))
-
-# Polars: to_dicts() gives plain Python values (None for nulls, datetime.date for dates)
-pdf = ferroreport.render("orders.jrxml", df.to_dicts())
-
-# SQLAlchemy: rows as dicts; a generator is read one row at a time
-with engine.connect() as conn:
-    result = conn.execute(text("select id, customer, placed, total from orders order by id"))
-    pdf = ferroreport.render("orders.jrxml", (dict(row) for row in result.mappings()))
-```
+run: hand the engine the rows your application reads, as they come:
 
 ```bash
 # PostgreSQL: one JSON object per row, straight into the report
@@ -310,6 +296,22 @@ reports.template(Path.of("sales.jrxml")).rows(statement.executeQuery("select * f
 cursor.execute("select region, amount from sales order by region")
 rows = (dict(zip(("region", "amount"), r)) for r in cursor)
 ferroreport.render_to_file("sales.jrxml", "sales.pdf", rows)
+```
+
+```python
+# pandas: hand over the DataFrame as JSON text. to_json writes NaN as null and dates as
+# ISO-8601; to_dict("records") would keep NaN, which is not valid JSON.
+pdf = ferroreport.render("orders.jrxml", df.to_json(orient="records", date_format="iso"))
+
+# Polars: to_dicts() gives plain Python values (None for nulls, datetime.date for dates)
+pdf = ferroreport.render("orders.jrxml", df.to_dicts())
+
+# SQLAlchemy: rows as dicts; a generator is read one row at a time
+from sqlalchemy import text
+
+with engine.connect() as conn:
+    result = conn.execute(text("select id, customer, placed, total from orders order by id"))
+    pdf = ferroreport.render("orders.jrxml", (dict(row) for row in result.mappings()))
 ```
 
 

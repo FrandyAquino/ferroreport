@@ -55,7 +55,15 @@ fn every_example_renders() {
         let template = if path.is_dir() {
             match ["report.jrxml", "report.ferro"].iter().map(|f| path.join(f)).find(|p| p.exists()) {
                 Some(t) => t,
-                None => continue,
+                None => {
+                    // A folder with a template under another name would be skipped silently.
+                    let templates = std::fs::read_dir(&path)
+                        .unwrap()
+                        .filter_map(|e| e.ok().map(|e| e.path()))
+                        .any(|p| p.extension().is_some_and(|e| e == "jrxml" || e == "ferro"));
+                    assert!(!templates, "{}: name its template report.jrxml or report.ferro", path.display());
+                    continue;
+                }
             }
         } else if path.extension().is_some_and(|e| e == "ferro") {
             path.clone()
@@ -66,8 +74,10 @@ fn every_example_renders() {
             (json(&path.join("data.json")), json(&path.join("params.json")))
         } else {
             let source = std::fs::read_to_string(&path).unwrap();
-            // A file of styles and parts to import, not a report.
-            if !source.lines().any(|l| l.trim_start().starts_with("report ")) {
+            // A file of styles and parts to import, not a report: its first line that is not a
+            // comment or blank starts with `styles` (or `jasperTemplate`).
+            let root = source.lines().map(str::trim).find(|l| !l.is_empty() && !l.starts_with("//"));
+            if root.is_some_and(|l| l.starts_with("styles") || l.starts_with("jasperTemplate")) {
                 continue;
             }
             (flat_rows(&dir, path.file_stem().unwrap().to_str().unwrap()), None)
@@ -76,7 +86,7 @@ fn every_example_renders() {
         assert!(pages > 0, "{}: no pages", template.display());
         rendered.push(path.file_name().unwrap().to_string_lossy().into_owned());
     }
-    // The examples the README links to are among them.
+    // The examples the documentation uses are among them, so the test cannot pass by skipping.
     for name in ["employees.ferro", "invoices.ferro", "invoices-short.ferro"] {
         assert!(rendered.iter().any(|r| r == name), "{name} was not rendered: {rendered:?}");
     }

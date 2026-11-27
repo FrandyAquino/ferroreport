@@ -206,6 +206,8 @@ pdf = ferroreport.render("orders.jrxml", df.to_json(orient="records", date_forma
 pdf = ferroreport.render("orders.jrxml", df.to_dicts())
 
 # SQLAlchemy: filas como dicts; un generador se lee fila por fila
+from sqlalchemy import text
+
 with engine.connect() as conn:
     result = conn.execute(text("select id, customer, placed, total from orders order by id"))
     pdf = ferroreport.render("orders.jrxml", (dict(row) for row in result.mappings()))
